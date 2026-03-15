@@ -1,5 +1,6 @@
 import { servicesService } from '@/services/services';
 import { appointmentsService } from '@/services/appointments';
+import { bookingStateOptions } from '@/lib/whatsapp/booking-state';
 import { loyaltyService } from '@/services/loyalty';
 import { promosService } from '@/services/promos';
 import { customersService } from '@/services/customers';
@@ -53,39 +54,87 @@ export async function handleFunctionCall(name: string, args: any, customerPhone:
             try {
                 const { service_id, date, time, customer_name, stylist_id, email } = args;
 
+                // 1. Get current slot memory
+                const currentSlots: any = await bookingStateOptions.getSlots(customerPhone) || {};
+
+                // 2. Merge new extracted slots
+                if (service_id) currentSlots.serviceId = service_id;
+                if (date) currentSlots.date = date;
+                if (time) currentSlots.time = time;
+                if (customer_name) currentSlots.customerName = customer_name;
+                
+                // 3. Save merged slots back to memory
+                currentSlots.lastInteraction = new Date().toISOString();
+                await bookingStateOptions.saveSlots(customerPhone, currentSlots as any);
+
+                // 4. Validate if we have everything
+                const validation = await bookingStateOptions.validateAndFormatSlots(currentSlots);
+
+                if (!validation.isComplete) {
+                    // Tell Gemini what's missing so it can ask the user naturally
+                    return { 
+                        status: "INCOMPLETE",
+                        message: "Please ask the user for the missing information.",
+                        missing_fields: validation.missingFields,
+                        current_known_slots: currentSlots
+                    };
+                }
+
+                // --- SLOTS ARE COMPLETE. PROCEED TO BOOKING --- //
+
                 // Ensure customer exists or create one
                 let customerId = customer?.id;
                 if (!customer) {
                     const newCustomer = await customersService.createCustomer({
-                        name: customer_name,
+                        name: customer_name || "WhatsApp Customer",
                         phone: customerPhone,
                         email: email
                     });
                     customerId = newCustomer.id;
                 }
 
-                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space';
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                               (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space'));
+                               
                 const bookRes = await fetch(`${baseUrl}/api/public/book`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         customer: {
-                            name: customer_name,
+                            name: customer?.name || customer_name || "WhatsApp Customer",
                             phone: customerPhone,
-                            email: email || null
+                            email: email || customer?.email || null
                         },
                         appointment: {
-                            service_id: service_id,
+                            service_id: currentSlots.serviceId as string,
                             stylist_id: stylist_id || 'NO_PREFERENCE',
-                            date: date,
-                            time: time
+                            date: currentSlots.date as string,
+                            time: currentSlots.time as string
                         }
                     })
                 });
 
                 const bookData = await bookRes.json();
-                return bookData;
+                
+                // Clear memory after successful attempt
+                await bookingStateOptions.saveSlots(customerPhone, null);
+
+                if (bookRes.ok) {
+                    return { 
+                        status: "SUCCESS", 
+                        message: `Successfully booked ${currentSlots.serviceName || 'your service'} on ${currentSlots.date} at ${currentSlots.time}. Please tell the user they are confirmed.`,
+                        appointmentDetails: bookData.data 
+                    };
+                } else {
+                    return { 
+                        status: "FAILED", 
+                        error: bookData.error || "Slot no longer available." 
+                    };
+                }
+                
             } catch (error: any) {
+                console.error("Booking slot error:", error);
                 return { error: error.message };
             }
 

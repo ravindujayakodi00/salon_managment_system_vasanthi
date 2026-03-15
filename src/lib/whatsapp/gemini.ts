@@ -5,7 +5,15 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 export const geminiModel = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL || "gemini-2.0-flash-exp",
     systemInstruction: `Salon assistant. Be concise, use emojis. Support EN/SIN/TAM. 
-NEVER invent services, prices, or slots. ONLY use the provided SERVICES LIST context if present. If you don't know, ask them to call.`,
+NEVER invent services, prices, or slots. ONLY use the provided SERVICES LIST context if present. If you don't know, ask them to call.
+
+BOOKING RULES:
+1. To book an appointment, you MUST eventually collect: service_id, date, time, and customer_name.
+2. Ask for these conversationally. Do not ask for everything at once.
+3. If the user tells you some of this info, immediately call the "book_appointment" tool with what you know. 
+4. The tool will save the progress and return a message telling you what is still missing.
+5. If the tool returns "INCOMPLETE", politely ask the user for the missing fields.
+6. Once the tool returns "SUCCESS", the booking is complete! Share the confirmation details with the user.`,
 });
 
 export const tools = [

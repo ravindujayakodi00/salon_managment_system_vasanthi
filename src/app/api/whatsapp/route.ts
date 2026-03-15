@@ -6,7 +6,6 @@ import crypto from 'crypto';
 import { geminiModel, tools } from '@/lib/whatsapp/gemini';
 import { handleFunctionCall } from '@/lib/whatsapp/function-handlers';
 import { conversationManager } from '@/lib/whatsapp/conversation-manager';
-import { bookingFlow } from '@/lib/whatsapp/booking-state';
 import { intentRouter } from '@/lib/whatsapp/intent-router';
 import { ragContext } from '@/lib/whatsapp/rag-context';
 
@@ -92,26 +91,20 @@ export async function POST(req: NextRequest) {
             if (!waToken) console.warn('⚠️ WHATSAPP_ACCESS_TOKEN/WHATSAPP_API_TOKEN is missing');
             if (!phoneId) console.warn('⚠️ WHATSAPP_PHONE_NUMBER_ID is missing');
 
-            // 1. Check Appointment Booking State
-            const bookingState = await bookingFlow.getState(from);
-            if (bookingState) {
-                console.log(`🚦 Continuing booking flow for ${from} in state: ${bookingState.status}`);
-                const handled = await bookingFlow.handleBookingFlow(from, text, bookingState);
-                if (handled) return NextResponse.json({ success: true });
-            }
-
-            // 2. Check Intent Router
+            // 1. Check Intent Router
             console.log('🧭 Checking intent router...');
             const intent = intentRouter.detectIntent(text);
             console.log(`🎯 Detected Intent: ${intent}`);
             
-            if (intent === 'START_BOOKING') {
-                await bookingFlow.startBooking(from);
+            // Note: START_BOOKING returns false so it falls through to the LLM
+            const routerHandled = await intentRouter.handleIntent(intent, from);
+            if (routerHandled) {
+                console.log('✅ Handled by intent router (0 tokens!)');
                 return NextResponse.json({ success: true });
             }
             
-            const routerHandled = await intentRouter.handleIntent(intent, from);
-            if (routerHandled) {
+            const routerHandledIntent = await intentRouter.handleIntent(intent, from);
+            if (routerHandledIntent) {
                 console.log('✅ Handled by intent router (0 tokens!)');
                 return NextResponse.json({ success: true });
             }

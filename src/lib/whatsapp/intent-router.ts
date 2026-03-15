@@ -2,6 +2,7 @@ import { sendWhatsAppMessage, createTextMessage, createButtonsMessage } from '@/
 import { servicesService } from '@/services/services';
 import { appointmentsService } from '@/services/appointments';
 import { customersService } from '@/services/customers';
+import { bookingStateOptions } from '@/lib/whatsapp/booking-state';
 
 type Intent = 'GREETING' | 'HELP' | 'SERVICES' | 'START_BOOKING' | 'MY_APPOINTMENTS' | 'CANCEL' | 'UNKNOWN';
 
@@ -49,6 +50,11 @@ export const intentRouter = {
             case 'MY_APPOINTMENTS':
                 await this.sendMyAppointments(phone);
                 return true;
+
+            case 'START_BOOKING':
+                // Clear any old, stale booking memory
+                await bookingStateOptions.saveSlots(phone, null);
+                return false; // Crucial: Return false so the webhook knows to pass this to Gemini AI to start the conversational flow
 
             default:
                 return false; // Let AI or state machine handle it
