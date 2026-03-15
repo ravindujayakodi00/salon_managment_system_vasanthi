@@ -29,13 +29,33 @@ export const bookingFlow = {
 
     async saveState(phone: string, state: AppointmentStateData | null) {
         const supabase = getAdminClient();
-        await supabase
+        
+        // Check if session exists first
+        const { data: existing } = await supabase
             .from('bot_sessions')
-            .update({ 
-                appointment_state: state,
-                state_updated_at: new Date().toISOString()
-            })
-            .eq('phone_number', phone);
+            .select('id')
+            .eq('phone_number', phone)
+            .single();
+
+        if (existing) {
+            await supabase
+                .from('bot_sessions')
+                .update({ 
+                    appointment_state: state as any,
+                    state_updated_at: new Date().toISOString()
+                })
+                .eq('phone_number', phone);
+        } else {
+            // Create the session if it doesn't exist yet (e.g. user typed 'book' as their very first message)
+            await supabase
+                .from('bot_sessions')
+                .insert({
+                    phone_number: phone,
+                    appointment_state: state as any,
+                    state_updated_at: new Date().toISOString(),
+                    conversation_history: []
+                });
+        }
     },
 
     async handleBookingFlow(phone: string, text: string, currentState: AppointmentStateData): Promise<boolean> {
@@ -266,29 +286,32 @@ export const bookingFlow = {
             return true;
         }
         
-        if (lowerText === 'yes' || lowerText === 'book_yes') {
+        if (lowerText === 'yes' || lowerText === 'book_yes' || lowerText.includes('yes confirm')) {
             // Process booking
             try {
-                // Ensure customer exists
+                // Ensure customer exists using the exact WhatsApp phone number
                 let customer = await customersService.getCustomerByPhone(phone);
-                let customerName = customer ? customer.name : "WhatsApp Customer";
                 
                 if (!customer) {
                     customer = await customersService.createCustomer({
-                        name: customerName,
-                        phone: phone
+                        name: "WhatsApp Customer",
+                        phone: phone // Ensure WhatsApp chatting number is used exclusively
                     });
                 }
 
-                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space';
+                // Call the internal booking API to leverage the dispatcher, branch assignment, SMS, and Email logic
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                               (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space'));
+                               
                 const bookRes = await fetch(`${baseUrl}/api/public/book`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         customer: {
-                            name: customerName,
-                            phone: phone,
-                            email: null
+                            name: customer.name,
+                            phone: phone, // This maps correctly
+                            email: customer.email || null
                         },
                         appointment: {
                             service_id: state.serviceId,
@@ -304,14 +327,15 @@ export const bookingFlow = {
                 await this.saveState(phone, null); // Clear state
 
                 if (bookRes.ok) {
-                    await sendWhatsAppMessage(phone, createTextMessage(`🎉 *Booking Confirmed!*\n\nSee you on ${state.date} at ${state.time} for your ${state.serviceName}.\n\nYour reference ID is: ${bookData.appointment?.id?.slice(0, 8) || 'N/A'}`));
+                    await sendWhatsAppMessage(phone, createTextMessage(`🎉 *Booking Confirmed!*\n\nSee you on ${state.date} at ${state.time} for your ${state.serviceName}.\n\nYour reference ID is: ${bookData.data?.appointmentId?.slice(0, 8) || 'N/A'}`));
                 } else {
                     await sendWhatsAppMessage(phone, createTextMessage(`Sorry, we couldn't confirm your booking: ${bookData.error || 'Slot no longer available'}. Please start over by typing 'book'.`));
                 }
+                
                 return true;
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Booking finalization error:', error);
-                await sendWhatsAppMessage(phone, createTextMessage("A technical error occurred while saving your booking. Please call us."));
+                await sendWhatsAppMessage(phone, createTextMessage(`A technical error occurred while saving your booking. Please try again or call us.`));
                 await this.saveState(phone, null);
                 return true;
             }

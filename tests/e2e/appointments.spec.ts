@@ -26,7 +26,7 @@ test.describe('Appointment Creation', () => {
         await page.locator('[class*="dropdown"] button').first().click();
 
         // Select service
-        await page.check('input[type="checkbox"]').first();
+        await page.locator('input[type="checkbox"]').first().check();
 
         // Select stylist
         await page.locator('select[name="stylist"]').selectOption({ index: 1 });
@@ -52,9 +52,9 @@ test.describe('Appointment Creation', () => {
         await page.locator('[class*="dropdown"] button').first().click();
 
         // Select multiple services
-        await page.check('input[type="checkbox"]').first();
-        await page.check('input[type="checkbox"]').nth(1);
-        await page.check('input[type="checkbox"]').nth(2);
+        await page.locator('input[type="checkbox"]').first().check();
+        await page.locator('input[type="checkbox"]').nth(1).check();
+        await page.locator('input[type="checkbox"]').nth(2).check();
 
         // Assign stylists for each service
         await page.locator('select').first().selectOption({ index: 1 });
@@ -81,7 +81,7 @@ test.describe('Appointment Creation', () => {
         await page.locator('[class*="dropdown"] button').first().click();
 
         // Select service
-        await page.check('input[type="checkbox"]').first();
+        await page.locator('input[type="checkbox"]').first().check();
 
         // Select "Any Professional"
         await page.locator('select[name="stylist"]').selectOption('any');
@@ -105,7 +105,7 @@ test.describe('Appointment Creation', () => {
 
         // Select services with conflicting times
         // (Assume service 1: 60min, service 2: 30min)await page.check('input[type="checkbox"]').first();
-        await page.check('input[type="checkbox"]').nth(1);
+        await page.locator('input[type="checkbox"]').nth(1).check();
 
         // Assign same stylist to both
         await page.locator('select').first().selectOption({ index: 1 });
