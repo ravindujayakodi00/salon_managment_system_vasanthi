@@ -63,8 +63,7 @@ export const tools = [
                         time: { type: "STRING", description: "HH:MM" },
                         stylist_id: { type: "STRING", description: "Optional stylist ID." },
                         email: { type: "STRING", description: "Optional customer email." },
-                    },
-                    required: ["customer_name", "service_id", "date", "time"],
+                    }
                 },
             },
             {
