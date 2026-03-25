@@ -13,6 +13,8 @@ import CalendarView from '@/components/appointments/CalendarView';
 import { AppointmentStatus } from '@/lib/types';
 import { formatTime, formatDate, cn, getLocalDateString } from '@/lib/utils';
 import { appointmentsService } from '@/services/appointments';
+import { useAuth } from '@/lib/auth';
+import { staffService } from '@/services/staff';
 
 const statusColors: Record<AppointmentStatus, string> = {
     Pending: 'bg-warning-100 text-warning-700 border-warning-200 dark:bg-warning-900/30 dark:text-warning-400',
@@ -22,6 +24,7 @@ const statusColors: Record<AppointmentStatus, string> = {
 };
 
 export default function AppointmentsPage() {
+    const { user } = useAuth();
     const [view, setView] = useState<'list' | 'calendar'>('calendar');
     const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +35,9 @@ export default function AppointmentsPage() {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [stylists, setStylists] = useState<any[]>([]);
+    const [stylistsLoading, setStylistsLoading] = useState(false);
+    const [selectedStylistId, setSelectedStylistId] = useState<string>('all');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -44,10 +50,31 @@ export default function AppointmentsPage() {
         'Cancelled',
     ];
 
+    const isStylist = user?.role === 'Stylist';
+
+    // Fetch stylists for dropdown (Owner/Manager/Receptionist use-case)
+    useEffect(() => {
+        const fetchStylists = async () => {
+            if (!user?.branchId || isStylist) return;
+            try {
+                setStylistsLoading(true);
+                const data = await staffService.getStylists(user.branchId);
+                setStylists(data || []);
+            } catch (err) {
+                console.error('Error fetching stylists:', err);
+                setStylists([]);
+            } finally {
+                setStylistsLoading(false);
+            }
+        };
+
+        fetchStylists();
+    }, [user?.branchId, isStylist]);
+
     // Fetch appointments
     useEffect(() => {
         fetchAppointments();
-    }, [selectedDate, selectedStatus, view]);
+    }, [selectedDate, selectedStatus, view, selectedStylistId]);
 
     const fetchAppointments = async () => {
         try {
@@ -63,6 +90,9 @@ export default function AppointmentsPage() {
 
             if (selectedStatus !== 'All') {
                 filters.status = selectedStatus;
+            }
+            if (selectedStylistId !== 'all') {
+                filters.stylistId = selectedStylistId;
             }
             const data = await appointmentsService.getAppointments(filters);
             setAppointments(data || []);
@@ -187,6 +217,28 @@ export default function AppointmentsPage() {
                             leftIcon={<Search className="h-4 w-4" />}
                         />
                     </div>
+
+                    {/* Stylist Dropdown Filter */}
+                    {!isStylist && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                Stylist
+                            </span>
+                            <select
+                                value={selectedStylistId}
+                                onChange={(e) => setSelectedStylistId(e.target.value)}
+                                disabled={stylistsLoading}
+                                className="w-56 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60"
+                            >
+                                <option value="all">All Stylists</option>
+                                {stylists.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* View Toggle - Compact */}
                     <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">

@@ -88,6 +88,12 @@ const navItems: NavItem[] = [
         allowedRoles: ['Owner', 'Manager', 'Stylist', 'Receptionist'],
     },
     {
+        label: 'Financial',
+        href: '/financial',
+        icon: Wallet,
+        allowedRoles: ['Owner', 'Manager', 'Stylist'],
+    },
+    {
         label: 'Petty Cash',
         href: '/petty-cash',
         icon: Wallet,

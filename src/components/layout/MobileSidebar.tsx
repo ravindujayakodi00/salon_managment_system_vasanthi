@@ -19,6 +19,7 @@ import {
     CreditCard,
     Settings,
     DollarSign,
+    Wallet,
     Target,
     Megaphone,
     LucideIcon,
@@ -82,6 +83,12 @@ const navItems: NavItem[] = [
         href: '/earnings',
         icon: DollarSign,
         allowedRoles: ['Owner', 'Manager', 'Stylist', 'Receptionist'],
+    },
+    {
+        label: 'Financial',
+        href: '/financial',
+        icon: Wallet,
+        allowedRoles: ['Owner', 'Manager', 'Stylist'],
     },
     {
         label: 'Customer Segments',
