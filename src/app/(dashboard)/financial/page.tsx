@@ -45,7 +45,7 @@ export default function FinancialPage() {
     const [advanceMax, setAdvanceMax] = useState<number>(0);
     const [advanceProcessing, setAdvanceProcessing] = useState(false);
 
-    const canCreateAdvance = user?.role === 'Owner' || user?.role === 'Manager' || user?.role === 'Stylist';
+    const canCreateAdvance = user?.role === 'Owner' || user?.role === 'Manager';
 
     const fetchFinancials = async () => {
         if (!user?.id || !user?.role) return;

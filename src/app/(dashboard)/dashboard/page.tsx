@@ -55,6 +55,21 @@ export default function DashboardPage() {
     const [togglingEmergency, setTogglingEmergency] = useState(false);
     const [staffId, setStaffId] = useState<string | null>(null);
 
+    const revenueTrendDelta = (() => {
+        if (!stats.revenueWeek || stats.revenueWeek.length < 2) return 0;
+        const latest = stats.revenueWeek[stats.revenueWeek.length - 1]?.revenue || 0;
+        const previous = stats.revenueWeek[stats.revenueWeek.length - 2]?.revenue || 0;
+        if (previous === 0) return latest > 0 ? 100 : 0;
+        return Number((((latest - previous) / previous) * 100).toFixed(1));
+    })();
+
+    const appointmentsTrendDelta = (() => {
+        const todayTotal = stats.todayAppointments || 0;
+        const doneToday = (stats.completed || 0) + (stats.cancelled || 0) + (stats.noShow || 0);
+        if (doneToday === 0) return todayTotal > 0 ? 100 : 0;
+        return Number((((todayTotal - doneToday) / doneToday) * 100).toFixed(1));
+    })();
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
@@ -299,13 +314,13 @@ export default function DashboardPage() {
                     title="Today's Revenue"
                     value={`Rs ${stats.todayRevenue.toLocaleString()}`}
                     icon={DollarSign}
-                    trend={{ value: 12.5, isPositive: true }}
+                    trend={{ value: Math.abs(revenueTrendDelta), isPositive: revenueTrendDelta >= 0 }}
                 />
                 <StatCard
                     title="Today's Appointments"
                     value={stats.todayAppointments}
                     icon={Calendar}
-                    trend={{ value: 8.2, isPositive: true }}
+                    trend={{ value: Math.abs(appointmentsTrendDelta), isPositive: appointmentsTrendDelta >= 0 }}
                 />
                 <StatCard
                     title="Completed"
@@ -494,14 +509,16 @@ export default function DashboardPage() {
                 >
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
                     <div className="grid grid-cols-2 gap-4">
-                        <a
-                            href="/appointments"
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
-                        >
-                            <Calendar className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">New Appointment</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Book a customer</p>
-                        </a>
+                        {user?.role !== 'Stylist' && (
+                            <a
+                                href="/appointments"
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
+                            >
+                                <Calendar className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
+                                <h3 className="font-medium text-gray-900 dark:text-white text-sm">New Appointment</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Book a customer</p>
+                            </a>
+                        )}
                         <a
                             href="/pos"
                             className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"

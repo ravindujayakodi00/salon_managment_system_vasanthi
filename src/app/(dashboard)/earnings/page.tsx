@@ -6,6 +6,7 @@ import { DollarSign, TrendingUp, Calendar, User } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { earningsService } from '@/services/earnings';
 import { formatCurrency } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 export default function EarningsPage() {
     const { user, hasRole } = useAuth();
@@ -46,11 +47,28 @@ export default function EarningsPage() {
             console.log('Is owner:', isOwner);
 
             if (isStaff && !isOwner) {
-                // Fetch individual staff earnings
-                // For now, we need to get staff_id from user
-                // This would typically come from user.staffId or a lookup
+                // Fetch individual staff earnings by resolving staff.id from profile id
+                const { data: staffRow, error: staffLookupError } = await supabase
+                    .from('staff')
+                    .select('id')
+                    .eq('profile_id', user?.id || '')
+                    .eq('is_active', true)
+                    .single();
+
+                if (staffLookupError || !staffRow?.id) {
+                    console.warn('Staff record not found for current user:', staffLookupError);
+                    setEarnings([]);
+                    setSummary({
+                        total_earnings: 0,
+                        total_commission: 0,
+                        total_salary: 0,
+                        appointments_count: 0
+                    });
+                    return;
+                }
+
                 const staffData = await earningsService.getStaffEarnings(
-                    user?.id || '',
+                    staffRow.id,
                     dateRange.start,
                     dateRange.end
                 );

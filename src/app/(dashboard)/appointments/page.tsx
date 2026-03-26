@@ -55,10 +55,11 @@ export default function AppointmentsPage() {
     // Fetch stylists for dropdown (Owner/Manager/Receptionist use-case)
     useEffect(() => {
         const fetchStylists = async () => {
-            if (!user?.branchId || isStylist) return;
+            if (isStylist) return;
             try {
                 setStylistsLoading(true);
-                const data = await staffService.getStylists(user.branchId);
+                // If branchId is missing, intentionally fetch stylists across all branches
+                const data = await staffService.getStylists(user?.branchId);
                 setStylists(data || []);
             } catch (err) {
                 console.error('Error fetching stylists:', err);
@@ -173,14 +174,16 @@ export default function AppointmentsPage() {
             {/* Header - Compact */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Appointments</h1>
-                <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Plus className="h-4 w-4" />}
-                    onClick={() => setShowCreateModal(true)}
-                >
-                    New
-                </Button>
+                {!isStylist && (
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        New
+                    </Button>
+                )}
             </div>
 
             {/* Filters - Compact */}
@@ -383,11 +386,13 @@ export default function AppointmentsPage() {
             )}
 
             {/* Create Appointment Modal */}
-            <CreateAppointmentModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSuccess={handleAppointmentCreated}
-            />
+            {!isStylist && (
+                <CreateAppointmentModal
+                    isOpen={showCreateModal}
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={handleAppointmentCreated}
+                />
+            )}
 
             {/* Appointment Details Modal */}
             <AppointmentDetailsModal
