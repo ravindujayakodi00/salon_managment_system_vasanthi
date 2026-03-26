@@ -16,16 +16,9 @@ export const reportsService = {
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
-        console.log('📊 Dashboard Query - Date:', today);
-        console.log('📊 Dashboard Query - Found invoices:', invoices?.length || 0);
-        if (invoices && invoices.length > 0) {
-            console.log('📊 Invoice details:', invoices);
-        }
-
         if (invoiceError) throw invoiceError;
 
         const todayRevenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-        console.log('📊 Calculated revenue:', todayRevenue);
 
         // Get appointment stats
         const { data: appointments, error: apptError } = await supabase
@@ -88,21 +81,6 @@ export const reportsService = {
      * Get staff performance (revenue and appointment count)
      */
     async getStaffPerformance(startDate: string, endDate: string) {
-        // Get appointments with stylist info
-        const { data: appointments, error } = await supabase
-            .from('appointments')
-            .select(`
-                id,
-                stylist:staff(name),
-                invoices!inner(total)
-            `)
-            .gte('appointment_date', startDate)
-            .lte('appointment_date', endDate);
-
-        // Note: The above query assumes a relation between appointments and invoices.
-        // If the relation is on invoice -> appointment_id, we might need to query invoices and join appointments.
-
-        // Alternative approach if the above relation doesn't exist in Supabase client types or schema:
         // Query invoices and join appointments
         const { data: invoicesWithAppt, error: invError } = await supabase
             .from('invoices')

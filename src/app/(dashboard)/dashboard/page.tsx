@@ -98,19 +98,13 @@ export default function DashboardPage() {
         try {
             setLoading(true);
             const today = getLocalDateString();
-
-            // Fetch basic stats
-            const basicStats = await reportsService.getDashboardStats();
-
-            // Fetch top services and stylists for today
-            const topServices = await reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59');
-            const topStylists = await reportsService.getStaffPerformance(today, today);
-
-            // Get revenue for last 7 days (mock data for now)
-            const revenueTrend = await fetchRevenueTrend();
-
-            // Get recent activity (mock data for now)
-            const recentActivity = await fetchRecentActivity();
+            const [basicStats, topServices, topStylists, revenueTrend, recentActivity] = await Promise.all([
+                reportsService.getDashboardStats(),
+                reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59'),
+                reportsService.getStaffPerformance(today, today),
+                fetchRevenueTrend(),
+                fetchRecentActivity(),
+            ]);
 
             setStats({
                 todayRevenue: basicStats.todayRevenue,
@@ -143,40 +137,35 @@ export default function DashboardPage() {
         try {
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const today = new Date();
-            const revenueData = [];
+            const windowStart = new Date(today);
+            windowStart.setDate(today.getDate() - 6);
+            const startDate = windowStart.toISOString().split('T')[0];
+            const endDate = today.toISOString().split('T')[0];
 
-            // Fetch revenue for each of the last 7 days
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            const { data: invoices, error } = await supabase
+                .from('invoices')
+                .select('total, created_at')
+                .gte('created_at', `${startDate}T00:00:00`)
+                .lte('created_at', `${endDate}T23:59:59`);
 
-                try {
-                    // Query invoices for this specific day
-                    const { data: invoices, error } = await supabase
-                        .from('invoices')
-                        .select('total')
-                        .gte('created_at', `${dateString}T00:00:00`)
-                        .lte('created_at', `${dateString}T23:59:59`);
+            if (error) throw error;
 
-                    if (error) throw error;
+            const revenueByDate = new Map<string, number>();
+            (invoices || []).forEach((inv: any) => {
+                const dateKey = String(inv.created_at || '').split('T')[0];
+                if (!dateKey) return;
+                revenueByDate.set(dateKey, (revenueByDate.get(dateKey) || 0) + (inv.total || 0));
+            });
 
-                    const dailyRevenue = invoices?.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
-
-                    revenueData.push({
-                        day: days[date.getDay()],
-                        revenue: dailyRevenue
-                    });
-                } catch (error) {
-                    console.error(`Error fetching revenue for ${dateString}:`, error);
-                    revenueData.push({
-                        day: days[date.getDay()],
-                        revenue: 0
-                    });
-                }
-            }
-
-            return revenueData;
+            return Array.from({ length: 7 }, (_, offset) => {
+                const date = new Date(windowStart);
+                date.setDate(windowStart.getDate() + offset);
+                const dateString = date.toISOString().split('T')[0];
+                return {
+                    day: days[date.getDay()],
+                    revenue: revenueByDate.get(dateString) || 0,
+                };
+            });
         } catch (error) {
             console.error('Error in fetchRevenueTrend:', error);
             // Fallback to empty data
