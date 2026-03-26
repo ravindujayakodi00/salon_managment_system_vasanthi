@@ -724,7 +724,7 @@ export default function POSPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">POS & Billing</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">Process payments and generate invoices</p>
@@ -736,9 +736,9 @@ export default function POSPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                 {/* Left: Customer & Selection */}
-                <div className="lg:col-span-2 space-y-4">
+                <div className="xl:col-span-2 space-y-4">
                     {/* Customer Search */}
                     <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                         <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Step 1: Select Customer</h2>
@@ -885,7 +885,7 @@ export default function POSPage() {
                                                         {/* Additional Fee Input */}
                                                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600" onClick={(e) => e.stopPropagation()}>
                                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">💰 Optional Additional Fee</p>
-                                                            <div className="grid grid-cols-2 gap-2">
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                                 <Input
                                                                     type="number"
                                                                     placeholder="Fee amount"
@@ -1082,7 +1082,7 @@ export default function POSPage() {
                                                 value={manualItem.description}
                                                 onChange={(e) => setManualItem({ ...manualItem, description: e.target.value })}
                                             />
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-col sm:flex-row gap-2">
                                                 <Input
                                                     type="number"
                                                     placeholder="Amount"
@@ -1117,8 +1117,8 @@ export default function POSPage() {
                 </div>
 
                 {/* Right: Bill Summary - At bottom on tablet, right side on desktop */}
-                <div className="lg:col-span-3">
-                    <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 sticky top-24">
+                <div className="xl:col-span-3">
+                    <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 xl:sticky xl:top-24">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                 <ShoppingCart className="h-5 w-5 text-primary-600" />
@@ -1364,7 +1364,7 @@ export default function POSPage() {
                                             <button
                                                 key={method}
                                                 onClick={() => { setPaymentMethod(method); setPaymentBreakdown(null); }}
-                                                className={`p-2 rounded-lg text-xs font-medium transition-all ${paymentMethod === method && !paymentBreakdown
+                                                className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentMethod === method && !paymentBreakdown
                                                     ? 'bg-primary-600 text-white'
                                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                                                     }`}
@@ -1378,7 +1378,7 @@ export default function POSPage() {
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => { setPaymentMethod('BankTransfer'); setPaymentBreakdown(null); }}
-                                            className={`p-2 rounded-lg text-xs font-medium transition-all ${paymentMethod === 'BankTransfer' && !paymentBreakdown
+                                            className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentMethod === 'BankTransfer' && !paymentBreakdown
                                                 ? 'bg-primary-600 text-white'
                                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                                                 }`}
@@ -1388,7 +1388,7 @@ export default function POSPage() {
                                         </button>
                                         <button
                                             onClick={() => setShowSplitPayment(true)}
-                                            className={`p-2 rounded-lg text-xs font-medium transition-all ${paymentBreakdown
+                                            className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentBreakdown
                                                 ? 'bg-gradient-to-r from-primary-600 to-purple-600 text-white'
                                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                                                 }`}

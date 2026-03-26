@@ -160,18 +160,18 @@ export default function PettyCashPage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-8 text-white shadow-xl"
+                className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-5 sm:p-8 text-white shadow-xl"
             >
                 <div className="flex items-center gap-3 mb-4">
                     <Wallet className="h-8 w-8" />
                     <h2 className="text-xl font-semibold">Available Balance</h2>
                 </div>
-                <div className="text-5xl font-bold mb-6">{formatCurrency(balance)}</div>
-                <div className="flex gap-3">
+                <div className="text-3xl sm:text-5xl font-bold mb-6">{formatCurrency(balance)}</div>
+                <div className="flex flex-wrap gap-3">
                     {canAddCash && (
                         <button
                             onClick={() => setShowAddCash(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+                            className="flex items-center gap-2 px-5 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
                         >
                             <Plus className="h-5 w-5" />
                             Add Cash
@@ -179,7 +179,7 @@ export default function PettyCashPage() {
                     )}
                     <button
                         onClick={() => setShowRecordExpense(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-white/20 text-white rounded-xl font-semibold hover:bg-white/30 transition-colors backdrop-blur-sm"
+                        className="flex items-center gap-2 px-5 py-3 bg-white/20 text-white rounded-xl font-semibold hover:bg-white/30 transition-colors backdrop-blur-sm"
                     >
                         <Minus className="h-5 w-5" />
                         Record Expense
@@ -199,21 +199,21 @@ export default function PettyCashPage() {
                     <table className="w-full">
                         <thead className="border-b border-gray-200 dark:border-gray-700">
                             <tr className="text-left">
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Date & Time</th>
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Type</th>
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Description</th>
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Amount</th>
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Balance After</th>
-                                <th className="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Recorded By</th>
+                                <th className="pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Date & Time</th>
+                                <th className="pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Type</th>
+                                <th className="pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Description</th>
+                                <th className="pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                                <th className="hidden md:table-cell pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Balance After</th>
+                                <th className="hidden lg:table-cell pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Recorded By</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                             {transactions.map((txn) => (
                                 <tr key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td className="py-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <td className="py-4 pr-4 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                         {formatDateTime(txn.created_at)}
                                     </td>
-                                    <td className="py-4">
+                                    <td className="py-4 pr-4">
                                         {txn.type === 'deposit' ? (
                                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                                                 <TrendingUp className="h-4 w-4" />
@@ -226,18 +226,18 @@ export default function PettyCashPage() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="py-4 text-sm text-gray-900 dark:text-white">
+                                    <td className="py-4 pr-4 text-sm text-gray-900 dark:text-white">
                                         {txn.description}
                                     </td>
-                                    <td className="py-4 text-sm font-semibold">
+                                    <td className="py-4 pr-4 text-sm font-semibold whitespace-nowrap">
                                         <span className={txn.type === 'deposit' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                                             {txn.type === 'deposit' ? '+' : '-'}{formatCurrency(txn.amount)}
                                         </span>
                                     </td>
-                                    <td className="py-4 text-sm font-medium text-gray-900 dark:text-white">
+                                    <td className="hidden md:table-cell py-4 pr-4 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                                         {formatCurrency(txn.balance_after)}
                                     </td>
-                                    <td className="py-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <td className="hidden lg:table-cell py-4 text-sm text-gray-600 dark:text-gray-400">
                                         {txn.profiles?.name || 'Unknown'}
                                     </td>
                                 </tr>

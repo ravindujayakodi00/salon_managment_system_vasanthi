@@ -407,12 +407,12 @@ export default function StaffPage() {
             {/* Add/Edit Staff Modal */}
             <AnimatePresence>
                 {(showAddModal || showEditModal) && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-2 sm:p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                            className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[92dvh] overflow-y-auto"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -505,7 +505,7 @@ export default function StaffPage() {
                                             Skills / Services
                                             <span className="text-xs text-gray-500 ml-2">(Select services this stylist can perform)</span>
                                         </label>
-                                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
                                             {services.map((service) => (
                                                 <label key={service.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                                                     <input
@@ -539,7 +539,7 @@ export default function StaffPage() {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Working Days
                                     </label>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         {days.map((day) => (
                                             <label key={day} className="flex items-center gap-2 cursor-pointer">
                                                 <input
@@ -560,7 +560,7 @@ export default function StaffPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Input
                                         label="Start Time"
                                         type="time"
@@ -576,7 +576,7 @@ export default function StaffPage() {
                                 </div>
 
                                 {/* Salary and Commission */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Input
                                         label="Monthly Salary (Rs)"
                                         type="number"
@@ -606,7 +606,7 @@ export default function StaffPage() {
                                     )}
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                     <Button
                                         variant="outline"
                                         onClick={() => {

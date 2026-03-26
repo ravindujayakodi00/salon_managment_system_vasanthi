@@ -75,7 +75,7 @@ export default function InventoryPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory Management</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -89,7 +89,7 @@ export default function InventoryPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
@@ -200,24 +200,24 @@ export default function InventoryPage() {
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                                <th className="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
+                                <th className="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</th>
+                                <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan={6} className="px-3 sm:px-4 py-8 text-center text-gray-500">
                                         Loading products...
                                     </td>
                                 </tr>
                             ) : filteredProducts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan={6} className="px-3 sm:px-4 py-8 text-center text-gray-500">
                                         No products found
                                     </td>
                                 </tr>
@@ -226,7 +226,7 @@ export default function InventoryPage() {
                                     const status = getStockStatus(product);
                                     return (
                                         <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-4 py-4">
                                                 <div>
                                                     <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
                                                     {product.sku && (
@@ -234,10 +234,10 @@ export default function InventoryPage() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                            <td className="hidden md:table-cell px-3 sm:px-4 py-4 text-sm text-gray-900 dark:text-white">
                                                 {product.category}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-4 py-4">
                                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                                                     {product.current_stock} {product.unit}
                                                 </p>
@@ -245,16 +245,16 @@ export default function InventoryPage() {
                                                     Min: {product.min_stock_level} {product.unit}
                                                 </p>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="hidden md:table-cell px-3 sm:px-4 py-4">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>
                                                     <span>{status.icon}</span>
                                                     {status.label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                            <td className="px-3 sm:px-4 py-4 text-sm text-gray-900 dark:text-white">
                                                 LKR {product.selling_price.toLocaleString()}
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-3 sm:px-4 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => setEditingProduct(product)}

@@ -30,11 +30,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onMenuClick}
-                        className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                     >
                         <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
                     </button>
-                    <div className="md:hidden">
+                    <div className="lg:hidden">
                         <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">SalonFlow</h1>
                     </div>
                 </div>
@@ -71,7 +71,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowNotifications(false)}
                                 />
-                                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 z-20 max-h-96 overflow-y-auto">
+                                <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 z-20 max-h-[70vh] overflow-y-auto">
                                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                                         <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                                     </div>
@@ -109,7 +109,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                         >
-                            <div className="hidden md:block text-right">
+                            <div className="hidden sm:block text-right">
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</p>
                             </div>
@@ -125,7 +125,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowUserMenu(false)}
                                 />
-                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
+                                <div className="absolute right-0 mt-2 w-[min(14rem,calc(100vw-2rem))] bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
                                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>

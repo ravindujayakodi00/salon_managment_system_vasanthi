@@ -97,7 +97,7 @@ export default function ReportsPage() {
                 {activeTab === 'campaigns' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                             <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -445,7 +445,7 @@ function AllInvoices() {
         <div className="mt-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Transaction History</h2>
             <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center gap-2">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">All Invoices</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Latest 50 transactions</p>
@@ -462,45 +462,45 @@ function AllInvoices() {
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Items</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Method</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                                <th className="hidden lg:table-cell px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Items</th>
+                                <th className="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Method</th>
+                                <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                                <th className="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">Loading invoices...</td>
+                                    <td colSpan={8} className="px-3 sm:px-4 py-8 text-center text-sm text-gray-500">Loading invoices...</td>
                                 </tr>
                             ) : invoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">No invoices found</td>
+                                    <td colSpan={8} className="px-3 sm:px-4 py-8 text-center text-sm text-gray-500">No invoices found</td>
                                 </tr>
                             ) : (
                                 invoices.map((invoice) => (
                                     <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                        <td className="px-3 sm:px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                             #{invoice.id.slice(0, 8)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        <td className="px-3 sm:px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {new Date(invoice.created_at).toLocaleDateString()}
                                             <span className="text-xs text-gray-400 ml-1">
                                                 {new Date(invoice.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                        <td className="px-3 sm:px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                             {invoice.customer?.name || 'Walk-in Customer'}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                                        <td className="hidden lg:table-cell px-3 sm:px-4 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
                                             {/* Handle items as JSON array */}
                                             {Array.isArray(invoice.items) ? invoice.items.length : 0} items
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden md:table-cell px-3 sm:px-4 py-4 whitespace-nowrap">
                                             {(() => {
                                                 const method = invoice.payment_method || 'Cash';
                                                 const badgeColors = {
@@ -524,15 +524,15 @@ function AllInvoices() {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
+                                        <td className="px-3 sm:px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
                                             LKR {invoice.total.toLocaleString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden md:table-cell px-3 sm:px-4 py-4 whitespace-nowrap">
                                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                                 Paid
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-3 sm:px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
                                                 onClick={() => setSelectedInvoice(invoice)}
                                                 className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"

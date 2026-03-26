@@ -138,7 +138,7 @@ export default function CustomersPage() {
             </div>
 
             {/* Customer Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Customers</p>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{customers.length}</p>
@@ -201,7 +201,7 @@ export default function CustomersPage() {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-4 mt-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
                                         <div>
                                             <p className="text-xs text-gray-500 dark:text-gray-500">Total Visits</p>
                                             <p className="text-sm font-semibold text-gray-900 dark:text-white">{customer.totalVisits}</p>
@@ -221,7 +221,7 @@ export default function CustomersPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <Button
                                     variant="outline"
                                     size="sm"

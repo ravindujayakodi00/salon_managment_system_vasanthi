@@ -218,7 +218,7 @@ export default function AvailableStylistsView({
             </div>
 
             {/* Stylist Cards */}
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-[65dvh] overflow-y-auto pr-0 sm:pr-2">
                 <AnimatePresence>
                     {stylistsWithSlots.map(({ stylist, slots, skillDetails }, index) => {
                         const availableCount = slots.filter(s => s.available).length;
@@ -284,7 +284,7 @@ export default function AvailableStylistsView({
                                         <Clock className="w-4 h-4" />
                                         <span>{availableCount} available out of {slots.length} slots</span>
                                     </div>
-                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
                                         {slots.map((slot) => (
                                             <motion.button
                                                 key={slot.time}
@@ -293,7 +293,7 @@ export default function AvailableStylistsView({
                                                 whileTap={slot.available ? { scale: 0.95 } : {}}
                                                 onClick={() => handleTimeSelect(stylist.id, slot.time, stylist.name, slot.available)}
                                                 disabled={!slot.available}
-                                                className={`px-2 py-1.5 text-xs font-medium rounded-lg transition-all ${getSlotColor(slot, stylist.id)}`}
+                                                className={`px-2 py-2 text-xs font-medium rounded-lg min-h-11 transition-all ${getSlotColor(slot, stylist.id)}`}
                                                 title={slot.reason || 'Available'}
                                             >
                                                 {formatTime(slot.time)}

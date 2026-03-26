@@ -68,7 +68,7 @@ export default function MultiServiceSelector({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Select Services ({selectedServiceIds.length} selected)
                 </label>
@@ -103,7 +103,7 @@ export default function MultiServiceSelector({
                             key={category}
                             type="button"
                             onClick={() => setSelectedCategoryFilter(category)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${selectedCategoryFilter === category
+                            className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${selectedCategoryFilter === category
                                     ? 'bg-primary-600 text-white shadow-sm'
                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}

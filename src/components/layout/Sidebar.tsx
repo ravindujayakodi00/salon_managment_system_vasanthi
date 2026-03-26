@@ -162,7 +162,7 @@ export default function Sidebar() {
                 duration: 0.3,
                 ease: 'easeInOut',
             }}
-            className="hidden md:flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-screen transition-colors relative"
+            className="hidden lg:flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-screen transition-colors relative"
         >
             {/* Collapse/Expand Button */}
             <button

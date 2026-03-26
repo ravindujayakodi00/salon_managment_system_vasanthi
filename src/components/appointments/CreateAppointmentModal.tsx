@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Calendar, Clock, User, Scissors, CheckCircle, Users, UserCheck, Search, Phone, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Calendar, Clock, User, Scissors, CheckCircle, Search, Phone, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
@@ -45,7 +45,6 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
     });
 
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-    const [hasStylistPreference, setHasStylistPreference] = useState<boolean | null>(null);
 
     // Service Bookings (Step 2)
     const [serviceBookings, setServiceBookings] = useState<ServiceBooking[]>([]);
@@ -129,7 +128,6 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
             notes: '',
         });
         setSelectedServiceIds([]);
-        setHasStylistPreference(null);
         setServiceBookings([]);
         setCustomerLookupStatus('idle');
         setExistingCustomer(null);
@@ -267,7 +265,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
             size="lg"
         >
             {/* Step Indicators */}
-            <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex flex-wrap items-center justify-start sm:justify-center gap-2 mb-6">
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${step === 'customer' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' :
                     'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}>
@@ -275,7 +273,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         }`}>1</div>
                     <span>Customer</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="hidden sm:block w-4 h-4 text-gray-400" />
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${step === 'slots' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' :
                     'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}>
@@ -283,7 +281,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         }`}>2</div>
                     <span>Time Slots</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+                <ChevronRight className="hidden sm:block w-4 h-4 text-gray-400" />
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${step === 'review' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' :
                     'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}>
@@ -435,39 +433,6 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         />
                     )}
 
-                    {/* Stylist Preference */}
-                    {selectedServiceIds.length > 0 && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Do you have a preferred stylist?
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setHasStylistPreference(true)}
-                                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-sm ${hasStylistPreference === true
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 text-gray-700 dark:text-gray-300'
-                                        }`}
-                                >
-                                    <UserCheck className="w-4 h-4" />
-                                    <span>Yes</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setHasStylistPreference(false)}
-                                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-sm ${hasStylistPreference === false
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 text-gray-700 dark:text-gray-300'
-                                        }`}
-                                >
-                                    <Users className="w-4 h-4" />
-                                    <span>No, show available</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Notes */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -490,7 +455,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         <Button
                             type="submit"
                             variant="primary"
-                            disabled={!formData.date || selectedServiceIds.length === 0 || hasStylistPreference === null}
+                            disabled={!formData.date || selectedServiceIds.length === 0}
                         >
                             Next: Select Time Slots
                         </Button>
@@ -510,16 +475,10 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         </p>
                     </div>
 
-                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    <div className="space-y-4 max-h-[70dvh] overflow-y-auto pr-0 sm:pr-2">
                         {serviceBookings.map((booking, index) => {
                             const service = services.find(s => s.id === booking.serviceId);
                             if (!service) return null;
-
-                            // Find previous booking with same stylist for hint
-                            const previousSameStylistBooking = serviceBookings
-                                .slice(0, index) // Only look at previous bookings
-                                .reverse() // Start from most recent
-                                .find(b => b.stylistId === booking.stylistId && b.time);
 
                             // Collect all occupied time slots from OTHER services
                             const occupiedSlots = serviceBookings
@@ -531,14 +490,10 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                     key={booking.serviceId}
                                     service={service}
                                     date={formData.date}
-                                    hasStylistPreference={hasStylistPreference!}
                                     onSelect={(stylistId, time, stylistName) => {
                                         updateServiceBooking(booking.serviceId, stylistId, time, stylistName);
                                     }}
-                                    selectedStylist={booking.stylistId}
-                                    selectedTime={booking.time}
                                     branchId={user?.branchId}
-                                    previousBookingTime={previousSameStylistBooking?.time}
                                     occupiedSlots={occupiedSlots}
                                 />
                             );
@@ -546,7 +501,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <Button
                             type="button"
                             variant="outline"
@@ -650,7 +605,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                     )}
 
                     {/* Actions */}
-                    <div className="flex justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <Button
                             type="button"
                             variant="outline"

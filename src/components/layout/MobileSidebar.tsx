@@ -157,7 +157,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
                     />
 
                     {/* Sidebar */}
@@ -166,7 +166,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                         animate={{ x: 0 }}
                         exit={{ x: '-100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 md:hidden flex flex-col"
+                        className="fixed left-0 top-0 bottom-0 w-64 max-w-[85vw] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 lg:hidden flex flex-col"
                     >
                         <div className="p-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
                             <Link href="/dashboard" className="flex items-center gap-3" onClick={onClose}>

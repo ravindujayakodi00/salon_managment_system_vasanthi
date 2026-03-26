@@ -30,7 +30,7 @@ export default function DashboardLayout({
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
-                    <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900 transition-colors">
+                    <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
                         <div className="container mx-auto px-4 lg:px-6 py-6 max-w-full">
                             {children}
                         </div>

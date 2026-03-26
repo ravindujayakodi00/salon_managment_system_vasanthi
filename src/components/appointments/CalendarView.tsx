@@ -323,14 +323,14 @@ export default function CalendarView({ appointments, onAppointmentClick, selecte
         <div className="space-y-4">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={goToPrevious}
                         leftIcon={<ChevronLeft className="h-4 w-4" />}
                     />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-[200px] text-center">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white min-w-[140px] sm:min-w-[200px] text-center">
                         {viewMode === 'month'
                             ? `${monthName} ${year}`
                             : currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -344,7 +344,7 @@ export default function CalendarView({ appointments, onAppointmentClick, selecte
                     />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"

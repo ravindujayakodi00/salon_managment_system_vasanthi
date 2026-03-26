@@ -107,7 +107,7 @@ export default function EarningsPage() {
     const renderStaffView = () => (
         <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div className="card p-6 bg-gradient-to-br from-primary-500 to-primary-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
@@ -165,33 +165,33 @@ export default function EarningsPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Date</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Salary</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Total</th>
-                                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Appointments</th>
+                                <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Date</th>
+                                <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
+                                <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
+                                <th className="hidden md:table-cell text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Salary</th>
+                                <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Total</th>
+                                <th className="hidden md:table-cell text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Appointments</th>
                             </tr>
                         </thead>
                         <tbody>
                             {earnings.map((earning: any) => (
                                 <tr key={earning.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                    <td className="py-3 px-4 text-gray-900 dark:text-white">
+                                    <td className="py-3 px-3 sm:px-4 text-gray-900 dark:text-white">
                                         {new Date(earning.date).toLocaleDateString()}
                                     </td>
-                                    <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                                    <td className="py-3 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                         {formatCurrency(earning.service_revenue)}
                                     </td>
-                                    <td className="py-3 px-4 text-right text-success-600 dark:text-success-400">
+                                    <td className="py-3 px-3 sm:px-4 text-right text-success-600 dark:text-success-400">
                                         {formatCurrency(earning.commission_amount)}
                                     </td>
-                                    <td className="py-3 px-4 text-right text-secondary-600 dark:text-secondary-400">
+                                    <td className="hidden md:table-cell py-3 px-3 sm:px-4 text-right text-secondary-600 dark:text-secondary-400">
                                         {formatCurrency(earning.salary_amount)}
                                     </td>
-                                    <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-white">
+                                    <td className="py-3 px-3 sm:px-4 text-right font-semibold text-gray-900 dark:text-white">
                                         {formatCurrency(earning.total_earnings)}
                                     </td>
-                                    <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                                    <td className="hidden md:table-cell py-3 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                         {earning.appointments_count}
                                     </td>
                                 </tr>
@@ -211,37 +211,37 @@ export default function EarningsPage() {
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Staff</th>
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Role</th>
-                            <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
-                            <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
-                            <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Salary</th>
-                            <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Total Earnings</th>
-                            <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Appointments</th>
+                            <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Staff</th>
+                            <th className="hidden md:table-cell text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Role</th>
+                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
+                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
+                            <th className="hidden md:table-cell text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Salary</th>
+                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Total Earnings</th>
+                            <th className="hidden md:table-cell text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Appointments</th>
                         </tr>
                     </thead>
                     <tbody>
                         {earnings.map((earning: any) => (
                             <tr key={earning.staff_id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                                <td className="py-3 px-3 sm:px-4 font-medium text-gray-900 dark:text-white">
                                     {earning.staff_name}
                                 </td>
-                                <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
+                                <td className="hidden md:table-cell py-3 px-3 sm:px-4 text-gray-700 dark:text-gray-300">
                                     {earning.staff_role}
                                 </td>
-                                <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                                <td className="py-3 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                     {formatCurrency(earning.total_revenue)}
                                 </td>
-                                <td className="py-3 px-4 text-right text-success-600 dark:text-success-400">
+                                <td className="py-3 px-3 sm:px-4 text-right text-success-600 dark:text-success-400">
                                     {formatCurrency(earning.total_commission)}
                                 </td>
-                                <td className="py-3 px-4 text-right text-secondary-600 dark:text-secondary-400">
+                                <td className="hidden md:table-cell py-3 px-3 sm:px-4 text-right text-secondary-600 dark:text-secondary-400">
                                     {formatCurrency(earning.total_salary)}
                                 </td>
-                                <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-white">
+                                <td className="py-3 px-3 sm:px-4 text-right font-semibold text-gray-900 dark:text-white">
                                     {formatCurrency(earning.total_earnings)}
                                 </td>
-                                <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                                <td className="hidden md:table-cell py-3 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                     {earning.appointments_count}
                                 </td>
                             </tr>
@@ -264,7 +264,7 @@ export default function EarningsPage() {
                 </div>
 
                 {/* Date Range Filter */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <input
                         type="date"
                         value={dateRange.start}

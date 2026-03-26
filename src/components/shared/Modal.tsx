@@ -55,24 +55,24 @@ export default function Modal({
                     />
 
                     {/* Modal */}
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ duration: 0.2 }}
                             className={cn(
-                                'w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden',
+                                'w-full bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden',
                                 sizes[size]
                             )}
                         >
                             {/* Header */}
                             {title && (
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+                                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
                                     <button
                                         onClick={onClose}
-                                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                        className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700/50 transition-colors"
                                     >
                                         <X className="h-5 w-5" />
                                     </button>
@@ -80,13 +80,13 @@ export default function Modal({
                             )}
 
                             {/* Body */}
-                            <div className="px-6 py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
+                            <div className="px-4 sm:px-6 py-4 max-h-[80dvh] overflow-y-auto">
                                 {children}
                             </div>
 
                             {/* Footer */}
                             {footer && (
-                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                                <div className="flex flex-wrap items-center justify-end gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                                     {footer}
                                 </div>
                             )}

@@ -139,7 +139,7 @@ export default function FinancialPage() {
                 </div>
 
                 {/* Date Range Filter */}
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                     <div className="relative">
                         <Input
                             type="date"
@@ -162,7 +162,7 @@ export default function FinancialPage() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -198,7 +198,7 @@ export default function FinancialPage() {
             </div>
 
             {/* Table */}
-            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Stylists</h2>
 
                 {loading ? (
@@ -210,12 +210,12 @@ export default function FinancialPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Stylist</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Initial Salary</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Advances</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Current Salary</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Action</th>
+                                    <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Stylist</th>
+                                    <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Initial Salary</th>
+                                    <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Commission</th>
+                                    <th className="hidden lg:table-cell text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Advances</th>
+                                    <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Current Salary</th>
+                                    <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-700 dark:text-gray-300">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -225,7 +225,7 @@ export default function FinancialPage() {
 
                                     return (
                                         <tr key={r.staff_id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                            <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
+                                            <td className="py-4 px-3 sm:px-4 text-gray-900 dark:text-white font-medium">
                                                 <div>{r.staff_name}</div>
                                                 {r.last_advances.length > 0 && (
                                                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -233,19 +233,19 @@ export default function FinancialPage() {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="py-4 px-4 text-right text-gray-700 dark:text-gray-300">
+                                            <td className="py-4 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                                 {formatCurrency(r.initial_salary)}
                                             </td>
-                                            <td className="py-4 px-4 text-right text-success-600 dark:text-success-400">
+                                            <td className="py-4 px-3 sm:px-4 text-right text-success-600 dark:text-success-400">
                                                 {formatCurrency(r.commission_sum)}
                                             </td>
-                                            <td className="py-4 px-4 text-right text-gray-700 dark:text-gray-300">
+                                            <td className="hidden lg:table-cell py-4 px-3 sm:px-4 text-right text-gray-700 dark:text-gray-300">
                                                 {formatCurrency(r.advances_sum)}
                                             </td>
-                                            <td className="py-4 px-4 text-right font-semibold text-gray-900 dark:text-white">
+                                            <td className="py-4 px-3 sm:px-4 text-right font-semibold text-gray-900 dark:text-white">
                                                 {formatCurrency(available)}
                                             </td>
-                                            <td className="py-4 px-4 text-right">
+                                            <td className="py-4 px-3 sm:px-4 text-right">
                                                 <Button
                                                     size="sm"
                                                     variant={canAdvanceRow ? 'primary' : 'outline'}

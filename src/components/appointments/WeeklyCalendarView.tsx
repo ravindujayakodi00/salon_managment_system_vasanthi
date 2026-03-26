@@ -209,7 +209,7 @@ export default function WeeklyCalendarView({
     return (
         <div className="space-y-2">
             {/* Week Header - Compact inline */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <button
                         onClick={goToPrevWeek}
@@ -217,7 +217,7 @@ export default function WeeklyCalendarView({
                     >
                         <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     </button>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[160px] text-center">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[120px] sm:min-w-[160px] text-center">
                         {weekRange}
                     </span>
                     <button
@@ -229,7 +229,7 @@ export default function WeeklyCalendarView({
                 </div>
                 <button
                     onClick={goToToday}
-                    className="px-2 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded"
+                    className="px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded"
                 >
                     Today
                 </button>
@@ -238,7 +238,7 @@ export default function WeeklyCalendarView({
             {/* Calendar Grid */}
             <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <div className="min-w-[800px]">
+                    <div className="min-w-[720px] md:min-w-[800px]">
                         {/* Day Headers - Compact */}
                         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                             <div className="p-1.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700">

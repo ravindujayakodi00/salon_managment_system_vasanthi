@@ -172,7 +172,7 @@ export default function AppointmentsPage() {
     return (
         <div className="space-y-3">
             {/* Header - Compact */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Appointments</h1>
                 {!isStylist && (
                     <Button
@@ -188,15 +188,15 @@ export default function AppointmentsPage() {
 
             {/* Filters - Compact */}
             <div className="card p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex flex-wrap gap-3 items-stretch">
                     {/* Date Picker - Only show in list view */}
                     {view === 'list' && (
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Input
                                 type="date"
                                 value={selectedDate === 'all' ? '' : selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value || 'all')}
-                                className="w-40"
+                                className="w-full sm:w-52"
                                 leftIcon={<Calendar className="h-4 w-4" />}
                                 min={getLocalDateString()}
                             />
@@ -211,7 +211,7 @@ export default function AppointmentsPage() {
                     )}
 
                     {/* Search - More compact */}
-                    <div className="flex-1 min-w-[200px]">
+                    <div className="w-full md:flex-1 md:min-w-[220px]">
                         <Input
                             type="text"
                             placeholder="Search..."
@@ -223,7 +223,7 @@ export default function AppointmentsPage() {
 
                     {/* Stylist Dropdown Filter */}
                     {!isStylist && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                 Stylist
                             </span>
@@ -231,7 +231,7 @@ export default function AppointmentsPage() {
                                 value={selectedStylistId}
                                 onChange={(e) => setSelectedStylistId(e.target.value)}
                                 disabled={stylistsLoading}
-                                className="w-56 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60"
+                                className="w-full sm:w-56 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60"
                             >
                                 <option value="all">All Stylists</option>
                                 {stylists.map((s) => (
@@ -244,10 +244,10 @@ export default function AppointmentsPage() {
                     )}
 
                     {/* View Toggle - Compact */}
-                    <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                    <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg w-full sm:w-auto">
                         <button
                             onClick={() => setView('list')}
-                            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${view === 'list'
+                            className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${view === 'list'
                                 ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
                                 }`}
@@ -256,7 +256,7 @@ export default function AppointmentsPage() {
                         </button>
                         <button
                             onClick={() => setView('calendar')}
-                            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${view === 'calendar'
+                            className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${view === 'calendar'
                                 ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
                                 }`}
@@ -267,13 +267,13 @@ export default function AppointmentsPage() {
                 </div>
 
                 {/* Status Filters - Compact chips */}
-                <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
                     {statuses.map((status) => (
                         <button
                             key={status}
                             onClick={() => setSelectedStatus(status)}
                             className={cn(
-                                'px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all',
+                                'px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
                                 selectedStatus === status
                                     ? 'bg-primary-600 text-white'
                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
