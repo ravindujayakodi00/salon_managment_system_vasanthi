@@ -1,120 +1,146 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { gsap } from '@/utils/gsapConfig';
 import Image from 'next/image';
-import { motion, useReducedMotion } from 'framer-motion';
-import SectionHeader from '@/components/website/SectionHeader';
-import { FadeIn } from '@/components/website/SectionReveal';
-import { cn } from '@/lib/utils';
+import { themeContent } from '@/themes';
 
-const galleryImages = [
-    {
-        id: 1,
-        alt: 'Salon interior',
-        src: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1974&auto=format&fit=crop',
-    },
-    {
-        id: 2,
-        alt: 'Hair styling',
-        src: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=1969&auto=format&fit=crop',
-    },
-    {
-        id: 3,
-        alt: 'Nail art',
-        src: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=1974&auto=format&fit=crop',
-    },
-    {
-        id: 4,
-        alt: 'Spa treatment',
-        src: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=2070&auto=format&fit=crop',
-    },
-    {
-        id: 5,
-        alt: 'Makeup session',
-        src: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?q=80&w=1971&auto=format&fit=crop',
-    },
-    {
-        id: 6,
-        alt: 'Hair coloring',
-        src: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=1974&auto=format&fit=crop',
-    },
-    {
-        id: 7,
-        alt: 'Bridal beauty',
-        src: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop',
-    },
-    {
-        id: 8,
-        alt: 'Salon detail',
-        src: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?q=80&w=1974&auto=format&fit=crop',
-    },
-];
+const { gallery } = themeContent;
 
-const placementMd = [
-    'md:col-span-2 md:row-span-2 md:min-h-[260px]',
-    'md:col-start-3 md:row-start-1',
-    'md:col-start-4 md:row-start-1',
-    'md:col-start-3 md:row-start-2',
-    'md:col-start-4 md:row-start-2',
-    'md:col-start-1 md:row-start-3',
-    'md:col-start-2 md:row-start-3',
-    'md:col-start-3 md:row-start-3',
-];
+function AutoPlayVideo({ src, className }: { src: string; className: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Chrome bug: muted attribute doesn't always set the muted property
+    video.muted = true;
+
+    const tryPlay = () => { video.play().catch(() => {}); };
+
+    // Play as soon as the browser has enough data (covers iOS Safari)
+    video.addEventListener('canplay', tryPlay);
+
+    // Also play when scrolled into view in case it was loaded off-screen
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          tryPlay();
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(video);
+
+    // Attempt immediately in case already loaded
+    tryPlay();
+
+    return () => {
+      video.removeEventListener('canplay', tryPlay);
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      className={className}
+    />
+  );
+}
 
 export default function GallerySection() {
-    const reduce = useReducedMotion();
+  const sectionRef: any = useRef<HTMLElement | null>(null);
+  const titleRef: any   = useRef<HTMLDivElement | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
 
-    return (
-        <section
-            id="gallery"
-            className="py-20 md:py-28 px-4 relative z-10 bg-gradient-to-b from-transparent via-primary-900/20 to-transparent"
-        >
-            <div className="container mx-auto max-w-6xl">
-                <SectionHeader
-                    eyebrow="Gallery"
-                    title="Inside the studio"
-                    description="Texture, light, and the small details that make visits feel considered—not rushed."
-                />
+  const handleTap = (id: number) => {
+    setActiveId(prev => prev === id ? null : id);
+  };
 
-                <div className="grid grid-cols-2 md:grid-cols-4 md:grid-rows-3 gap-2 md:gap-3">
-                    {galleryImages.map((image, i) => (
-                        <FadeIn
-                            key={image.id}
-                            delay={i * 0.04}
-                            y={16}
-                            className={cn(
-                                'min-h-[140px] md:min-h-0',
-                                i === 0 && 'col-span-2 row-span-2 min-h-[200px]',
-                                placementMd[i]
-                            )}
-                        >
-                            <motion.div
-                                className={cn(
-                                    'relative h-full w-full overflow-hidden rounded-xl border border-primary-800/45 bg-primary-900/30 group min-h-[inherit]',
-                                    i === 0 && 'md:rounded-2xl'
-                                )}
-                                whileHover={reduce ? undefined : { scale: 1.015 }}
-                                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                            >
-                                <Image
-                                    src={image.src}
-                                    alt={image.alt}
-                                    fill
-                                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                                    sizes={
-                                        i === 0
-                                            ? '(max-width: 768px) 100vw, 50vw'
-                                            : '(max-width: 768px) 50vw, 25vw'
-                                    }
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-primary-950/80 via-primary-950/10 to-transparent pointer-events-none" />
-                                <p className="absolute bottom-2.5 left-2.5 right-2.5 text-[10px] md:text-[11px] text-white/90 font-medium tracking-wide">
-                                    {image.alt}
-                                </p>
-                            </motion.div>
-                        </FadeIn>
-                    ))}
-                </div>
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!sectionRef.current) return;
+      const ctx = gsap.context(() => {
+        gsap.fromTo(titleRef.current, { opacity: 0, y: 24 }, {
+          opacity: 1, y: 0, duration: 0.8,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 80%', toggleActions: 'play none none none' },
+        });
+        gsap.fromTo('.gallery-item', { opacity: 0 }, {
+          opacity: 1, stagger: 0.07, duration: 0.5,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 70%', toggleActions: 'play none none none' },
+        });
+      }, sectionRef);
+      return () => ctx.revert();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      id="gallery"
+      className="py-14 lg:py-20 bg-[var(--t-bg-2)] relative z-10"
+    >
+      {/* Header */}
+      <div ref={titleRef} className="max-w-screen-xl mx-auto px-6 lg:px-12 mb-8 lg:mb-10">
+        <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>{gallery.label}</p>
+      </div>
+
+      {/* Full-width tight grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0.5 px-2 md:px-0">
+        {gallery.images.map((item) => {
+          const isWide        = item.wide;
+          const isPortrait    = item.orientation === 'portrait';
+          const aspectClass   = isWide ? 'aspect-video' : (isPortrait ? 'aspect-[3/4]' : 'aspect-square');
+
+          return (
+            <div
+              key={item.id}
+              className={`gallery-item relative overflow-hidden group cursor-pointer ${isWide ? 'col-span-2' : ''}`}
+              style={{ opacity: 1 }}
+              onClick={() => handleTap(item.id)}
+            >
+              <div className={`relative w-full ${aspectClass}`}>
+                {item.type === 'video' ? (
+                  <AutoPlayVideo
+                    src={item.src}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={item.src}
+                    alt={item.alt}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes={isWide ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 50vw, 25vw'}
+                    loading="lazy"
+                    quality={80}
+                  />
+                )}
+              </div>
+              {/* Overlay — hover on desktop, tap-toggle on touch (images only) */}
+              {item.type !== 'video' && <div
+                className={`absolute inset-0 transition-opacity duration-300 flex items-center justify-center group-hover:opacity-100 ${activeId === item.id ? 'opacity-100' : 'opacity-0'}`}
+                style={{ background: 'rgba(192,159,79,0.55)' }}
+              >
+                <span className="t-label text-white tracking-widest text-center px-4">
+                  {item.alt}
+                </span>
+              </div>}
             </div>
-        </section>
-    );
+          );
+        })}
+      </div>
+    </section>
+  );
 }

@@ -1,137 +1,95 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion, useReducedMotion } from 'framer-motion';
-import { Stagger, StaggerItem } from '@/components/website/SectionReveal';
+import { useEffect, useState } from 'react';
+import { themeContent } from '@/themes';
 
-const collage = {
-    main: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1200&auto=format&fit=crop',
-    accent: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=800&auto=format&fit=crop',
-};
-
-const stats = [
-    { label: 'Google rating', value: '4.9' },
-    { label: 'Years in service', value: '12+' },
-    { label: 'Returning guests', value: '78%' },
-];
+const { hero } = themeContent;
 
 export default function HeroSection() {
-    const reduce = useReducedMotion();
+  const [isVisible, setIsVisible] = useState(false);
 
-    return (
-        <section
-            id="home"
-            className="relative w-full min-h-[min(92vh,880px)] flex flex-col justify-center px-4 sm:px-6 pt-28 pb-20 md:pt-32 md:pb-24 overflow-hidden"
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 120);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <section
+      id="home"
+      className="relative w-full overflow-hidden flex items-end"
+      style={{ height: 'min(90vh, 800px)', minHeight: '540px' }}
+    >
+      {/* Dark gradient over video — hero always has dark bg for text legibility */}
+      <div className="absolute inset-0 bg-black/45 z-[1]" />
+      <div
+        className="absolute inset-0 z-[1]"
+        style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%)' }}
+      />
+      <div
+        className="absolute inset-0 z-[1]"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%)' }}
+      />
+
+      {/* ── CONTENT ── */}
+      <div className="relative z-10 w-full max-w-screen-xl mx-auto px-6 lg:px-12 pb-14 lg:pb-20">
+        <div
+          className={`max-w-xl transition-all duration-1000 ease-out ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
         >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_70%_-10%,rgba(116,150,116,0.12),transparent_55%)] pointer-events-none" />
+          {/* Heading */}
+          <h1
+            className="t-display font-light leading-[1.0] text-white mb-6"
+            style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4.5rem)' }}
+          >
+            {hero.heading[0]}
+            <br />
+            <em className="t-script font-normal" style={{ fontSize: 'clamp(2.6rem, 6.5vw, 5.2rem)' }}>
+              {hero.heading[1]}
+            </em>
+          </h1>
 
-            <div className="container mx-auto max-w-6xl relative z-10">
-                <div className="grid lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-16 xl:gap-20 items-center">
-                    <Stagger className="text-center lg:text-left max-w-xl mx-auto lg:mx-0">
-                        <StaggerItem>
-                            <p className="text-primary-300/90 text-[10px] sm:text-[11px] uppercase tracking-[0.42em] mb-6">
-                                Salon &amp; spa · New York
-                            </p>
-                        </StaggerItem>
-                        <StaggerItem>
-                            <h1 className="font-display text-[2.35rem] sm:text-5xl md:text-6xl xl:text-[3.5rem] font-normal text-white tracking-tight leading-[1.06]">
-                                Beauty,{' '}
-                                <span className="gradient-text">quietly</span>
-                                <br className="hidden sm:block" /> elevated.
-                            </h1>
-                        </StaggerItem>
-                        <StaggerItem>
-                            <p className="mt-6 text-primary-100/62 text-[15px] sm:text-base leading-relaxed lg:max-w-md">
-                                Hair, nails, and wellness in a calm studio—appointment-led, detail-obsessed,
-                                and tailored to how you live.
-                            </p>
-                        </StaggerItem>
-                        <StaggerItem>
-                            <div className="mt-9 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-                                <Link
-                                    href="/booking"
-                                    className="inline-flex justify-center items-center px-8 py-3.5 bg-primary-600 text-white text-sm font-medium tracking-wide border border-primary-400/35 shadow-[0_12px_40px_-12px_rgba(75,89,69,0.65)] hover:bg-primary-500 hover:shadow-[0_16px_48px_-12px_rgba(86,120,86,0.45)] transition-all duration-300"
-                                >
-                                    Book an appointment
-                                </Link>
-                                <a
-                                    href="#services"
-                                    className="inline-flex justify-center items-center px-8 py-3.5 text-primary-50/90 text-sm font-medium tracking-wide border border-primary-400/30 bg-primary-950/30 hover:bg-primary-900/50 hover:border-primary-400/45 transition-all duration-300 backdrop-blur-sm"
-                                >
-                                    Explore services
-                                </a>
-                            </div>
-                        </StaggerItem>
-                        <StaggerItem>
-                            <dl className="mt-12 grid grid-cols-3 gap-4 pt-10 border-t border-primary-800/55 max-w-md mx-auto lg:mx-0">
-                                {stats.map((s) => (
-                                    <div key={s.label} className="text-center lg:text-left">
-                                        <dt className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-primary-100/40 mb-1.5">
-                                            {s.label}
-                                        </dt>
-                                        <dd className="font-display text-xl sm:text-2xl text-white tabular-nums">{s.value}</dd>
-                                    </div>
-                                ))}
-                            </dl>
-                        </StaggerItem>
-                    </Stagger>
+          {/* Sub */}
+          <p
+            className={`text-white/70 text-sm max-w-sm leading-relaxed mb-8 transition-all duration-1000 delay-300 ${
+              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+          >
+            {hero.subtext}
+          </p>
 
-                    <div className="relative sm:hidden mt-10 h-52 w-full max-w-lg mx-auto rounded-2xl overflow-hidden border border-primary-700/40 shadow-xl">
-                        <Image
-                            src={collage.main}
-                            alt="Salon interior"
-                            fill
-                            className="object-cover"
-                            sizes="100vw"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary-950/60 to-transparent pointer-events-none" />
-                    </div>
+          {/* CTAs */}
+          <div
+            className={`flex flex-wrap gap-3 transition-all duration-1000 delay-500 ${
+              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+          >
+            <a href="/booking" className="t-btn t-btn-accent">
+              {hero.ctaPrimary}
+            </a>
+            <a href="#services" className="t-btn t-btn-outline-white">
+              {hero.ctaSecondary}
+            </a>
+          </div>
+        </div>
+      </div>
 
-                    <motion.div
-                        className="relative mx-auto w-full max-w-md lg:max-w-none h-[340px] sm:h-[400px] lg:h-[min(520px,58vh)] hidden sm:block"
-                        initial={reduce ? false : { opacity: 0, scale: 0.98 }}
-                        animate={reduce ? undefined : { opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
-                    >
-                        <div className="absolute top-0 right-0 w-[72%] h-[88%] rounded-2xl overflow-hidden border border-primary-600/35 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)] ring-1 ring-white/[0.06]">
-                            <Image
-                                src={collage.main}
-                                alt="Salon interior"
-                                fill
-                                className="object-cover transition-transform duration-700 ease-out hover:scale-[1.03]"
-                                sizes="(max-width: 1024px) 400px, 50vw"
-                                priority
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-primary-950/50 via-transparent to-transparent pointer-events-none" />
-                        </div>
-                        <div className="absolute bottom-0 left-0 w-[52%] h-[48%] rounded-2xl overflow-hidden border border-primary-500/40 shadow-2xl ring-1 ring-white/[0.05]">
-                            <Image
-                                src={collage.accent}
-                                alt="Styling detail"
-                                fill
-                                className="object-cover transition-transform duration-700 ease-out hover:scale-[1.04]"
-                                sizes="(max-width: 1024px) 280px, 35vw"
-                            />
-                        </div>
-                        <div className="absolute -bottom-3 left-[42%] translate-x-[-50%] px-4 py-2 bg-primary-950/85 backdrop-blur-md border border-primary-700/45 text-[11px] tracking-[0.2em] uppercase text-primary-200/90 whitespace-nowrap shadow-lg">
-                            Same-week openings
-                        </div>
-                    </motion.div>
-                </div>
-            </div>
-
-            <motion.div
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 text-primary-400/45"
-                animate={reduce ? undefined : { y: [0, 7, 0] }}
-                transition={reduce ? undefined : { duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-                aria-hidden
-            >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-            </motion.div>
-        </section>
-    );
+      {/* Scroll indicator */}
+      <div
+        className={`absolute bottom-6 right-8 lg:right-12 z-10 flex flex-col items-center gap-2 transition-all duration-1000 delay-700 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <span
+          className="t-label text-white/40 text-[0.52rem] tracking-[0.3em]"
+          style={{ writingMode: 'vertical-rl' }}
+        >
+          Scroll
+        </span>
+        <div className="w-px h-10 bg-white/20 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2/5 bg-[var(--t-accent)] animate-scroll-line" />
+        </div>
+      </div>
+    </section>
+  );
 }

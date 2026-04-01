@@ -8,7 +8,6 @@ if (typeof window !== 'undefined') {
 
 export { gsap, ScrollTrigger };
 
-// Common animation configurations
 export const fadeInUp = {
   opacity: 0,
   y: 60,
@@ -43,13 +42,11 @@ export const slideInRight = {
   ease: 'power3.out',
 };
 
-// Stagger configuration
 export const staggerConfig = {
   amount: 0.5,
   from: 'start',
 };
 
-// Create scroll trigger animation
 export const createScrollTrigger = (
   trigger: string | Element,
   animations: gsap.TweenVars,

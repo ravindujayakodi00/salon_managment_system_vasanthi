@@ -1,88 +1,123 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
-import SectionHeader from '@/components/website/SectionHeader';
-import { Stagger, StaggerItem } from '@/components/website/SectionReveal';
+import { useEffect, useRef, useState } from 'react';
+import { gsap } from '@/utils/gsapConfig';
+import { themeContent } from '@/themes';
 
-const services = [
-    {
-        icon: '✂️',
-        title: 'Hair styling',
-        description: 'Cuts, color, and styling for every texture and lifestyle.',
-    },
-    {
-        icon: '💅',
-        title: 'Nail care',
-        description: 'Manicures, pedicures, and art with meticulous hygiene.',
-    },
-    {
-        icon: '💆',
-        title: 'Spa treatments',
-        description: 'Facials, massage, and body rituals in a quiet, low-lit room.',
-    },
-    {
-        icon: '💄',
-        title: 'Makeup',
-        description: 'Editorial, event, and everyday looks tailored to you.',
-    },
-    {
-        icon: '👰',
-        title: 'Bridal',
-        description: 'Trials and day-of packages for you and your party.',
-    },
-    {
-        icon: '🧖',
-        title: 'Skin care',
-        description: 'Consultations and advanced treatments for lasting radiance.',
-    },
-];
+const { services } = themeContent;
 
 export default function ServicesSection() {
-    const reduce = useReducedMotion();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
 
-    return (
-        <section id="services" className="py-20 md:py-28 px-4 relative z-10">
-            <div className="container mx-auto max-w-6xl">
-                <SectionHeader
-                    eyebrow="Services"
-                    title="Everything in one studio"
-                    description="Browse by category, then book the exact services you want—no guesswork, no rush."
-                />
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!sectionRef.current) return;
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          '.service-row',
+          { opacity: 0, y: 16 },
+          {
+            opacity: 1, y: 0, stagger: 0.08, duration: 0.6, ease: 'power2.out',
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: 'top 75%',
+              toggleActions: 'play none none none',
+            },
+          }
+        );
+      }, sectionRef);
+      return () => ctx.revert();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
-                <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                    {services.map((service, index) => (
-                        <StaggerItem key={index}>
-                            <motion.article
-                                className="h-full flex flex-col p-7 md:p-8 rounded-2xl border border-primary-800/50 bg-gradient-to-b from-primary-900/30 to-primary-950/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] hover:border-primary-600/45 hover:shadow-[0_16px_48px_-24px_rgba(0,0,0,0.55)] transition-colors duration-300"
-                                whileHover={reduce ? undefined : { y: -4 }}
-                                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-primary-800/70 ring-1 ring-primary-500/25 flex items-center justify-center text-2xl mb-5">
-                                    {service.icon}
-                                </div>
-                                <h3 className="font-display text-lg md:text-xl text-white mb-2 tracking-tight">
-                                    {service.title}
-                                </h3>
-                                <p className="text-primary-100/55 text-sm leading-relaxed flex-1">
-                                    {service.description}
-                                </p>
-                                <a
-                                    href="/booking"
-                                    className="inline-flex items-center gap-2 mt-6 text-xs font-medium uppercase tracking-[0.22em] text-primary-400 hover:text-primary-300 transition-colors group/link"
-                                >
-                                    Reserve
-                                    <span
-                                        className="inline-block transition-transform duration-300 group-hover/link:translate-x-0.5"
-                                        aria-hidden
-                                    >
-                                        →
-                                    </span>
-                                </a>
-                            </motion.article>
-                        </StaggerItem>
-                    ))}
-                </Stagger>
+  return (
+    <section
+      ref={sectionRef}
+      id="services"
+      className="py-14 lg:py-20 bg-[var(--t-bg)] relative z-10"
+    >
+      <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 lg:mb-12 gap-6">
+          <div>
+            <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>
+              {services.label}
+            </p>
+          </div>
+          <p className="text-[var(--t-text-2)] text-sm max-w-xs leading-relaxed">
+            {services.subtext}
+          </p>
+        </div>
+
+        {/* Accordion list */}
+        <div className="border-t border-[var(--t-border)]">
+          {services.items.map((service, i) => (
+            <div
+              key={i}
+              className="service-row border-b border-[var(--t-border)] cursor-pointer"
+              style={{ opacity: 1 }}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div
+                className={`flex items-center justify-between py-5 lg:py-6 transition-all duration-200 ${
+                  hovered === i ? 'pl-4 lg:pl-6' : 'pl-0'
+                }`}
+              >
+                {/* Number + Title */}
+                <div className="flex items-center gap-5 lg:gap-10">
+                  <span className="t-label text-[var(--t-text-3)] w-7 shrink-0">
+                    {service.number}
+                  </span>
+                  <h3
+                    className={`t-display font-light transition-colors duration-200 ${
+                      hovered === i ? 'text-[var(--t-accent-2)]' : 'text-[var(--t-text)]'
+                    }`}
+                    style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}
+                  >
+                    {service.title}
+                  </h3>
+                </div>
+
+                {/* Description + Arrow */}
+                <div className="flex items-center gap-8">
+                  <p
+                    className={`text-[var(--t-text-2)] text-sm leading-relaxed max-w-[240px] transition-all duration-200 hidden lg:block ${
+                      hovered === i ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  >
+                    {service.description}
+                  </p>
+                  <span
+                    className={`text-sm transition-all duration-200 ${
+                      hovered === i ? 'text-[var(--t-accent-2)] translate-x-1' : 'text-[var(--t-text-3)]'
+                    }`}
+                  >
+                    →
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile description */}
+              {hovered === i && (
+                <p className="lg:hidden text-[var(--t-text-2)] text-sm leading-relaxed pb-4 pl-12">
+                  {service.description}
+                </p>
+              )}
             </div>
-        </section>
-    );
+          ))}
+        </div>
+
+        {/* Book CTA */}
+        <div className="mt-8 lg:mt-12">
+          <a href="/booking" className="t-btn t-btn-accent">
+            Book a Service
+          </a>
+        </div>
+      </div>
+    </section>
+  );
 }

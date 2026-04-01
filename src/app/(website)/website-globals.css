@@ -1,409 +1,371 @@
-/* Public site (merged from salonflow-website) — extends Tailwind theme */
-@theme inline {
-  /* Primary Colors - Olive Green */
-  --color-primary-50: #f4f7f4;
-  --color-primary-100: #e3ebe3;
-  --color-primary-200: #c5d6c5;
-  --color-primary-300: #9cb89c;
-  --color-primary-400: #749674;
-  --color-primary-500: #567856;
-  --color-primary-600: #4B5945;
-  --color-primary-700: #3a453a;
-  --color-primary-800: #303830;
-  --color-primary-900: #282e28;
-  --color-primary-950: #151a15;
+/* ============================================================
+   WEBSITE GLOBALS — Vasanthi Salon, taupe/cream luxury theme
+   NO @import "tailwindcss" — already in root globals.css
+   NO @theme block — avoids overwriting admin's primary palette
+   ============================================================ */
 
-  /* Salon Theme Colors (mapped from primary) */
-  --color-salon-green: #4B5945;
-  --color-salon-green-dark: #3a453a;
-  --color-salon-green-light: #567856;
-  --color-salon-accent: #749674;
-  --color-salon-neutral-100: #e3ebe3;
-  --color-salon-neutral-200: #c5d6c5;
-  --color-salon-neutral-800: #303830;
-  --color-salon-neutral-900: #282e28;
+/* ============================================================
+   THEME CSS VARIABLES
+   ============================================================ */
+:root {
+  --t-bg:           #EFEBE2;
+  --t-bg-2:         #EFE4D7;
+  --t-bg-3:         #EFEBE2;
+  --t-bg-dark:      #302621;
 
-  /* Glass effect variables */
-  --backdrop-blur-glass: blur(16px);
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --bg-glass-dark: rgba(40, 46, 40, 0.8);
+  --t-text:         #302621;
+  --t-text-2:       #6B5A4E;
+  --t-text-3:       #B9A594;
 
-  /* Font families */
-  --font-display: "Playfair Display", serif;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-}
-/* Prevent horizontal scroll */
-html,
-body {
-  overflow-x: hidden;
-  max-width: 100vw;
+  --t-accent:       #B9A594;
+  --t-accent-2:     #B9A594;
+
+  --t-border:       rgba(48, 38, 33, 0.10);
+  --t-border-2:     rgba(48, 38, 33, 0.25);
+
+  --t-radius:       0px;
+
+  /* Fallback font stacks (overridden by .website-font-scope below) */
+  --t-font-display: "Cormorant Garamond", Georgia, serif;
+  --t-font-body:    "Montserrat", "Helvetica Neue", sans-serif;
+  --t-font-script:  "Pinyon Script", cursive;
 }
 
-/* Marketing site: film grain + vignette (fills “empty” areas without noise) */
-.site-atmosphere {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -11;
+/* ============================================================
+   FONT SCOPE — picks up next/font CSS vars injected by layout
+   Applied on the wrapper <div> in (website)/layout.tsx
+   ============================================================ */
+.website-font-scope {
+  --t-font-display: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  --t-font-body:    var(--font-body, "Montserrat", "Helvetica Neue", sans-serif);
+  --t-font-script:  var(--font-script, "Pinyon Script", cursive);
+  font-family: var(--t-font-body);
+  /* No background-color here — VideoScroller (fixed, z-index:-10) must
+     show through. Individual sections define their own bg colors. */
 }
 
-.site-atmosphere::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.055;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+/* Suppress native browser/iOS play button overlay on all videos */
+.website-font-scope video::-webkit-media-controls,
+.website-font-scope video::-webkit-media-controls-panel,
+.website-font-scope video::-webkit-media-controls-start-playback-button,
+.website-font-scope video::-webkit-media-controls-play-button {
+  display: none !important;
+  -webkit-appearance: none;
 }
 
-.site-atmosphere::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0, 0, 0, 0.45), transparent 55%);
-  opacity: 0.9;
+/* ============================================================
+   THEME UTILITY CLASSES
+   ============================================================ */
+.t-bg      { background-color: var(--t-bg); }
+.t-bg-2    { background-color: var(--t-bg-2); }
+.t-bg-3    { background-color: var(--t-bg-3); }
+.t-bg-dark { background-color: var(--t-bg-dark); }
+
+.t-text    { color: var(--t-text); }
+.t-text-2  { color: var(--t-text-2); }
+.t-text-3  { color: var(--t-text-3); }
+.t-accent  { color: var(--t-accent); }
+.t-accent-2 { color: var(--t-accent-2); }
+
+.t-accent-bg   { background-color: var(--t-accent); }
+.t-accent-2-bg { background-color: var(--t-accent-2); }
+
+.t-border   { border-color: var(--t-border); }
+.t-border-2 { border-color: var(--t-border-2); }
+
+/* Display serif font */
+.t-display { font-family: var(--t-font-display); }
+.t-body    { font-family: var(--t-font-body); }
+.t-script  { font-family: var(--t-font-script); }
+
+/* Navbar links — Cormorant italic, elegant spacing */
+.t-nav-link {
+  font-family: var(--t-font-display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
-/* Subtle mesh lines (editorial) */
-.site-mesh {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -12;
-  opacity: 0.35;
-  background-image:
-    linear-gradient(rgba(116, 150, 116, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(116, 150, 116, 0.06) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 85% 70% at 50% 30%, black 15%, transparent 70%);
+/* ============================================================
+   LABEL — small uppercase tracking
+   ============================================================ */
+.t-label {
+  font-family: var(--t-font-body);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
 }
 
-/* Unified Glass Theme - matching stylist card style */
+/* ============================================================
+   BUTTONS — sharp corners, uppercase, 0 radius
+   ============================================================ */
+.t-btn {
+  display: inline-block;
+  padding: 0.8rem 2.2rem;
+  font-family: var(--t-font-body);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  border-radius: var(--t-radius, 0px);
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* Warm taupe filled — primary CTA */
+.t-btn-accent {
+  background-color: #B9A594;
+  color: #ffffff;
+  border-color: #B9A594;
+}
+.t-btn-accent:hover {
+  background-color: #8F7B6C;
+  color: #ffffff;
+  border-color: #8F7B6C;
+}
+
+/* Dark filled — on light backgrounds */
+.t-btn-dark {
+  background-color: var(--t-text);
+  color: var(--t-bg);
+  border-color: var(--t-text);
+}
+.t-btn-dark:hover {
+  background-color: transparent;
+  color: var(--t-text);
+}
+
+/* Outline — dark border on light bg */
+.t-btn-outline {
+  background-color: transparent;
+  color: var(--t-text);
+  border-color: var(--t-border-2);
+}
+.t-btn-outline:hover {
+  background-color: var(--t-text);
+  color: var(--t-bg);
+}
+
+/* Ghost — minimal, for horizontal scroll cards */
+.t-btn-ghost {
+  background-color: transparent;
+  color: var(--t-text-2);
+  border-color: var(--t-border);
+}
+.t-btn-ghost:hover {
+  background-color: var(--t-text);
+  color: var(--t-bg);
+  border-color: var(--t-text);
+}
+
+/* Outline white — for use over dark/video backgrounds */
+.t-btn-outline-white {
+  background-color: transparent;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.t-btn-outline-white:hover {
+  background-color: #ffffff;
+  color: #302621;
+}
+
+/* ============================================================
+   THIN DIVIDER
+   ============================================================ */
+.t-divider {
+  height: 1px;
+  width: 100%;
+  background-color: var(--t-border);
+}
+
+/* ============================================================
+   MARQUEE
+   ============================================================ */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
+/* ============================================================
+   SCROLL LINE INDICATOR
+   ============================================================ */
+@keyframes scrollLine {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(300%); opacity: 0; }
+}
+.animate-scroll-line { animation: scrollLine 2.4s ease-in-out infinite; }
+
+/* ============================================================
+   GENERAL ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shine {
+  0%   { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(200%) rotate(45deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+@keyframes slideFromLeft {
+  from { opacity: 0; transform: translateX(-50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-shine          { animation: shine 2s ease-in-out infinite; }
+.animate-float          { animation: float 4s ease-in-out infinite; }
+.animate-fade-in-up     { animation: fadeInUp 0.8s ease-out forwards; }
+.animate-fade-in        { animation: fadeIn 0.6s ease-out forwards; }
+.animate-slide-in-left  { animation: slideInLeft 0.8s ease-out forwards; }
+.animate-slide-in-right { animation: slideInRight 0.8s ease-out forwards; }
+.animate-slide-left     { animation: slideFromLeft 0.5s ease-out forwards; }
+.animate-slide-right    { animation: slideFromRight 0.5s ease-out forwards; }
+
+/* ============================================================
+   GLASS — kept for booking wizard (AppointmentSection)
+   ============================================================ */
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(239, 235, 226, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
-
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(116, 150, 116, 0.5);
+  background: rgba(239, 235, 226, 0.95);
+  border-color: rgba(185, 165, 148, 0.4);
 }
-
 .glass-nav {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(239, 235, 226, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
-
 .glass {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(239, 235, 226, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Gradient text - Olive Green */
+/* ============================================================
+   LEGACY BUTTONS — kept for booking page / AppointmentSection
+   ============================================================ */
+.btn-primary {
+  background-color: var(--t-accent, #B9A594);
+  color: #ffffff;
+  padding: 0.75rem 2rem;
+  border-radius: var(--t-radius, 0px);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  border: 1px solid var(--t-accent, #B9A594);
+  cursor: pointer;
+  font-family: var(--t-font-body);
+}
+.btn-primary:hover {
+  background-color: transparent;
+  color: var(--t-text, #302621);
+  border-color: var(--t-text, #302621);
+}
+.btn-secondary {
+  background-color: transparent;
+  color: var(--t-text, #302621);
+  padding: 0.75rem 2rem;
+  border-radius: var(--t-radius, 0px);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  border: 1px solid var(--t-border-2, rgba(48,38,33,0.25));
+  cursor: pointer;
+  font-family: var(--t-font-body);
+}
+.btn-secondary:hover {
+  background-color: var(--t-text, #302621);
+  color: var(--t-bg, #EFEBE2);
+}
+
+/* ============================================================
+   GRADIENT TEXT (legacy compat)
+   ============================================================ */
 .gradient-text {
-  background: linear-gradient(135deg, #9cb89c, #749674, #567856);
+  background: linear-gradient(135deg, #B9A594, #302621);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Animation utilities */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+.custom-scrollbar::-webkit-scrollbar        { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: rgba(0,0,0,0.04); }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: rgba(185,165,148,0.4); border-radius: 0; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(185,165,148,0.7); }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(185,165,148,0.4) rgba(0,0,0,0.04);
 }
+.themed-scrollbar::-webkit-scrollbar        { width: 4px; height: 4px; }
+.themed-scrollbar::-webkit-scrollbar-track  { background: rgba(0,0,0,0.04); }
+.themed-scrollbar::-webkit-scrollbar-thumb  { background: rgba(185,165,148,0.4); border-radius: 0; }
+.themed-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(185,165,148,0.7); }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Preloader animations */
-@keyframes shine {
-  0% {
-    transform: translateX(-100%) rotate(45deg);
-  }
-
-  100% {
-    transform: translateX(200%) rotate(45deg);
-  }
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 0.3;
-  }
-
-  50% {
-    transform: translateY(-20px) scale(1.2);
-    opacity: 0.6;
-  }
-}
-
-@keyframes scissor-cut {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-
-  50% {
-    transform: rotate(15deg);
-  }
-}
-
-.animate-shine {
-  animation: shine 2s ease-in-out infinite;
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-/* Slide animations for appointment section */
-@keyframes slideFromLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-left {
-  animation: slideFromLeft 0.5s ease-out forwards;
-}
-
-.animate-slide-right {
-  animation: slideFromRight 0.5s ease-out forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 1s ease-out forwards;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.8s ease-out forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.8s ease-out forwards;
-}
-
-.animate-gradient {
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  25% {
-    transform: translateY(-20px) rotate(5deg);
-  }
-
-  50% {
-    transform: translateY(-40px) rotate(-5deg);
-  }
-
-  75% {
-    transform: translateY(-20px) rotate(3deg);
-  }
-}
-
-.animate-float {
-  animation: float 20s ease-in-out infinite;
-}
-
-/* Video container */
+/* ============================================================
+   VIDEO CONTAINER
+   ============================================================ */
 .video-container {
   position: relative;
   width: 100%;
   height: 100vh;
   overflow: hidden;
 }
-
 .video-container video {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  min-width: 100%;
-  min-height: 100%;
-  width: auto;
-  height: auto;
+  top: 50%; left: 50%;
+  min-width: 100%; min-height: 100%;
+  width: auto; height: auto;
   transform: translate(-50%, -50%);
   object-fit: cover;
-}
-
-/* Custom button styles */
-.btn-primary {
-  background: #4B5945;
-  color: white;
-  padding: 1rem 2rem;
-  font-weight: 600;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  border: 1px solid rgba(116, 150, 116, 0.35);
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background: #567856;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: #4B5945;
-  padding: 1rem 2rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid #4B5945;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background: #4B5945;
-  color: white;
-}
-
-/* Custom Scrollbar Styles */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(116, 150, 116, 0.4);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(116, 150, 116, 0.6);
-}
-
-/* Themed scrollbar utilities for booking page */
-.themed-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(116, 150, 116, 0.5) rgba(255, 255, 255, 0.05);
-}
-
-.themed-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.themed-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-}
-
-.themed-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(116, 150, 116, 0.5), rgba(86, 120, 86, 0.5));
-  border-radius: 4px;
-  border: 1px solid rgba(116, 150, 116, 0.2);
-}
-
-.themed-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(116, 150, 116, 0.7), rgba(86, 120, 86, 0.7));
-}
-
-/* Hide scrollbar for category tabs */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
 }

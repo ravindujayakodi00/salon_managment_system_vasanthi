@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/website/Navbar';
 import HeroSection from '@/components/website/HeroSection';
 import ServicesSection from '@/components/website/ServicesSection';
@@ -7,55 +8,58 @@ import GallerySection from '@/components/website/GallerySection';
 import TestimonialsSection from '@/components/website/TestimonialsSection';
 import MapContactSection from '@/components/website/MapContactSection';
 import Footer from '@/components/website/Footer';
-import HorizontalScrollSection from '@/components/website/HorizontalScrollSection';
+import VideoScroller from '@/components/website/VideoScroller';
+import ScissorCutDivider from '@/components/website/ScissorCutDivider';
 import BookingCTA from '@/components/website/BookingCTA';
-import { DividerMotion } from '@/components/website/SectionReveal';
+import Preloader from '@/components/website/Preloader';
 
 export default function Home() {
-    return (
-        <>
-            <div className="fixed inset-0 -z-20 bg-primary-950" />
-            <div className="site-mesh" aria-hidden />
-            <div className="site-atmosphere" aria-hidden />
-            <div
-                className="fixed inset-0 -z-10 pointer-events-none"
-                aria-hidden
-                style={{
-                    background:
-                        'radial-gradient(ellipse 100% 55% at 50% -18%, rgba(116, 150, 116, 0.16), transparent 58%), radial-gradient(ellipse 55% 45% at 100% 35%, rgba(75, 89, 69, 0.14), transparent 50%), radial-gradient(ellipse 50% 40% at 0% 75%, rgba(86, 120, 86, 0.1), transparent 48%)',
-                }}
-            />
+  const [isLoading, setIsLoading]     = useState(true);
+  const [showContent, setShowContent] = useState(false);
 
-            <main className="relative min-h-screen">
-                <Navbar />
-                <HeroSection />
+  useEffect(() => {
+    if (!isLoading) {
+      const timer = setTimeout(() => setShowContent(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
-                <DividerMotion />
+  return (
+    <>
+      {isLoading && <Preloader onComplete={() => setIsLoading(false)} />}
 
-                <HorizontalScrollSection />
+      {/* Background prevents flash */}
+      <div className="fixed inset-0 bg-[var(--t-bg)] -z-20" />
 
-                <DividerMotion />
+      <main
+        className={`relative min-h-screen transition-opacity duration-700 ease-out ${
+          showContent ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{ visibility: isLoading ? 'hidden' : 'visible' }}
+      >
+        {/* Scroll-controlled video background */}
+        <VideoScroller />
 
-                <ServicesSection />
+        <Navbar />
+        <HeroSection />
 
-                <DividerMotion />
+        <ScissorCutDivider direction="right" />
+        <ServicesSection />
 
-                <GallerySection />
+        <ScissorCutDivider direction="left" />
+        <GallerySection />
 
-                <DividerMotion />
+        <ScissorCutDivider direction="right" />
+        <TestimonialsSection />
 
-                <TestimonialsSection />
+        <ScissorCutDivider direction="left" />
+        <BookingCTA />
 
-                <DividerMotion />
+        <ScissorCutDivider direction="right" />
+        <MapContactSection />
 
-                <BookingCTA />
-
-                <DividerMotion />
-
-                <MapContactSection />
-
-                <Footer />
-            </main>
-        </>
-    );
+        <Footer />
+      </main>
+    </>
+  );
 }

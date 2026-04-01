@@ -1,107 +1,105 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import SectionHeader from '@/components/website/SectionHeader';
-import { FadeIn, Stagger, StaggerItem } from '@/components/website/SectionReveal';
+import { useEffect, useRef, useState } from 'react';
+import { themeContent } from '@/themes';
 
-const contactInfo = [
-    {
-        icon: '📍',
-        title: 'Visit us',
-        details: ['123 Beauty Boulevard', 'Downtown Fashion District', 'New York, NY 10001'],
-    },
-    {
-        icon: '📞',
-        title: 'Call',
-        details: ['+1 (555) 123-4567', '+1 (555) 987-6543'],
-    },
-    {
-        icon: '✉️',
-        title: 'Email',
-        details: ['hello@salonflow.com', 'bookings@salonflow.com'],
-    },
-    {
-        icon: '🕐',
-        title: 'Hours',
-        details: ['Mon–Fri: 9:00 AM – 8:00 PM', 'Sat: 10:00 AM – 6:00 PM', 'Sun: Closed'],
-    },
-];
+const { contact } = themeContent;
 
 export default function MapContactSection() {
-    const [mapLoaded, setMapLoaded] = useState(false);
-    const reduce = useReducedMotion();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
-    return (
-        <section
-            id="contact"
-            className="relative py-20 md:py-28 px-4 z-10 bg-gradient-to-b from-transparent via-primary-950/50 to-primary-950"
-        >
-            <div className="container mx-auto max-w-6xl">
-                <SectionHeader
-                    eyebrow="Contact"
-                    title="Visit or write to us"
-                    description="We reply within one business day. For same-day openings, call the front desk."
-                />
-
-                <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-stretch">
-                    <FadeIn y={24}>
-                        <div className="relative min-h-[400px] h-full border border-primary-800/50 bg-primary-900/25 overflow-hidden rounded-2xl shadow-[0_24px_60px_-28px_rgba(0,0,0,0.5)]">
-                            {!mapLoaded && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-primary-950 z-10">
-                                    <p className="text-primary-100/45 text-sm">Loading map…</p>
-                                </div>
-                            )}
-                            <iframe
-                                title="SalonFlow location"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9663095343008!2d-74.00425878428698!3d40.74076904379132!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259bf5c1654f3%3A0xc80f9cfce5383d5d!2sGoogle!5e0!3m2!1sen!2sus!4v1635959481234!5m2!1sen!2sus"
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0, minHeight: '400px', filter: 'grayscale(20%) brightness(0.94)' }}
-                                allowFullScreen
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                                className={mapLoaded ? 'opacity-100' : 'opacity-0'}
-                                onLoad={() => setMapLoaded(true)}
-                            />
-                            <div className="absolute top-4 left-4 z-20 px-3 py-2 bg-primary-950/90 border border-primary-700/45 text-[11px] tracking-[0.15em] uppercase text-primary-100/90">
-                                SalonFlow Studio
-                            </div>
-                            <motion.a
-                                href="https://maps.google.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute bottom-4 right-4 z-20 px-5 py-2.5 bg-primary-600 text-white text-xs font-medium tracking-wide border border-primary-500/35 shadow-lg"
-                                whileHover={reduce ? undefined : { scale: 1.03 }}
-                                whileTap={reduce ? undefined : { scale: 0.98 }}
-                            >
-                                Directions
-                            </motion.a>
-                        </div>
-                    </FadeIn>
-
-                    <Stagger className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {contactInfo.map((info, index) => (
-                            <StaggerItem key={index}>
-                                <motion.div
-                                    className="border border-primary-800/50 bg-gradient-to-b from-primary-900/20 to-primary-950/80 p-6 md:p-7 rounded-xl h-full hover:border-primary-700/55 transition-colors duration-300"
-                                    whileHover={reduce ? undefined : { y: -2 }}
-                                >
-                                    <div className="text-2xl mb-4 opacity-90">{info.icon}</div>
-                                    <h3 className="font-display text-lg text-white mb-3">{info.title}</h3>
-                                    <div className="space-y-1">
-                                        {info.details.map((detail, i) => (
-                                            <p key={i} className="text-primary-100/55 text-sm leading-relaxed">
-                                                {detail}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            </StaggerItem>
-                        ))}
-                    </Stagger>
-                </div>
-            </div>
-        </section>
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) {
+          setIsVisible(true);
+          setTimeout(() => setMapLoaded(true), 500);
+        }
+      }),
+      { threshold: 0.15 }
     );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const infoBlocks = [
+    { label: 'Address', lines: contact.address },
+    { label: 'Phone',   lines: contact.phones  },
+    { label: 'Email',   lines: contact.emails  },
+    { label: 'Hours',   lines: contact.hours   },
+  ];
+
+  return (
+    <section
+      ref={sectionRef}
+      id="contact"
+      className="py-14 lg:py-20 bg-[var(--t-bg-2)] relative z-10"
+    >
+      <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
+
+        {/* Header */}
+        <div className={`mb-8 lg:mb-12 transition-all duration-800 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+          <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>{contact.label}</p>
+        </div>
+
+        {/* Map + info grid */}
+        <div
+          className={`grid lg:grid-cols-2 border border-[var(--t-border)] transition-all duration-1000 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          {/* Map */}
+          <div className="relative min-h-[300px] lg:min-h-[480px] overflow-hidden border-b lg:border-b-0 lg:border-r border-[var(--t-border)]">
+            {!mapLoaded && (
+              <div className="absolute inset-0 bg-[var(--t-bg-3)] flex items-center justify-center">
+                <div className="w-8 h-px bg-[var(--t-border-2)] animate-pulse" />
+              </div>
+            )}
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.8!2d79.8981334!3d6.8467948!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25ba36e5a39dd%3A0x2b82e2728b5f11c2!2sVasanthi+Gulasekharam+Salon!5e0!3m2!1sen!2slk!4v1"
+              width="100%"
+              height="100%"
+              style={{ border: 0, minHeight: '300px' }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className={`transition-opacity duration-700 ${mapLoaded ? 'opacity-100' : 'opacity-0'}`}
+            />
+            {/* Get Directions */}
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-4 right-4 t-btn t-btn-dark text-[0.6rem] px-4 py-2.5"
+            >
+              Get Directions
+            </a>
+          </div>
+
+          {/* Contact info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 bg-[var(--t-bg-3)]">
+            {infoBlocks.map((block, i) => (
+              <div
+                key={i}
+                className={`p-7 lg:p-9 border-[var(--t-border)] ${i % 2 === 0 ? 'border-r' : ''} ${i < 2 ? 'border-b' : ''}`}
+              >
+                <p className="t-label text-[var(--t-accent-2)] mb-4 tracking-[0.35em]">
+                  {block.label}
+                </p>
+                <div className="space-y-1">
+                  {block.lines.map((line, j) => (
+                    <p key={j} className="text-[var(--t-text-2)] text-sm leading-relaxed">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

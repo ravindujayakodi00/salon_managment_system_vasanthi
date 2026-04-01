@@ -1,31 +1,50 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Montserrat, Cormorant_Garamond, Pinyon_Script } from 'next/font/google';
 import './website-globals.css';
 import WebsiteProviders from '@/components/website/Providers';
+import SmoothScroller from '@/components/website/SmoothScroller';
+import { themeContent } from '@/themes';
 
-const inter = Inter({
-    variable: '--font-inter',
-    subsets: ['latin'],
-    display: 'swap',
+const montserrat = Montserrat({
+  variable: '--font-body',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  display: 'swap',
 });
 
-const playfair = Playfair_Display({
-    variable: '--font-display',
-    subsets: ['latin'],
-    weight: ['400', '600', '700', '800'],
-    display: 'swap',
+const cormorant = Cormorant_Garamond({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
+
+const pinyonScript = Pinyon_Script({
+  variable: '--font-script',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-    title: 'SalonFlow - Luxury Salon Services',
-    description:
-        'Experience luxury salon services where beauty meets elegance. Professional hair styling, nail care, spa treatments, and more.',
+  title: `${themeContent.salonName} — ${themeContent.tagline}`,
+  description: themeContent.hero.subtext,
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
 };
 
 export default function WebsiteLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className={`${inter.variable} ${playfair.variable} scroll-smooth antialiased`}>
-            <WebsiteProviders>{children}</WebsiteProviders>
-        </div>
-    );
+  return (
+    <div
+      className={`${montserrat.variable} ${cormorant.variable} ${pinyonScript.variable} website-font-scope antialiased`}
+    >
+      <WebsiteProviders>
+        <SmoothScroller />
+        {children}
+      </WebsiteProviders>
+    </div>
+  );
 }

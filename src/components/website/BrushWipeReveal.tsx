@@ -69,7 +69,7 @@ export default function BrushWipeReveal({ children, direction = 'left' }: BrushW
                 ref={brushRef}
                 className="absolute inset-y-0 w-24 z-20 pointer-events-none"
                 style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(122, 155, 111, 0.4), rgba(93, 108, 85, 0.6), rgba(122, 155, 111, 0.4), transparent)',
+                    background: 'linear-gradient(90deg, transparent, rgba(185, 165, 148, 0.4), rgba(143, 123, 108, 0.6), rgba(185, 165, 148, 0.4), transparent)',
                     filter: 'blur(8px)',
                 }}
             />

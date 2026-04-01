@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
 import { gsap, ScrollTrigger } from '@/utils/gsapConfig';
 import { useWebsiteAuth } from '@/context/WebsiteAuthContext';
 import {
@@ -63,7 +65,7 @@ interface AppointmentSectionProps {
 export default function AppointmentSection({ isStandalone = false }: AppointmentSectionProps) {
     const { setSession, isAuthenticated, getAuthenticatedClient } = useWebsiteAuth();
     const [currentStep, setCurrentStep] = useState(1);
-    const sectionRef = useRef<HTMLElement>(null);
+    const sectionRef = useRef<HTMLElement | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -609,10 +611,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             {showBack && currentStep > 1 ? (
                 <button
                     onClick={goBack}
-                    className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-white/20 text-white/80 hover:bg-white/10 hover:border-white/40 transition-all"
+                    className="flex items-center gap-2 px-5 py-2.5 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] transition-all text-sm"
                 >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="square" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
                     </svg>
                     Back
                 </button>
@@ -623,14 +625,14 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 <button
                     onClick={goNext}
                     disabled={!canProceed()}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all ${canProceed()
-                        ? 'bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-[0_0_20px_rgba(116,150,116,0.4)] hover:scale-105'
-                        : 'bg-white/10 text-white/40 cursor-not-allowed'
+                    className={`flex items-center gap-2 px-6 py-2.5 font-medium text-sm tracking-wider uppercase transition-all ${canProceed()
+                        ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]'
+                        : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'
                         }`}
                 >
-                    Next
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    Continue
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="square" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
             )}
@@ -646,8 +648,8 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 return (
                     <div className="space-y-6">
                         <div className="text-center mb-4">
-                            <h3 className="text-xl font-bold text-white mb-2">Stylist Preference</h3>
-                            <p className="text-white/60 text-sm">For: {configuring.service.name}</p>
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Stylist Preference</p>
+                            <p className="text-[var(--t-text-2)] text-sm">For: {configuring.service.name}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -656,10 +658,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                     setConfiguring(prev => ({ ...prev, wantsStylist: 'yes', stylist: '' }));
                                     setModalStep(2);
                                 }}
-                                className="p-4 rounded-xl text-center bg-white/5 border-2 border-white/10 hover:border-primary-400/50 transition-all"
+                                className="p-4 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
                             >
                                 <div className="text-3xl mb-2">👤</div>
-                                <h4 className="font-semibold text-white text-sm">Choose Stylist</h4>
+                                <h4 className="font-medium text-[var(--t-text)] text-sm">Choose Stylist</h4>
                             </button>
 
                             <button
@@ -667,10 +669,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                     setConfiguring(prev => ({ ...prev, wantsStylist: 'no', stylist: 'any', stylistName: 'Any Available' }));
                                     setModalStep(3);
                                 }}
-                                className="p-4 rounded-xl text-center bg-white/5 border-2 border-white/10 hover:border-primary-400/50 transition-all"
+                                className="p-4 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
                             >
                                 <div className="text-3xl mb-2">👥</div>
-                                <h4 className="font-semibold text-white text-sm">No Preference</h4>
+                                <h4 className="font-medium text-[var(--t-text)] text-sm">No Preference</h4>
                             </button>
                         </div>
                     </div>
@@ -680,13 +682,13 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 return (
                     <div className="space-y-6">
                         <div className="text-center mb-4">
-                            <h3 className="text-xl font-bold text-white mb-2">Select Stylist</h3>
-                            <p className="text-white/60 text-sm">For: {configuring.service.name}</p>
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Stylist</p>
+                            <p className="text-[var(--t-text-2)] text-sm">For: {configuring.service.name}</p>
                         </div>
 
                         {loading ? (
                             <div className="text-center py-8">
-                                <div className="animate-spin w-8 h-8 border-2 border-primary-400 border-t-transparent rounded-full mx-auto"></div>
+                                <div className="w-6 h-6 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
@@ -697,10 +699,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                             setConfiguring(prev => ({ ...prev, stylist: stylist.id, stylistName: stylist.name }));
                                             setModalStep(3);
                                         }}
-                                        className="p-3 rounded-xl text-center bg-white/5 border-2 border-white/10 hover:border-primary-400/50 transition-all"
+                                        className="p-3 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
                                     >
                                         <div className="text-2xl mb-1">👩‍🦰</div>
-                                        <h4 className="font-semibold text-white text-sm">{stylist.name}</h4>
+                                        <h4 className="font-medium text-[var(--t-text)] text-sm">{stylist.name}</h4>
                                     </button>
                                 ))}
                             </div>
@@ -708,7 +710,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
                         <button
                             onClick={() => setModalStep(1)}
-                            className="text-white/60 text-sm hover:text-white"
+                            className="text-[var(--t-text-3)] text-sm hover:text-[var(--t-text)] transition-colors"
                         >
                             ← Back
                         </button>
@@ -722,58 +724,54 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 return (
                     <div className="space-y-4">
                         <div className="text-center mb-4">
-                            <h3 className="text-xl font-bold text-white mb-2">Select Date & Time</h3>
-                            <p className="text-white/60 text-sm">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Date & Time</p>
+                            <p className="text-[var(--t-text-2)] text-sm">
                                 {configuring.service.name} with {configuring.stylistName}
                             </p>
                         </div>
 
                         <div>
-                            <label className="block text-white/80 mb-2 text-sm font-medium">Date</label>
+                            <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
                             <input
                                 type="date"
                                 value={configuring.date}
                                 onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
                                 min={getMinDate()}
-                                style={{ colorScheme: 'dark' }}
-                                className="w-full p-3 rounded-xl bg-white/5 border-2 border-white/10 text-white focus:border-primary-400 focus:outline-none"
+                                className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all"
                             />
                         </div>
 
                         {configuring.date && loading && (
                             <div className="text-center py-4">
-                                <div className="animate-spin w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full mx-auto"></div>
+                                <div className="w-5 h-5 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
                             </div>
                         )}
 
                         {/* Stylist Unavailability Notice */}
                         {configuring.date && !loading && stylistUnavailabilityMessage && slotsToShow.length === 0 && (
-                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-center">
-                                <div className="text-amber-400 text-2xl mb-2">📅</div>
-                                <p className="text-amber-300 font-medium">{stylistUnavailabilityMessage}</p>
-                                <p className="text-white/60 text-sm mt-2">
-                                    Please select a different date or choose another stylist.
-                                </p>
+                            <div className="bg-amber-50 border border-amber-200 p-4 text-center">
+                                <div className="text-2xl mb-2">📅</div>
+                                <p className="text-amber-700 font-medium text-sm">{stylistUnavailabilityMessage}</p>
+                                <p className="text-amber-600 text-xs mt-1">Please select a different date or choose another stylist.</p>
                             </div>
                         )}
 
                         {configuring.date && !loading && slotsToShow.length > 0 && (
                             <div>
-                                <label className="block text-white/80 mb-2 text-sm font-medium">Time</label>
-                                {/* Legend for slot colors */}
-                                <div className="flex flex-wrap gap-3 text-[10px] text-white/60 mb-3">
+                                <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Time</label>
+                                <div className="flex flex-wrap gap-3 text-[10px] text-[var(--t-text-3)] mb-3">
                                     <div className="flex items-center gap-1">
-                                        <div className="w-2.5 h-2.5 rounded bg-white/10 border border-white/20"></div>
+                                        <div className="w-2.5 h-2.5 bg-[var(--t-bg-2)] border border-[var(--t-border)]"></div>
                                         <span>Available</span>
                                     </div>
                                     {cart.length > 0 && (
                                         <div className="flex items-center gap-1">
-                                            <div className="w-2.5 h-2.5 rounded bg-amber-900/30 border border-amber-500/30"></div>
+                                            <div className="w-2.5 h-2.5 bg-amber-100 border border-amber-300"></div>
                                             <span>In Your Cart</span>
                                         </div>
                                     )}
                                     <div className="flex items-center gap-1">
-                                        <div className="w-2.5 h-2.5 rounded bg-red-900/20 border border-red-500/20"></div>
+                                        <div className="w-2.5 h-2.5 bg-red-50 border border-red-200"></div>
                                         <span>Booked</span>
                                     </div>
                                 </div>
@@ -792,17 +790,17 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                                 onClick={() => setConfiguring(prev => ({ ...prev, time: slot.time }))}
                                                 disabled={isDisabled}
                                                 title={cartBlocked.blocked ? `Conflicts with: ${cartBlocked.conflictWith}` : undefined}
-                                                className={`p-2 rounded-lg text-xs font-medium transition-all ${configuring.time === slot.time
-                                                    ? 'bg-primary-400 text-white'
+                                                className={`p-2 text-xs font-medium transition-all border ${configuring.time === slot.time
+                                                    ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
                                                     : cartBlocked.blocked
-                                                        ? 'bg-amber-900/30 text-amber-400/70 cursor-not-allowed border border-amber-500/30'
+                                                        ? 'bg-amber-50 text-amber-500 cursor-not-allowed border-amber-200'
                                                         : slot.available
-                                                            ? 'bg-white/10 text-white/80 hover:bg-primary-400/30'
-                                                            : 'bg-red-900/20 text-red-400/50 cursor-not-allowed'
+                                                            ? 'bg-[var(--t-bg-2)] text-[var(--t-text-2)] hover:border-[var(--t-accent-2)] border-[var(--t-border)]'
+                                                            : 'bg-red-50 text-red-300 cursor-not-allowed border-red-100'
                                                     }`}
                                             >
                                                 {formatTime(slot.time)}
-                                                {cartBlocked.blocked && <span className="block text-[8px] opacity-70">🛒 In Cart</span>}
+                                                {cartBlocked.blocked && <span className="block text-[8px] opacity-70">In Cart</span>}
                                             </button>
                                         );
                                     })}
@@ -813,16 +811,16 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         <div className="flex gap-3 pt-4">
                             <button
                                 onClick={() => setModalStep(configuring.wantsStylist === 'yes' ? 2 : 1)}
-                                className="flex-1 px-4 py-2 rounded-full border-2 border-white/20 text-white/80 hover:bg-white/10"
+                                className="flex-1 px-4 py-2 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] text-sm transition-all"
                             >
                                 Back
                             </button>
                             <button
                                 onClick={addToAppointments}
                                 disabled={!configuring.time}
-                                className={`flex-1 px-4 py-2 rounded-full font-medium transition-all ${configuring.time
-                                    ? 'bg-gradient-to-r from-primary-400 to-primary-600 text-white'
-                                    : 'bg-white/10 text-white/40 cursor-not-allowed'
+                                className={`flex-1 px-4 py-2 font-medium text-sm tracking-wider uppercase transition-all ${configuring.time
+                                    ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]'
+                                    : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'
                                     }`}
                             >
                                 Add Appointment
@@ -842,55 +840,56 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             case 1: // Service Selection
                 return (
                     <div className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2">Choose Your Service</h3>
-                            <p className="text-white/60">Select a service to book your appointment</p>
+                        <div className="mb-6">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.1rem' }}>Step One</p>
+                            <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>Choose Your Service</h3>
+                            <p className="text-[var(--t-text-2)] text-sm mt-1">Select a service to begin</p>
                         </div>
 
                         {/* Category Filter */}
-                        <div className="flex flex-wrap gap-2 justify-center mb-6">
+                        <div className="flex flex-wrap gap-2 mb-4">
                             {serviceCategories.map(cat => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(cat.id)}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat.id
-                                        ? 'bg-primary-400 text-white'
-                                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                    className={`px-4 py-1.5 text-xs font-medium tracking-wider uppercase border transition-all ${selectedCategory === cat.id
+                                        ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
+                                        : 'bg-transparent border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-accent-2)]'
                                         }`}
                                 >
-                                    {cat.icon} {cat.name}
+                                    {cat.name}
                                 </button>
                             ))}
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-8">
-                                <div className="animate-spin w-8 h-8 border-2 border-primary-400 border-t-transparent rounded-full mx-auto"></div>
-                                <p className="text-white/60 mt-2">Loading services...</p>
+                            <div className="text-center py-12">
+                                <div className="w-6 h-6 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
+                                <p className="text-[var(--t-text-3)] mt-3 text-sm">Loading services...</p>
                             </div>
                         ) : (
-                            <div className="max-h-[400px] overflow-y-auto themed-scrollbar rounded-xl">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-1">
+                            <div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {filteredServices.map(service => {
-                                        const isSelected = configuring.service?.id === service.id;
+                                        const isSelected = configuring.service?.id === service.id && configuring.date && configuring.time;
                                         return (
                                             <button
                                                 key={service.id}
                                                 onClick={() => openServiceModal(service)}
-                                                className={`p-4 rounded-xl text-left transition-all ${isSelected && configuring.date && configuring.time
-                                                    ? 'bg-primary-400/30 border-2 border-primary-400'
-                                                    : 'bg-white/5 border-2 border-white/10 hover:border-primary-400/50'
+                                                className={`p-4 text-left border transition-all group ${isSelected
+                                                    ? 'bg-[var(--t-accent)] border-[var(--t-accent)]'
+                                                    : 'bg-[var(--t-bg-2)] border-[var(--t-border)] hover:border-[var(--t-accent-2)]'
                                                     }`}
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <h4 className="font-semibold text-white">{service.name}</h4>
-                                                        <p className="text-sm text-white/60">{service.duration} mins</p>
+                                                        <h4 className={`font-medium text-sm ${isSelected ? 'text-[var(--t-text)]' : 'text-[var(--t-text)]'}`}>{service.name}</h4>
+                                                        <p className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--t-text-2)]' : 'text-[var(--t-text-3)]'}`}>{service.duration} mins</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <span className="text-primary-400 font-bold">Rs {service.price}</span>
-                                                        {isSelected && configuring.date && configuring.time && (
-                                                            <span className="block text-xs text-primary-400">✓ Selected</span>
+                                                        <span className={`font-semibold text-sm ${isSelected ? 'text-[var(--t-text)]' : 'text-[var(--t-accent-2)]'}`}>Rs {service.price}</span>
+                                                        {isSelected && (
+                                                            <span className="block text-[10px] text-[var(--t-text)] mt-0.5">✓ Selected</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -903,27 +902,20 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
                         {/* Selected Service Summary */}
                         {configuring.service && configuring.date && configuring.time && (
-                            <div className="bg-white/5 rounded-xl p-4 border border-primary-400/30">
+                            <div className="bg-[var(--t-bg-2)] p-4 border-l-2 border-[var(--t-accent-2)]">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <span className="text-xs text-primary-400 font-medium">Selected Appointment</span>
-                                        <h4 className="font-semibold text-white">{configuring.service.name}</h4>
-                                        <p className="text-sm text-white/60">
-                                            {configuring.date} at {formatTime(configuring.time)} • {configuring.stylistName || 'Any Available'}
+                                        <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Selected Appointment</p>
+                                        <h4 className="font-medium text-[var(--t-text)] text-sm">{configuring.service.name}</h4>
+                                        <p className="text-xs text-[var(--t-text-2)] mt-0.5">
+                                            {configuring.date} at {formatTime(configuring.time)} · {configuring.stylistName || 'Any Available'}
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-primary-400 font-bold">Rs {configuring.service.price}</span>
+                                        <span className="text-[var(--t-accent-2)] font-semibold">Rs {configuring.service.price}</span>
                                         <button
-                                            onClick={() => setConfiguring({
-                                                service: null,
-                                                wantsStylist: '',
-                                                stylist: '',
-                                                stylistName: '',
-                                                date: '',
-                                                time: '',
-                                            })}
-                                            className="block text-xs text-red-400 hover:text-red-300 mt-1"
+                                            onClick={() => setConfiguring({ service: null, wantsStylist: '', stylist: '', stylistName: '', date: '', time: '' })}
+                                            className="block text-xs text-red-400 hover:text-red-600 mt-1 transition-colors"
                                         >
                                             Change
                                         </button>
@@ -939,43 +931,33 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             case 2: // Review Appointments
                 return (
                     <div className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2">
+                        <div className="mb-6">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.1rem' }}>Step Two</p>
+                            <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>
                                 Your {cart.length > 1 ? 'Appointments' : 'Appointment'}
                             </h3>
-                            <p className="text-white/60">Review your selection{cart.length > 1 ? 's' : ''} before proceeding</p>
+                            <p className="text-[var(--t-text-2)] text-sm mt-1">Review before proceeding</p>
                         </div>
 
                         {cart.length === 0 ? (
-                            <div className="text-center py-8 text-white/60">
-                                <p>No appointments selected. Go back to add services.</p>
+                            <div className="text-center py-12 text-[var(--t-text-3)]">
+                                <p className="text-sm">No appointments selected. Go back to add services.</p>
                             </div>
                         ) : (
                             <div className="max-w-lg mx-auto space-y-4">
-                                {/* Appointments List */}
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {cart.map((item, index) => (
-                                        <div
-                                            key={item.id}
-                                            className="bg-white/5 rounded-xl p-4 border border-white/10"
-                                        >
+                                        <div key={item.id} className="bg-[var(--t-bg-2)] p-4 border border-[var(--t-border)]">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <span className="text-xs text-primary-400">Appointment {index + 1}</span>
-                                                    <h4 className="font-semibold text-white">{item.serviceName}</h4>
-                                                    <p className="text-sm text-white/60">
-                                                        {item.date} at {formatTime(item.time)} • {item.stylistName}
-                                                    </p>
-                                                    <p className="text-xs text-white/40 mt-1">{item.serviceDuration} mins</p>
+                                                    <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
+                                                    <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
+                                                    <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · {item.stylistName}</p>
+                                                    <p className="text-xs text-[var(--t-text-3)] mt-0.5">{item.serviceDuration} mins</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="text-primary-400 font-bold">Rs {item.servicePrice}</span>
-                                                    <button
-                                                        onClick={() => removeFromCart(item.id)}
-                                                        className="block text-xs text-red-400 hover:text-red-300 mt-1"
-                                                    >
-                                                        Remove
-                                                    </button>
+                                                    <span className="text-[var(--t-accent-2)] font-semibold text-sm">Rs {item.servicePrice}</span>
+                                                    <button onClick={() => removeFromCart(item.id)} className="block text-xs text-red-400 hover:text-red-600 mt-1 transition-colors">Remove</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -983,29 +965,22 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                 </div>
 
                                 {/* Total */}
-                                <div className="bg-primary-400/20 rounded-xl p-4 border border-primary-400/50">
+                                <div className="bg-[var(--t-accent)] p-4 border border-[var(--t-accent)]">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <span className="text-white font-semibold">Total ({cart.length} appointment{cart.length > 1 ? 's' : ''})</span>
-                                            <span className="text-white/60 text-sm block">{totalDuration} mins</span>
+                                            <span className="text-[var(--t-text)] font-semibold text-sm">Total ({cart.length} appointment{cart.length > 1 ? 's' : ''})</span>
+                                            <span className="text-[var(--t-text-2)] text-xs block">{totalDuration} mins</span>
                                         </div>
-                                        <span className="text-primary-400 font-bold text-2xl">Rs {totalPrice}</span>
+                                        <span className="text-[var(--t-text)] font-bold text-xl">Rs {totalPrice}</span>
                                     </div>
                                 </div>
 
-                                {/* Add Another Appointment */}
+                                {/* Add Another */}
                                 <button
                                     onClick={() => setCurrentStep(1)}
-                                    className="w-full p-4 rounded-xl border-2 border-dashed border-primary-400/50 hover:border-primary-400 bg-primary-400/5 hover:bg-primary-400/10 transition-all group"
+                                    className="w-full p-4 border border-dashed border-[var(--t-accent-2)] text-[var(--t-accent-2)] hover:bg-[var(--t-bg-2)] transition-all text-sm font-medium tracking-wider uppercase"
                                 >
-                                    <div className="flex items-center justify-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary-400/20 flex items-center justify-center group-hover:bg-primary-400/30 transition-colors">
-                                            <svg className="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-primary-400 font-medium text-base">Add Another Appointment</span>
-                                    </div>
+                                    + Add Another Appointment
                                 </button>
                             </div>
                         )}
@@ -1017,138 +992,82 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             case 3: // Customer Details
                 return (
                     <div className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2">Your Details</h3>
-                            <p className="text-white/60">Enter your contact information</p>
+                        <div className="mb-6">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.1rem' }}>Step Three</p>
+                            <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>Your Details</h3>
+                            <p className="text-[var(--t-text-2)] text-sm mt-1">Enter your contact information</p>
                         </div>
 
                         <div className="max-w-md mx-auto space-y-4">
-                            {/* Name Field */}
                             <div>
-                                <label className="block text-white/80 mb-2 text-sm font-medium">Name *</label>
+                                <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Name *</label>
                                 <input
                                     type="text"
                                     value={customer.name}
-                                    onChange={(e) => {
-                                        setCustomer(prev => ({ ...prev, name: e.target.value }));
-                                        if (showErrors) {
-                                            setFieldErrors(prev => ({ ...prev, name: validateName(e.target.value) }));
-                                        }
-                                    }}
-                                    onBlur={() => {
-                                        if (customer.name) {
-                                            setFieldErrors(prev => ({ ...prev, name: validateName(customer.name) }));
-                                            setShowErrors(true);
-                                        }
-                                    }}
+                                    onChange={(e) => { setCustomer(prev => ({ ...prev, name: e.target.value })); if (showErrors) setFieldErrors(prev => ({ ...prev, name: validateName(e.target.value) })); }}
+                                    onBlur={() => { if (customer.name) { setFieldErrors(prev => ({ ...prev, name: validateName(customer.name) })); setShowErrors(true); } }}
                                     placeholder="Your full name"
-                                    className={`w-full p-4 rounded-xl bg-white/5 border-2 text-white placeholder-white/40 focus:outline-none transition-all ${showErrors && fieldErrors.name
-                                        ? 'border-red-500 focus:border-red-400'
-                                        : 'border-white/10 focus:border-primary-400'
-                                        }`}
+                                    className={`w-full p-3.5 bg-[var(--t-bg-2)] border text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:outline-none transition-all text-sm ${showErrors && fieldErrors.name ? 'border-red-400 focus:border-red-500' : 'border-[var(--t-border)] focus:border-[var(--t-accent-2)]'}`}
                                 />
-                                {showErrors && fieldErrors.name && (
-                                    <p className="text-red-400 text-sm mt-1">{fieldErrors.name}</p>
-                                )}
+                                {showErrors && fieldErrors.name && <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>}
                             </div>
 
-                            {/* Phone Field */}
                             <div>
-                                <label className="block text-white/80 mb-2 text-sm font-medium">Phone *</label>
+                                <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Phone *</label>
                                 <input
                                     type="tel"
                                     value={customer.phone}
-                                    onChange={(e) => {
-                                        setCustomer(prev => ({ ...prev, phone: e.target.value }));
-                                        if (showErrors) {
-                                            setFieldErrors(prev => ({ ...prev, phone: validatePhone(e.target.value) }));
-                                        }
-                                    }}
-                                    onBlur={() => {
-                                        if (customer.phone) {
-                                            setFieldErrors(prev => ({ ...prev, phone: validatePhone(customer.phone) }));
-                                            setShowErrors(true);
-                                        }
-                                    }}
+                                    onChange={(e) => { setCustomer(prev => ({ ...prev, phone: e.target.value })); if (showErrors) setFieldErrors(prev => ({ ...prev, phone: validatePhone(e.target.value) })); }}
+                                    onBlur={() => { if (customer.phone) { setFieldErrors(prev => ({ ...prev, phone: validatePhone(customer.phone) })); setShowErrors(true); } }}
                                     placeholder="+94 77 123 4567"
-                                    className={`w-full p-4 rounded-xl bg-white/5 border-2 text-white placeholder-white/40 focus:outline-none transition-all ${showErrors && fieldErrors.phone
-                                        ? 'border-red-500 focus:border-red-400'
-                                        : 'border-white/10 focus:border-primary-400'
-                                        }`}
+                                    className={`w-full p-3.5 bg-[var(--t-bg-2)] border text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:outline-none transition-all text-sm ${showErrors && fieldErrors.phone ? 'border-red-400 focus:border-red-500' : 'border-[var(--t-border)] focus:border-[var(--t-accent-2)]'}`}
                                 />
-                                {showErrors && fieldErrors.phone && (
-                                    <p className="text-red-400 text-sm mt-1">{fieldErrors.phone}</p>
-                                )}
+                                {showErrors && fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
                             </div>
 
-                            {/* Email Field */}
                             <div>
-                                <label className="block text-white/80 mb-2 text-sm font-medium">Email (Optional)</label>
+                                <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Email (Optional)</label>
                                 <input
                                     type="email"
                                     value={customer.email}
-                                    onChange={(e) => {
-                                        setCustomer(prev => ({ ...prev, email: e.target.value }));
-                                        if (showErrors) {
-                                            setFieldErrors(prev => ({ ...prev, email: validateEmail(e.target.value) }));
-                                        }
-                                    }}
-                                    onBlur={() => {
-                                        if (customer.email) {
-                                            setFieldErrors(prev => ({ ...prev, email: validateEmail(customer.email) }));
-                                            setShowErrors(true);
-                                        }
-                                    }}
+                                    onChange={(e) => { setCustomer(prev => ({ ...prev, email: e.target.value })); if (showErrors) setFieldErrors(prev => ({ ...prev, email: validateEmail(e.target.value) })); }}
+                                    onBlur={() => { if (customer.email) { setFieldErrors(prev => ({ ...prev, email: validateEmail(customer.email) })); setShowErrors(true); } }}
                                     placeholder="your@email.com"
-                                    className={`w-full p-4 rounded-xl bg-white/5 border-2 text-white placeholder-white/40 focus:outline-none transition-all ${showErrors && fieldErrors.email
-                                        ? 'border-red-500 focus:border-red-400'
-                                        : 'border-white/10 focus:border-primary-400'
-                                        }`}
+                                    className={`w-full p-3.5 bg-[var(--t-bg-2)] border text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:outline-none transition-all text-sm ${showErrors && fieldErrors.email ? 'border-red-400 focus:border-red-500' : 'border-[var(--t-border)] focus:border-[var(--t-accent-2)]'}`}
                                 />
-                                {showErrors && fieldErrors.email && (
-                                    <p className="text-red-400 text-sm mt-1">{fieldErrors.email}</p>
-                                )}
+                                {showErrors && fieldErrors.email && <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>}
                             </div>
 
-                            {/* Notes Field */}
                             <div>
-                                <label className="block text-white/80 mb-2 text-sm font-medium">Notes (Optional)</label>
+                                <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Notes (Optional)</label>
                                 <textarea
                                     value={customer.notes}
                                     onChange={(e) => setCustomer(prev => ({ ...prev, notes: e.target.value }))}
                                     placeholder="Any special requests..."
                                     rows={3}
-                                    className="w-full p-4 rounded-xl bg-white/5 border-2 border-white/10 text-white placeholder-white/40 focus:border-primary-400 focus:outline-none transition-all resize-none"
+                                    className="w-full p-3.5 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all resize-none text-sm"
                                 />
                             </div>
                         </div>
 
-                        {/* Custom Next button with validation */}
                         <div className="flex items-center justify-between gap-4 mt-6">
                             <button
                                 onClick={goBack}
-                                className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-white/20 text-white/80 hover:bg-white/10 hover:border-white/40 transition-all"
+                                className="flex items-center gap-2 px-5 py-2.5 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] transition-all text-sm"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="square" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
                                 </svg>
                                 Back
                             </button>
                             <button
-                                onClick={() => {
-                                    if (validateCustomerForm()) {
-                                        goNext();
-                                    }
-                                }}
+                                onClick={() => { if (validateCustomerForm()) goNext(); }}
                                 disabled={!canProceed()}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all ${canProceed()
-                                    ? 'bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-[0_0_20px_rgba(116,150,116,0.4)] hover:scale-105'
-                                    : 'bg-white/10 text-white/40 cursor-not-allowed'
-                                    }`}
+                                className={`flex items-center gap-2 px-6 py-2.5 font-medium text-sm tracking-wider uppercase transition-all ${canProceed() ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]' : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'}`}
                             >
-                                Next
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                Continue
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="square" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                         </div>
@@ -1158,83 +1077,64 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             case 4: // OTP Verification
                 return (
                     <div className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2">Verify Your Phone</h3>
-                            <p className="text-white/60">We&apos;ll send a verification code to {customer.phone}</p>
+                        <div className="mb-6">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.1rem' }}>Step Four</p>
+                            <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>Verify Your Phone</h3>
+                            <p className="text-[var(--t-text-2)] text-sm mt-1">We&apos;ll send a code to {customer.phone}</p>
                         </div>
 
-                        <div className="max-w-md mx-auto space-y-6">
+                        <div className="max-w-md mx-auto space-y-5">
                             {!otpSent ? (
-                                // Send OTP Button
-                                <div className="text-center">
+                                <div className="text-center pt-4">
                                     <button
                                         onClick={sendOtp}
                                         disabled={otpLoading}
-                                        className="px-8 py-4 rounded-xl font-medium bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-[0_0_20px_rgba(116,150,116,0.4)] hover:scale-105 transition-all disabled:opacity-50"
+                                        className="px-8 py-3 bg-[var(--t-accent)] text-[var(--t-text)] font-medium text-sm tracking-wider uppercase hover:bg-[#8F7B6C] transition-all disabled:opacity-50"
                                     >
                                         {otpLoading ? (
                                             <span className="flex items-center gap-2">
-                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                                <div className="w-4 h-4 border-2 border-[var(--t-text)] border-t-transparent rounded-full animate-spin"></div>
                                                 Sending...
                                             </span>
-                                        ) : (
-                                            '📱 Send Verification Code'
-                                        )}
+                                        ) : 'Send Verification Code'}
                                     </button>
                                 </div>
                             ) : (
-                                // OTP Input
                                 <div className="space-y-4">
-                                    <div className="bg-primary-400/20 rounded-xl p-4 text-center border border-primary-400/30">
-                                        <p className="text-primary-400 text-sm">
-                                            ✓ Verification code sent to {customer.phone}
-                                        </p>
+                                    <div className="bg-[var(--t-bg-2)] p-4 text-center border-l-2 border-[var(--t-accent-2)]">
+                                        <p className="text-[var(--t-accent-2)] text-sm">✓ Verification code sent to {customer.phone}</p>
                                     </div>
 
                                     <div>
-                                        <label className="block text-white/80 mb-2 text-sm font-medium text-center">
-                                            Enter 6-digit code
-                                        </label>
+                                        <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest text-center">Enter 6-digit code</label>
                                         <input
                                             type="text"
                                             value={otpValue}
                                             onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                             placeholder="000000"
                                             maxLength={6}
-                                            className="w-full p-4 rounded-xl bg-white/5 border-2 border-white/10 text-white text-center text-2xl tracking-[0.5em] font-mono placeholder-white/40 focus:border-primary-400 focus:outline-none transition-all"
+                                            className="w-full p-4 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] text-center text-2xl tracking-[0.5em] font-mono placeholder-[var(--t-text-3)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all"
                                         />
                                     </div>
 
                                     <button
                                         onClick={verifyOtp}
                                         disabled={otpLoading || otpValue.length !== 6}
-                                        className={`w-full py-4 rounded-xl font-medium transition-all ${otpValue.length === 6
-                                            ? 'bg-gradient-to-r from-primary-400 to-primary-600 text-white hover:scale-[1.02]'
-                                            : 'bg-white/10 text-white/40 cursor-not-allowed'
-                                            }`}
+                                        className={`w-full py-3 font-medium text-sm tracking-wider uppercase transition-all ${otpValue.length === 6 ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]' : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'}`}
                                     >
                                         {otpLoading ? (
                                             <span className="flex items-center justify-center gap-2">
-                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                                <div className="w-4 h-4 border-2 border-[var(--t-text)] border-t-transparent rounded-full animate-spin"></div>
                                                 Verifying...
                                             </span>
-                                        ) : (
-                                            'Verify Code'
-                                        )}
+                                        ) : 'Verify Code'}
                                     </button>
 
-                                    {/* Resend OTP */}
                                     <div className="text-center">
                                         {otpCountdown > 0 ? (
-                                            <p className="text-white/50 text-sm">
-                                                Resend code in {otpCountdown}s
-                                            </p>
+                                            <p className="text-[var(--t-text-3)] text-sm">Resend in {otpCountdown}s</p>
                                         ) : (
-                                            <button
-                                                onClick={sendOtp}
-                                                disabled={otpLoading}
-                                                className="text-primary-400 hover:text-primary-300 text-sm"
-                                            >
+                                            <button onClick={sendOtp} disabled={otpLoading} className="text-[var(--t-accent-2)] hover:text-[var(--t-text)] text-sm transition-colors">
                                                 Resend verification code
                                             </button>
                                         )}
@@ -1242,18 +1142,14 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                 </div>
                             )}
 
-                            {/* Verified Status */}
                             {otpVerified && (
-                                <div className="bg-green-500/20 rounded-xl p-4 text-center border border-green-500/30">
-                                    <p className="text-green-400 font-medium">
-                                        ✓ Phone verified successfully!
-                                    </p>
+                                <div className="bg-green-50 p-4 text-center border-l-2 border-green-400">
+                                    <p className="text-green-700 font-medium text-sm">✓ Phone verified successfully!</p>
                                 </div>
                             )}
 
-                            {/* Error */}
                             {otpError && (
-                                <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-300 text-center text-sm">
+                                <div className="bg-red-50 border border-red-200 p-4 text-red-600 text-center text-sm">
                                     {otpError}
                                 </div>
                             )}
@@ -1266,54 +1162,37 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             case 5: // Confirmation
                 return (
                     <div className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2">
+                        <div className="mb-6">
+                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.1rem' }}>Final Step</p>
+                            <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>
                                 Confirm Your {cart.length > 1 ? 'Appointments' : 'Appointment'}
                             </h3>
-                            <p className="text-white/60">Review and submit your booking{cart.length > 1 ? 's' : ''}</p>
+                            <p className="text-[var(--t-text-2)] text-sm mt-1">Review and submit your booking</p>
                         </div>
 
-                        <div className="max-w-lg mx-auto space-y-4">
-                            {/* Customer Info */}
-                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                <h4 className="text-white font-medium mb-2">Customer Details</h4>
+                        <div className="max-w-lg mx-auto space-y-3">
+                            <div className="bg-[var(--t-bg-2)] p-4 border border-[var(--t-border)]">
+                                <p className="t-label text-[var(--t-text-3)] text-[0.6rem] tracking-[0.3em] mb-2">Customer Details</p>
                                 <div className="grid grid-cols-2 gap-2 text-sm">
-                                    <div>
-                                        <span className="text-white/60">Name:</span>
-                                        <span className="text-white ml-2">{customer.name}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-white/60">Phone:</span>
-                                        <span className="text-white ml-2">{customer.phone}</span>
-                                    </div>
+                                    <div><span className="text-[var(--t-text-3)]">Name: </span><span className="text-[var(--t-text)]">{customer.name}</span></div>
+                                    <div><span className="text-[var(--t-text-3)]">Phone: </span><span className="text-[var(--t-text)]">{customer.phone}</span></div>
                                 </div>
                             </div>
 
-                            {/* Appointments List */}
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {cart.map((item, index) => (
-                                    <div
-                                        key={item.id}
-                                        className="bg-white/5 rounded-xl p-4 border border-white/10"
-                                    >
+                                    <div key={item.id} className="bg-[var(--t-bg-2)] p-4 border border-[var(--t-border)]">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <span className="text-xs text-primary-400">Appointment {index + 1}</span>
-                                                <h4 className="font-semibold text-white">{item.serviceName}</h4>
-                                                <p className="text-sm text-white/60">
-                                                    {item.date} at {formatTime(item.time)} • {item.stylistName}
-                                                </p>
-                                                <p className="text-xs text-white/40 mt-1">{item.serviceDuration} mins</p>
+                                                <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
+                                                <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
+                                                <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · {item.stylistName}</p>
+                                                <p className="text-xs text-[var(--t-text-3)]">{item.serviceDuration} mins</p>
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-primary-400 font-bold">Rs {item.servicePrice}</span>
+                                                <span className="text-[var(--t-accent-2)] font-semibold text-sm">Rs {item.servicePrice}</span>
                                                 {cart.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeFromCart(item.id)}
-                                                        className="block text-xs text-red-400 hover:text-red-300 mt-1"
-                                                    >
-                                                        Remove
-                                                    </button>
+                                                    <button onClick={() => removeFromCart(item.id)} className="block text-xs text-red-400 hover:text-red-600 mt-1 transition-colors">Remove</button>
                                                 )}
                                             </div>
                                         </div>
@@ -1321,37 +1200,32 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                 ))}
                             </div>
 
-                            {/* Total */}
-                            <div className="bg-primary-400/20 rounded-xl p-4 border border-primary-400/50">
+                            <div className="bg-[var(--t-accent)] p-4 border border-[var(--t-accent)]">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <span className="text-white font-semibold">Total ({cart.length} appointment{cart.length > 1 ? 's' : ''})</span>
-                                        <span className="text-white/60 text-sm block">{totalDuration} mins</span>
+                                        <span className="text-[var(--t-text)] font-semibold text-sm">Total ({cart.length} appointment{cart.length > 1 ? 's' : ''})</span>
+                                        <span className="text-[var(--t-text-2)] text-xs block">{totalDuration} mins</span>
                                     </div>
-                                    <span className="text-primary-400 font-bold text-2xl">Rs {totalPrice}</span>
+                                    <span className="text-[var(--t-text)] font-bold text-xl">Rs {totalPrice}</span>
                                 </div>
                             </div>
 
-                            {/* Add Another Appointment */}
                             <div className="text-center">
-                                <button
-                                    onClick={() => setCurrentStep(1)}
-                                    className="text-primary-400 hover:text-primary-300 text-sm font-medium"
-                                >
+                                <button onClick={() => setCurrentStep(1)} className="text-[var(--t-accent-2)] hover:text-[var(--t-text)] text-xs tracking-widest uppercase transition-colors">
                                     + Add Another Appointment
                                 </button>
                             </div>
 
                             {customer.notes && (
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                    <h4 className="text-white font-medium mb-2">Notes</h4>
-                                    <p className="text-white/60 text-sm">{customer.notes}</p>
+                                <div className="bg-[var(--t-bg-2)] p-4 border border-[var(--t-border)]">
+                                    <p className="t-label text-[var(--t-text-3)] text-[0.6rem] tracking-[0.3em] mb-1">Notes</p>
+                                    <p className="text-[var(--t-text-2)] text-sm">{customer.notes}</p>
                                 </div>
                             )}
                         </div>
 
                         {error && (
-                            <div className="max-w-lg mx-auto bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-300 text-center">
+                            <div className="max-w-lg mx-auto bg-red-50 border border-red-200 p-4 text-red-600 text-center text-sm">
                                 {error}
                             </div>
                         )}
@@ -1359,28 +1233,28 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         <div className="flex items-center justify-between gap-4 mt-6 max-w-lg mx-auto">
                             <button
                                 onClick={goBack}
-                                className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-white/20 text-white/80 hover:bg-white/10 hover:border-white/40 transition-all"
+                                className="flex items-center gap-2 px-5 py-2.5 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] transition-all text-sm"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="square" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
                                 </svg>
                                 Back
                             </button>
                             <button
                                 onClick={handleSubmit}
                                 disabled={loading || cart.length === 0}
-                                className="flex items-center gap-2 px-8 py-3 rounded-full font-medium bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-[0_0_20px_rgba(116,150,116,0.4)] hover:scale-105 transition-all disabled:opacity-50"
+                                className="flex items-center gap-2 px-8 py-2.5 bg-[var(--t-accent)] text-[var(--t-text)] font-medium text-sm tracking-wider uppercase hover:bg-[#8F7B6C] transition-all disabled:opacity-50"
                             >
                                 {loading ? (
                                     <>
-                                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        <div className="w-4 h-4 border-2 border-[var(--t-text)] border-t-transparent rounded-full animate-spin"></div>
                                         Booking...
                                     </>
                                 ) : (
                                     <>
                                         Confirm {cart.length} Booking{cart.length > 1 ? 's' : ''}
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="square" strokeWidth={1.5} d="M5 13l4 4L19 7" />
                                         </svg>
                                     </>
                                 )}
@@ -1399,39 +1273,40 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             <section
                 ref={sectionRef}
                 id="appointment"
-                className={`h-[100dvh] w-full bg-gradient-to-br from-primary-950 via-[#0a1a0a] to-primary-950 relative z-10 overflow-hidden ${isStandalone ? 'pt-20' : ''}`}
+                className={`h-[100dvh] w-full bg-[var(--t-bg)] relative z-10 overflow-hidden ${isStandalone ? 'pt-16' : ''}`}
             >
                 {/* Desktop Layout */}
                 <div className={`h-full flex ${isMobile ? 'hidden' : ''}`}>
-                    {/* Left Sidebar - Steps */}
-                    <div className="w-80 bg-black/40 backdrop-blur-xl border-r border-primary-400/20 p-6 flex flex-col">
-                        <h2 className="text-2xl font-bold gradient-text mb-8">Book Appointment</h2>
+                    {/* Left Sidebar */}
+                    <div className="w-72 bg-[var(--t-bg-2)] border-r border-[var(--t-border)] p-6 flex flex-col">
+                        <div className="mb-6">
+                            <Image src={logoLongLight} alt="VG Salon" height={44} className="w-auto" />
+                        </div>
+                        <p className="t-script text-[var(--t-accent-2)] mb-5" style={{ fontSize: '1rem' }}>Reserve Your Appointment</p>
 
                         <div className="flex-1">
                             {steps.map((s) => (
                                 <div
                                     key={s.id}
-                                    className={`flex items-center gap-4 p-4 rounded-xl mb-2 transition-all cursor-pointer ${currentStep === s.id
-                                        ? 'bg-primary-400/20 border border-primary-400/50'
+                                    className={`flex items-center gap-4 p-3 mb-1 border transition-all cursor-pointer ${currentStep === s.id
+                                        ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
                                         : currentStep > s.id
-                                            ? 'bg-white/5 border border-white/10'
-                                            : 'opacity-50'
+                                            ? 'bg-[var(--t-bg-3)] border-[var(--t-border)] text-[var(--t-text-2)]'
+                                            : 'bg-transparent border-transparent text-[var(--t-text-3)]'
                                         }`}
                                     onClick={() => currentStep > s.id && setCurrentStep(s.id)}
                                 >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${currentStep > s.id
-                                        ? 'bg-primary-400 text-white'
+                                    <div className={`w-8 h-8 flex items-center justify-center text-sm border transition-all flex-shrink-0 ${currentStep > s.id
+                                        ? 'bg-[var(--t-accent-2)] border-[var(--t-accent-2)] text-white'
                                         : currentStep === s.id
-                                            ? 'bg-primary-400 text-white ring-2 ring-primary-400/50'
-                                            : 'bg-white/10 text-white/40'
+                                            ? 'bg-[var(--t-text)] border-[var(--t-text)] text-[var(--t-accent)]'
+                                            : 'bg-transparent border-[var(--t-border)] text-[var(--t-text-3)]'
                                         }`}>
-                                        {currentStep > s.id ? '✓' : s.icon}
+                                        {currentStep > s.id ? '✓' : s.id}
                                     </div>
                                     <div>
-                                        <p className={`font-medium ${currentStep >= s.id ? 'text-white' : 'text-white/40'}`}>
-                                            {s.title}
-                                        </p>
-                                        <p className="text-xs text-white/50">{s.subtitle}</p>
+                                        <p className="text-xs font-medium tracking-widest uppercase">{s.title}</p>
+                                        <p className="text-[0.65rem] opacity-60">{s.subtitle}</p>
                                     </div>
                                 </div>
                             ))}
@@ -1439,16 +1314,16 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
                         {/* Cart Summary */}
                         {cart.length > 0 && (
-                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                <p className="text-white/60 text-sm mb-1">Cart Summary</p>
-                                <p className="text-white font-semibold">{cart.length} appointment(s)</p>
-                                <p className="text-primary-400 font-bold">Rs {totalPrice}</p>
+                            <div className="bg-[var(--t-bg-3)] p-4 border border-[var(--t-border)]">
+                                <p className="t-label text-[var(--t-text-3)] mb-2 tracking-[0.3em]">Cart</p>
+                                <p className="text-[var(--t-text)] font-medium text-sm">{cart.length} appointment{cart.length > 1 ? 's' : ''}</p>
+                                <p className="text-[var(--t-accent-2)] font-semibold">Rs {totalPrice}</p>
                             </div>
                         )}
                     </div>
 
                     {/* Main Content */}
-                    <div className="flex-1 p-8 overflow-y-auto themed-scrollbar">
+                    <div className="flex-1 p-8 overflow-y-auto">
                         <div className="w-full max-w-4xl mx-auto pb-8">
                             {renderStepContent()}
                         </div>
@@ -1458,32 +1333,31 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 {/* Mobile Layout */}
                 <div className={`h-full flex flex-col ${isMobile ? '' : 'hidden'}`}>
                     {/* Mobile Header */}
-                    <div className="flex-shrink-0 bg-black/60 backdrop-blur-lg border-b border-primary-400/20 px-4 py-3">
+                    <div className="flex-shrink-0 bg-[var(--t-bg-2)] border-b border-[var(--t-border)] px-4 py-3">
                         <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-sm font-bold gradient-text">Book Appointment</h2>
+                            <Image src={logoLongLight} alt="VG Salon" height={30} className="w-auto" />
                             <div className="flex items-center gap-2">
                                 {cart.length > 0 && (
-                                    <span className="bg-primary-400 text-white text-xs px-2 py-1 rounded-full">
+                                    <span className="bg-[var(--t-accent)] text-[var(--t-text)] text-[0.6rem] px-2 py-1 font-medium tracking-wider uppercase">
                                         {cart.length} in cart
                                     </span>
                                 )}
-                                <span className="text-white/50 text-xs">Step {currentStep}/{steps.length}</span>
+                                <span className="t-label text-[var(--t-text-3)] text-[0.6rem]">Step {currentStep}/{steps.length}</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
                             {steps.map(s => (
                                 <div
                                     key={s.id}
-                                    className={`flex-1 h-1 rounded-full transition-all ${currentStep >= s.id ? 'bg-primary-400' : 'bg-white/20'
-                                        }`}
+                                    className={`flex-1 h-0.5 transition-all ${currentStep >= s.id ? 'bg-[var(--t-accent-2)]' : 'bg-[var(--t-border-2)]'}`}
                                 />
                             ))}
                         </div>
                     </div>
 
-                    {/* Mobile Content - No scrolling, use Next button to navigate */}
+                    {/* Mobile Content */}
                     <div className="flex-1 overflow-hidden p-4 flex flex-col">
-                        <div className="flex-1 overflow-y-auto themed-scrollbar">
+                        <div className="flex-1 overflow-y-auto">
                             {renderStepContent()}
                         </div>
                     </div>
@@ -1492,13 +1366,13 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
             {/* Service Configuration Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gradient-to-br from-primary-950 to-[#0a1a0a] rounded-2xl p-6 max-w-md w-full border border-primary-400/30 max-h-[80vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-white">Configure Service</h3>
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[var(--t-bg-3)] p-6 max-w-md w-full border border-[var(--t-border-2)] max-h-[80vh] overflow-y-auto shadow-xl">
+                        <div className="flex justify-between items-center mb-5">
+                            <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: '1.1rem' }}>Configure Service</p>
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="text-white/60 hover:text-white"
+                                className="text-[var(--t-text-3)] hover:text-[var(--t-text)] transition-colors text-lg leading-none"
                             >
                                 ✕
                             </button>
@@ -1510,53 +1384,43 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
             {/* Booking Success Modal */}
             {bookingSuccess && bookingSuccess.show && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gradient-to-br from-primary-950 to-[#0a1a0a] rounded-2xl p-8 max-w-md w-full border border-primary-400/50 text-center">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[var(--t-bg-3)] p-8 max-w-md w-full border border-[var(--t-border-2)] text-center shadow-xl">
                         {/* Success Icon */}
-                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary-400/20 flex items-center justify-center">
-                            <svg className="w-10 h-10 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <div className="w-16 h-16 mx-auto mb-5 bg-[var(--t-accent)] flex items-center justify-center">
+                            <svg className="w-8 h-8 text-[var(--t-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="square" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
 
-                        <h2 className="text-2xl font-bold text-white mb-2">🎉 Booking Confirmed!</h2>
-                        <p className="text-white/60 mb-6">Your appointment has been successfully booked.</p>
+                        <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1.2rem' }}>Booking Confirmed</p>
+                        <h2 className="t-display font-light text-[var(--t-text)] mb-2" style={{ fontSize: '1.6rem' }}>You&apos;re all set!</h2>
+                        <p className="text-[var(--t-text-2)] text-sm mb-6">Your appointment has been successfully booked.</p>
 
-                        {/* Appointment Details */}
-                        <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-3">
+                        <div className="bg-[var(--t-bg-2)] p-4 mb-5 text-left space-y-3 border border-[var(--t-border)]">
                             {bookingSuccess.appointments.map((apt, i) => (
-                                <div key={i} className="flex justify-between items-center border-b border-white/10 pb-2 last:border-0 last:pb-0">
+                                <div key={i} className="flex justify-between items-center border-b border-[var(--t-border)] pb-2 last:border-0 last:pb-0">
                                     <div>
-                                        <p className="text-white font-medium">{apt.serviceName}</p>
-                                        <p className="text-white/60 text-sm">
+                                        <p className="text-[var(--t-text)] font-medium text-sm">{apt.serviceName}</p>
+                                        <p className="text-[var(--t-text-2)] text-xs mt-0.5">
                                             {new Date(apt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {formatTime(apt.time)}
                                         </p>
                                     </div>
-                                    <span className="text-primary-400 font-medium">Rs {apt.price}</span>
+                                    <span className="text-[var(--t-accent-2)] font-semibold text-sm">Rs {apt.price}</span>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Confirmation Message */}
-                        <p className="text-white/50 text-sm mb-6">
-                            📱 Confirmation SMS has been sent to your phone.
-                        </p>
+                        <p className="text-[var(--t-text-3)] text-xs mb-6 tracking-wide">Confirmation SMS has been sent to your phone.</p>
 
-                        {/* Action Buttons */}
                         <div className="space-y-3">
                             <button
-                                onClick={() => {
-                                    setBookingSuccess(null);
-                                    setCurrentStep(1);
-                                }}
-                                className="w-full px-6 py-3 rounded-full font-medium bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-[0_0_20px_rgba(116,150,116,0.4)] hover:scale-105 transition-all"
+                                onClick={() => { setBookingSuccess(null); setCurrentStep(1); }}
+                                className="w-full px-6 py-2.5 bg-[var(--t-accent)] text-[var(--t-text)] font-medium text-sm tracking-wider uppercase hover:bg-[#8F7B6C] transition-all"
                             >
                                 + Book Another Appointment
                             </button>
-                            <a
-                                href="/"
-                                className="block text-white/60 hover:text-white text-sm transition-colors"
-                            >
+                            <a href="/" className="block text-[var(--t-text-3)] hover:text-[var(--t-text)] text-sm transition-colors">
                                 Done — Go to Home
                             </a>
                         </div>
