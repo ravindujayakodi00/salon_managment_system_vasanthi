@@ -15,18 +15,23 @@ export const settingsService = {
 
             // Get Supabase URL from environment
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
             if (!supabaseUrl) {
                 throw new Error('Supabase URL not configured');
             }
+            if (!anonKey) {
+                throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
+            }
 
-            // Call edge function
+            // Call edge function — Supabase requires `apikey` (anon) in addition to the user JWT.
             const response = await fetch(
                 `${supabaseUrl}/functions/v1/change-password`,
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
-                        'Content-Type': 'application/json'
+                        Authorization: `Bearer ${session.access_token}`,
+                        apikey: anonKey,
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         email: staffEmail,
