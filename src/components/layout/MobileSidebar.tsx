@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminHref, adminPageKey } from '@/lib/admin-paths';
+import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
 
 interface NavItem {
     label: string;
@@ -149,6 +150,10 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     const [pageAccess, setPageAccess] = useState<Record<string, Record<string, boolean>>>({});
 
     useEffect(() => {
+        if (!isOrgPageAccessEnabled()) {
+            setPageAccess({});
+            return;
+        }
         if (!user?.organizationId) {
             setPageAccess({});
             return;

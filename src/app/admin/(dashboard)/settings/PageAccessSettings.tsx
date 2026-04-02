@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import Button from '@/components/shared/Button';
 import { Eye, Save, Loader, Trash2 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
+import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
 
 type PageKey =
     | 'dashboard'
@@ -108,6 +109,11 @@ export default function PageAccessSettings({
             setLoading(false);
             return;
         }
+        if (!isOrgPageAccessEnabled()) {
+            setRows({ ...defaults });
+            setLoading(false);
+            return;
+        }
         void (async () => {
             setLoading(true);
             try {
@@ -147,6 +153,13 @@ export default function PageAccessSettings({
 
     const handleSave = async () => {
         if (!orgId || !user) return;
+        if (!isOrgPageAccessEnabled()) {
+            showMessage(
+                'error',
+                'Page access is disabled. Apply migration 20260329_organization_page_access.sql, then set NEXT_PUBLIC_ORG_PAGE_ACCESS=1.'
+            );
+            return;
+        }
         setSaving(true);
         try {
             const payload: Array<{ organization_id: string; role: UserRole; page_key: PageKey; allowed: boolean }> = [];
@@ -188,8 +201,26 @@ export default function PageAccessSettings({
         );
     }
 
+    const pageAccessOff = !isOrgPageAccessEnabled();
+
     return (
         <div className="space-y-6">
+            {pageAccessOff && (
+                <div
+                    className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
+                    role="status"
+                >
+                    <strong className="font-semibold">Page access table not used.</strong> You have{' '}
+                    <code className="text-xs bg-amber-100/80 dark:bg-amber-900/40 px-1 rounded">NEXT_PUBLIC_ORG_PAGE_ACCESS=0</code>{' '}
+                    or the feature is off. To use the matrix, run{' '}
+                    <code className="text-xs bg-amber-100/80 dark:bg-amber-900/40 px-1 rounded">
+                        supabase/migrations/20260329_organization_page_access.sql
+                    </code>{' '}
+                    in the Supabase SQL editor, then set{' '}
+                    <code className="text-xs bg-amber-100/80 dark:bg-amber-900/40 px-1 rounded">NEXT_PUBLIC_ORG_PAGE_ACCESS=1</code>{' '}
+                    (or remove the line) and restart the app.
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -201,11 +232,18 @@ export default function PageAccessSettings({
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={handleReset} disabled={saving}>
+                    <Button type="button" variant="outline" onClick={handleReset} disabled={saving || pageAccessOff}>
                         <Trash2 className="h-4 w-4" />
                         Reset
                     </Button>
-                    <Button type="button" variant="primary" leftIcon={<Save className="h-4 w-4" />} onClick={handleSave} isLoading={saving}>
+                    <Button
+                        type="button"
+                        variant="primary"
+                        leftIcon={<Save className="h-4 w-4" />}
+                        onClick={handleSave}
+                        isLoading={saving}
+                        disabled={pageAccessOff}
+                    >
                         Save access
                     </Button>
                 </div>
