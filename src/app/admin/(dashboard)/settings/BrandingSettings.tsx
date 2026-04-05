@@ -6,7 +6,6 @@ import { Loader, Save, Upload } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import { useAuth } from '@/lib/auth';
-import { previewBrandingColors, useBranding } from '@/lib/branding';
 import { brandingService, formatUnknownError, type BrandingUpdate } from '@/services/branding';
 
 interface ShowMessage {
@@ -15,15 +14,12 @@ interface ShowMessage {
 
 export default function BrandingSettings({ showMessage }: { showMessage: ShowMessage }) {
     const { user, refreshProfile } = useAuth();
-    const { resetTheme } = useBranding();
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
 
     const [displayName, setDisplayName] = useState('');
     const [tagline, setTagline] = useState('');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [primaryColor, setPrimaryColor] = useState('#4B5945');
-    const [secondaryColor, setSecondaryColor] = useState('#0d9488');
     const [contactEmail, setContactEmail] = useState('');
     const [contactPhone, setContactPhone] = useState('');
 
@@ -40,8 +36,6 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
                     setDisplayName(org.display_name?.trim() || org.name || '');
                     setTagline(org.tagline?.trim() || '');
                     setLogoUrl(org.logo_url ?? null);
-                    setPrimaryColor(org.primary_color?.trim() || '#4B5945');
-                    setSecondaryColor(org.secondary_color?.trim() || '#0d9488');
                     setContactEmail(org.contact_email?.trim() || '');
                     setContactPhone(org.contact_phone?.trim() || '');
                 }
@@ -53,16 +47,6 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
             }
         })();
     }, [user?.organizationId]);
-
-    useEffect(() => {
-        previewBrandingColors(primaryColor, secondaryColor);
-    }, [primaryColor, secondaryColor]);
-
-    useEffect(() => {
-        return () => {
-            resetTheme();
-        };
-    }, [resetTheme]);
 
     const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -92,8 +76,6 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
                 display_name: displayName.trim() || null,
                 tagline: tagline.trim() || null,
                 logo_url: logoUrl,
-                primary_color: primaryColor,
-                secondary_color: secondaryColor,
                 contact_email: contactEmail.trim() || null,
                 contact_phone: contactPhone.trim() || null,
             };
@@ -122,7 +104,7 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
             <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Salon branding</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Customize the name, logo, and colors shown in the admin dashboard for your team.
+                    Customize the name, logo, and contact details shown in the admin dashboard for your team.
                 </p>
             </div>
 
@@ -188,48 +170,6 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
                             PNG, JPG, WebP, or SVG. Max 2 MB.
                         </p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Primary color
-                            </label>
-                            <div className="flex gap-2 items-center">
-                                <input
-                                    type="color"
-                                    value={primaryColor}
-                                    onChange={e => setPrimaryColor(e.target.value)}
-                                    className="h-10 w-14 rounded border border-gray-200 dark:border-gray-600 cursor-pointer bg-transparent"
-                                />
-                                <Input
-                                    value={primaryColor}
-                                    onChange={e => setPrimaryColor(e.target.value)}
-                                    className="flex-1"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Secondary color
-                            </label>
-                            <div className="flex gap-2 items-center">
-                                <input
-                                    type="color"
-                                    value={secondaryColor}
-                                    onChange={e => setSecondaryColor(e.target.value)}
-                                    className="h-10 w-14 rounded border border-gray-200 dark:border-gray-600 cursor-pointer bg-transparent"
-                                />
-                                <Input
-                                    value={secondaryColor}
-                                    onChange={e => setSecondaryColor(e.target.value)}
-                                    className="flex-1"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Colors update live in this session. Save to persist for all users.
-                    </p>
                 </div>
             </div>
 

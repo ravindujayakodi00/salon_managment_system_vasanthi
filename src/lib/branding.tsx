@@ -9,10 +9,9 @@ import {
     type ReactNode,
 } from 'react';
 import { useAuth } from '@/lib/auth';
-import type { Organization } from '@/lib/types';
 import { applyOrganizationPalettes } from '@/lib/color-palette';
 
-/** Build-time fallbacks when org has no saved colors (matches DB column defaults). */
+/** Fixed dashboard palette (matches `globals.css` / DB column defaults). */
 const DEFAULT_PRIMARY = '#4B5945';
 const DEFAULT_SECONDARY = '#0d9488';
 
@@ -23,41 +22,28 @@ export interface BrandingContextValue {
     faviconUrl: string | null;
     primaryColor: string;
     secondaryColor: string;
-    /** Re-apply theme from current user.organization (e.g. after leaving branding preview) */
+    /** Re-apply fixed default theme (e.g. after client-side navigation). */
     resetTheme: () => void;
 }
 
 const BrandingContext = createContext<BrandingContextValue | undefined>(undefined);
 
-function applyOrganizationTheme(org: Organization | null | undefined) {
+/** App theme uses fixed defaults (no per-organization color overrides). */
+function applyDefaultTheme() {
     if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-    const primary = org?.primary_color?.trim() || DEFAULT_PRIMARY;
-    const secondary = org?.secondary_color?.trim() || DEFAULT_SECONDARY;
-    applyOrganizationPalettes(root, primary, secondary);
+    applyOrganizationPalettes(document.documentElement, DEFAULT_PRIMARY, DEFAULT_SECONDARY);
 }
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
 
     const resetTheme = useCallback(() => {
-        applyOrganizationTheme(user?.organization ?? null);
-    }, [
-        user?.organization?.id,
-        user?.organization?.primary_color,
-        user?.organization?.secondary_color,
-        user?.organization?.updated_at,
-    ]);
+        applyDefaultTheme();
+    }, []);
 
-    /** Re-apply whenever org id or saved brand colors change (not just object reference). */
     useEffect(() => {
-        applyOrganizationTheme(user?.organization ?? null);
-    }, [
-        user?.organization?.id,
-        user?.organization?.primary_color,
-        user?.organization?.secondary_color,
-        user?.organization?.updated_at,
-    ]);
+        applyDefaultTheme();
+    }, [user?.organization?.id]);
 
     const value = useMemo<BrandingContextValue>(() => {
         const org = user?.organization;
@@ -74,8 +60,8 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
             tagline,
             logoUrl: org?.logo_url ?? null,
             faviconUrl: org?.favicon_url ?? null,
-            primaryColor: org?.primary_color?.trim() || DEFAULT_PRIMARY,
-            secondaryColor: org?.secondary_color?.trim() || DEFAULT_SECONDARY,
+            primaryColor: DEFAULT_PRIMARY,
+            secondaryColor: DEFAULT_SECONDARY,
             resetTheme,
         };
     }, [user?.organization, user?.organizationName, resetTheme]);
@@ -91,9 +77,3 @@ export function useBranding(): BrandingContextValue {
     return ctx;
 }
 
-/** Apply hex colors to document root (e.g. live preview on settings). */
-export function previewBrandingColors(primaryHex: string, secondaryHex: string) {
-    if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-    applyOrganizationPalettes(root, primaryHex || DEFAULT_PRIMARY, secondaryHex || DEFAULT_SECONDARY);
-}
