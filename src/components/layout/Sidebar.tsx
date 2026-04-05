@@ -87,18 +87,20 @@ export default function Sidebar() {
                     href={adminHref('/dashboard')}
                     className={cn('flex items-center gap-3', isCollapsed && 'justify-center')}
                 >
-                    <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex-shrink-0 overflow-hidden">
-                        {logoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
+                    {logoUrl ? (
+                        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={logoUrl}
                                 alt=""
-                                className="h-6 w-6 object-contain"
+                                className="h-full w-full object-cover"
                             />
-                        ) : (
+                        </div>
+                    ) : (
+                        <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex-shrink-0 overflow-hidden">
                             <Scissors className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                        )}
-                    </div>
+                        </div>
+                    )}
                     {!isCollapsed && (
                         <motion.div
                             initial={{ opacity: 0 }}

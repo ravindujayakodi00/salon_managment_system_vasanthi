@@ -142,12 +142,14 @@ export default function BrandingSettings({ showMessage }: { showMessage: ShowMes
                         </label>
                         <div className="flex flex-wrap items-center gap-4">
                             {logoUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={logoUrl}
-                                    alt="Salon logo"
-                                    className="h-16 w-16 object-contain rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 p-1"
-                                />
+                                <div className="h-20 w-20 overflow-hidden rounded-xl">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={logoUrl}
+                                        alt="Salon logo"
+                                        className="h-full w-full object-cover"
+                                    />
+                                </div>
                             ) : (
                                 <div className="h-16 w-16 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs text-gray-400">
                                     No logo

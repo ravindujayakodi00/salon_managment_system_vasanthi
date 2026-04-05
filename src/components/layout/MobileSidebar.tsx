@@ -84,18 +84,20 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     >
                         <div className="p-6 flex items-center justify-between border-b border-primary-200/60 dark:border-primary-800/45">
                             <Link href={adminHref('/dashboard')} className="flex items-center gap-3" onClick={onClose}>
-                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl overflow-hidden">
-                                    {logoUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
+                                {logoUrl ? (
+                                    <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={logoUrl}
                                             alt=""
-                                            className="h-6 w-6 object-contain"
+                                            className="h-full w-full object-cover"
                                         />
-                                    ) : (
+                                    </div>
+                                ) : (
+                                    <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl overflow-hidden">
                                         <Scissors className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                                 <div>
                                     <h1 className="text-xl font-bold text-gray-900 dark:text-white">{displayName}</h1>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{tagline}</p>
