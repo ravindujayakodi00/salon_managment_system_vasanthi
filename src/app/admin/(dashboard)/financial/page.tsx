@@ -176,17 +176,17 @@ export default function FinancialPage() {
                     </div>
                 </motion.div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl">
+                <div className="card p-6 surface-panel rounded-2xl">
                     <p className="text-gray-600 dark:text-gray-400 text-sm">Commission</p>
                     <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totals.commission_sum)}</h3>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl">
+                <div className="card p-6 surface-panel rounded-2xl">
                     <p className="text-gray-600 dark:text-gray-400 text-sm">Advances</p>
                     <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totals.advances_sum)}</h3>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl">
+                <div className="card p-6 surface-panel rounded-2xl">
                     <div className="flex items-center gap-3">
                         <Wallet className="h-8 w-8 text-secondary-500" />
                         <div>
@@ -198,7 +198,7 @@ export default function FinancialPage() {
             </div>
 
             {/* Table */}
-            <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 sm:p-6 surface-panel">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Stylists</h2>
 
                 {loading ? (

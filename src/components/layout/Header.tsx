@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useBranding } from '@/lib/branding';
 import { useWorkspace } from '@/lib/workspace';
 import { useTheme } from '@/lib/theme';
 import { useRouter } from 'next/navigation';
@@ -17,6 +18,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
     const { user, logout } = useAuth();
+    const { displayName } = useBranding();
     const { branches, branchScope, setBranchScope } = useWorkspace();
     const showBranchPicker = user && user.role === 'Owner' && branches.length > 0;
     const assignedBranchLabel = useMemo(() => {
@@ -117,18 +119,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
     };
 
     return (
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-6 py-4 sticky top-0 z-40 transition-colors">
+        <header className="bg-white/95 dark:bg-primary-950/55 backdrop-blur-sm border-b border-primary-200/70 dark:border-primary-800/50 px-4 lg:px-6 py-4 sticky top-0 z-40 transition-colors shadow-[var(--brand-shadow-xs)]">
             <div className="flex items-center justify-between">
                 {/* Mobile Menu Button & Logo */}
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onMenuClick}
-                        className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        className="lg:hidden p-2 hover:bg-primary-50/90 dark:hover:bg-primary-900/35 rounded-xl transition-colors"
                     >
                         <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
                     </button>
                     <div className="lg:hidden">
-                        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">SalonFlow</h1>
+                        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">{displayName}</h1>
                     </div>
                 </div>
 
@@ -147,7 +149,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                         : 'all'
                                 }
                                 onChange={e => setBranchScope(e.target.value as 'all' | string)}
-                                className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 max-w-[10rem] lg:max-w-[14rem] shrink-0"
+                                className="text-sm border border-primary-200/80 dark:border-primary-700/50 rounded-lg px-2 py-1.5 bg-white dark:bg-primary-950/40 text-gray-900 dark:text-gray-100 max-w-[10rem] lg:max-w-[14rem] shrink-0 shadow-[var(--brand-shadow-xs)]"
                             >
                                 <option value="all">All locations</option>
                                 {branches.map(b => (
@@ -169,13 +171,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        className="p-2 hover:bg-primary-50/90 dark:hover:bg-primary-900/35 rounded-xl transition-colors"
                         aria-label="Toggle theme"
                     >
                         {theme === 'light' ? (
-                            <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                            <Moon className="h-5 w-5 text-primary-700 dark:text-primary-300" />
                         ) : (
-                            <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                            <Sun className="h-5 w-5 text-primary-700 dark:text-primary-300" />
                         )}
                     </button>
 
@@ -192,7 +194,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     await fetchPreview(5);
                                 }
                             }}
-                            className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                            className="relative p-2 hover:bg-primary-50/90 dark:hover:bg-primary-900/35 rounded-xl transition-colors"
                         >
                             <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                             {unreadCount > 0 && (
@@ -207,11 +209,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowNotifications(false)}
                                 />
-                                <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 z-20 max-h-[70vh] overflow-y-auto">
-                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl z-20 max-h-[70vh] overflow-y-auto surface-panel shadow-[var(--brand-shadow-lg)]">
+                                    <div className="px-4 py-3 border-b border-primary-200/60 dark:border-primary-800/45">
                                         <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                                     </div>
-                                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <div className="divide-y divide-primary-200/45 dark:divide-primary-800/35">
                                         {loadingNotifications ? (
                                             <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
                                                 Loading...
@@ -224,7 +226,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                             notificationsPreview.map((n) => (
                                                 <div
                                                     key={n.id}
-                                                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                                                    className="p-4 hover:bg-primary-50/70 dark:hover:bg-primary-900/30 transition-colors cursor-pointer"
                                                 >
                                                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{n.title}</p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{n.message}</p>
@@ -235,7 +237,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                             ))
                                         )}
                                     </div>
-                                    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
+                                    <div className="px-4 py-3 border-t border-primary-200/60 dark:border-primary-800/45 text-center">
                                         <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium">
                                             View all notifications
                                         </button>
@@ -249,7 +251,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
-                            className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                            className="flex items-center gap-3 p-2 hover:bg-primary-50/90 dark:hover:bg-primary-900/35 rounded-xl transition-colors"
                         >
                             <div className="hidden sm:block text-right">
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
@@ -267,8 +269,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowUserMenu(false)}
                                 />
-                                <div className="absolute right-0 mt-2 w-[min(14rem,calc(100vw-2rem))] bg-white dark:bg-gray-800 rounded-xl shadow-soft-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
-                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <div className="absolute right-0 mt-2 w-[min(14rem,calc(100vw-2rem))] rounded-xl py-2 z-20 surface-panel shadow-[var(--brand-shadow-lg)]">
+                                    <div className="px-4 py-3 border-b border-primary-200/60 dark:border-primary-800/45">
                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                                     </div>

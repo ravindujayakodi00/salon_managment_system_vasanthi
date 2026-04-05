@@ -54,13 +54,14 @@ export const settingsService = {
     },
 
     /**
-     * Get commission settings
+     * Get commission settings for the organization
      */
-    async getCommissionSettings() {
+    async getCommissionSettings(organizationId: string) {
         try {
             const { data, error } = await supabase
                 .from('commission_settings')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .order('role');
 
             if (error) throw error;
@@ -74,11 +75,12 @@ export const settingsService = {
     /**
      * Update commission settings (Owner only)
      */
-    async updateCommissionSettings(role: string, percentage: number) {
+    async updateCommissionSettings(organizationId: string, role: string, percentage: number) {
         try {
             const { data, error } = await supabase
                 .from('commission_settings')
                 .update({ commission_percentage: percentage })
+                .eq('organization_id', organizationId)
                 .eq('role', role)
                 .select()
                 .single();

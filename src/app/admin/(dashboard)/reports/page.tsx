@@ -98,7 +98,7 @@ export default function ReportsPage() {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                         <Send className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -112,7 +112,7 @@ export default function ReportsPage() {
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Messages Sent</p>
                             </div>
 
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                         <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -128,7 +128,7 @@ export default function ReportsPage() {
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Delivered Successfully</p>
                             </div>
 
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                         <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -141,7 +141,7 @@ export default function ReportsPage() {
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Failed Delivery</p>
                             </div>
 
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                         <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -158,7 +158,7 @@ export default function ReportsPage() {
                         {/* Charts Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Weekly Volume Chart */}
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Weekly Volume</h3>
                                     <select className="text-sm border-none bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-1">
@@ -190,7 +190,7 @@ export default function ReportsPage() {
                             </div>
 
                             {/* Cost Efficiency */}
-                            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <div className="card p-6 surface-panel">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Cost Efficiency</h3>
 
                                 <div className="space-y-6">
@@ -332,7 +332,7 @@ function SystemReports() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {reports.map((report) => (
-                <div key={report.id} className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                <div key={report.id} className="card p-6 surface-panel hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                         <div className="flex gap-4">
                             <div className={`p-3 rounded-xl ${report.color}`}>
@@ -444,7 +444,7 @@ function AllInvoices() {
     return (
         <div className="mt-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Transaction History</h2>
-            <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
+            <div className="card surface-panel overflow-hidden shadow-sm">
                 <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center gap-2">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">All Invoices</h3>

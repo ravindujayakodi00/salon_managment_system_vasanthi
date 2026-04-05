@@ -3,13 +3,12 @@ import { Service } from '@/lib/types';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export const servicesService = {
-    /**
-     * Get all active services
-     */
     async getServices(activeOnly = true) {
+        const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('services')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('category')
             .order('name');
 
@@ -23,13 +22,12 @@ export const servicesService = {
         return data;
     },
 
-    /**
-     * Get services by category
-     */
     async getServicesByCategory(category: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('services')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('category', category)
             .eq('is_active', true)
             .order('name');
@@ -38,23 +36,19 @@ export const servicesService = {
         return data;
     },
 
-    /**
-     * Get service by ID
-     */
     async getServiceById(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('services')
             .select('*')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
         return data;
     },
 
-    /**
-     * Create a new service
-     */
     async createService(service: {
         name: string;
         category: string;
@@ -74,14 +68,13 @@ export const servicesService = {
         return data;
     },
 
-    /**
-     * Update a service
-     */
     async updateService(id: string, updates: Partial<Service>) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('services')
             .update(updates)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -89,14 +82,13 @@ export const servicesService = {
         return data;
     },
 
-    /**
-     * Toggle service active status
-     */
     async toggleServiceStatus(id: string, isActive: boolean) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('services')
             .update({ is_active: isActive })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -104,14 +96,13 @@ export const servicesService = {
         return data;
     },
 
-    /**
-     * Delete a service
-     */
     async deleteService(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { error } = await supabase
             .from('services')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
         return true;

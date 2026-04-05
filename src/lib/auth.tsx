@@ -1,9 +1,10 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from './types';
+import { Organization, User, UserRole } from './types';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
+import { brandingService } from '@/services/branding';
 
 interface AuthContextType {
     user: User | null;
@@ -71,14 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             let organizationSlug: string | undefined;
             let organizationName: string | undefined;
+            let organization: Organization | null = null;
             if (data.organization_id) {
-                const { data: org } = await supabase
-                    .from('organizations')
-                    .select('name, slug')
-                    .eq('id', data.organization_id)
-                    .maybeSingle();
-                organizationSlug = org?.slug;
-                organizationName = org?.name;
+                // Use same path as branding (RPC) so RLS cannot leave organization null — required for global theme CSS vars.
+                try {
+                    organization = await brandingService.getBranding(data.organization_id as string);
+                } catch {
+                    organization = null;
+                }
+                if (organization) {
+                    organizationSlug = organization.slug;
+                    organizationName = (organization.display_name as string | null | undefined)?.trim()
+                        ? (organization.display_name as string)
+                        : organization.name;
+                }
             }
             setUser({
                 id: data.id,
@@ -89,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 organizationId: data.organization_id as string,
                 organizationSlug,
                 organizationName,
+                organization,
                 isActive: data.is_active,
             });
             return true;

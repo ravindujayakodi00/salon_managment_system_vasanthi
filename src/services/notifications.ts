@@ -10,6 +10,7 @@ interface NotificationTemplate {
     message: string;
     whatsapp_template_name?: string;
     is_active: boolean;
+    organization_id?: string;
 }
 
 interface TemplateVariables {
@@ -27,12 +28,13 @@ export const notificationsService = {
     /**
      * Get all notification templates
      */
-    async getTemplates() {
+    async getTemplates(organizationId?: string) {
         try {
-            const { data, error } = await supabase
-                .from('notification_templates')
-                .select('*')
-                .order('type');
+            let q = supabase.from('notification_templates').select('*').order('type');
+            if (organizationId) {
+                q = q.eq('organization_id', organizationId);
+            }
+            const { data, error } = await q;
 
             if (error) throw error;
             return data as NotificationTemplate[];
@@ -43,16 +45,19 @@ export const notificationsService = {
     },
 
     /**
-     * Get template by type
+     * Get template by type (scoped to organization when organizationId is provided)
      */
-    async getTemplateByType(type: string) {
+    async getTemplateByType(type: string, organizationId?: string | null) {
         try {
-            const { data, error } = await supabase
+            let q = supabase
                 .from('notification_templates')
                 .select('*')
                 .eq('type', type)
-                .eq('is_active', true)
-                .single();
+                .eq('is_active', true);
+            if (organizationId) {
+                q = q.eq('organization_id', organizationId);
+            }
+            const { data, error } = await q.single();
 
             if (error) {
                 // PGRST116 = no rows returned (template not found)
@@ -78,7 +83,9 @@ export const notificationsService = {
     /**
      * Create new template
      */
-    async createTemplate(template: Omit<NotificationTemplate, 'id'>) {
+    async createTemplate(
+        template: Omit<NotificationTemplate, 'id' | 'organization_id'> & { organization_id: string }
+    ) {
         try {
             const { data, error } = await supabase
                 .from('notification_templates')
@@ -296,7 +303,7 @@ export const notificationsService = {
             // Get customer details
             const { data: customer, error: customerError } = await supabase
                 .from('customers')
-                .select('email, phone, name')
+                .select('email, phone, name, organization_id')
                 .eq('id', customerId)
                 .single();
 
@@ -310,8 +317,11 @@ export const notificationsService = {
             }
             if (!customer) throw new Error('Customer not found');
 
-            // Get template
-            const template = await this.getTemplateByType(templateType);
+            // Get template (tenant-scoped via customer's organization)
+            const template = await this.getTemplateByType(
+                templateType,
+                (customer as { organization_id?: string }).organization_id
+            );
             if (!template) {
                 console.warn(`Template not found for type: ${templateType}. Skipping notification.`);
                 return {

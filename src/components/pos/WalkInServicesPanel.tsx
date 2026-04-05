@@ -43,7 +43,7 @@ export default function WalkInServicesPanel({
     });
 
     return (
-        <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <div className="card p-4 surface-panel">
             <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
                 Walk-in Services

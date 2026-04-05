@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, DollarSign, Save, Loader, Mail, Eye, EyeOff, CheckCircle, XCircle, CalendarDays, Clock, Trash2, Plus, Gift, Receipt, MapPin } from 'lucide-react';
+import { Lock, DollarSign, Save, Loader, Mail, Eye, EyeOff, CheckCircle, XCircle, CalendarDays, Clock, Trash2, Plus, Gift, Receipt, MapPin, Palette } from 'lucide-react';
 import TaxSettings from './TaxSettings';
 import BranchesSettings from './BranchesSettings';
 import PageAccessSettings from './PageAccessSettings';
+import BrandingSettings from './BrandingSettings';
 import { loyaltyService, LoyaltySettings as LoyaltySettingsType } from '@/services/loyalty';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
@@ -456,13 +457,14 @@ interface SchedulingSettingsProps {
 
 // Scheduling Settings Component
 function SchedulingSettings({ showMessage }: SchedulingSettingsProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState<any>(null);
 
     const fetchSettings = useCallback(async () => {
-        const data = await schedulingService.getSalonSettings();
+        const data = await schedulingService.getSalonSettings(user?.organizationId ?? null);
         setSettings(data);
-    }, []);
+    }, [user?.organizationId]);
 
     useEffect(() => {
         fetchSettings();
@@ -471,7 +473,7 @@ function SchedulingSettings({ showMessage }: SchedulingSettingsProps) {
     const handleUpdate = async () => {
         if (!settings) return;
         setLoading(true);
-        const result = await schedulingService.updateSalonSettings(settings);
+        const result = await schedulingService.updateSalonSettings(settings, user?.organizationId);
         setLoading(false);
 
         if (result.success) {
@@ -547,6 +549,35 @@ function SchedulingSettings({ showMessage }: SchedulingSettingsProps) {
                     </p>
                 </div>
 
+                {/* Staff holiday quota */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Max full-day holidays per staff (per calendar year)
+                    </label>
+                    <Input
+                        type="number"
+                        value={settings.max_full_day_holidays_per_year ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                                setSettings({ ...settings, max_full_day_holidays_per_year: null });
+                                return;
+                            }
+                            const n = parseInt(raw, 10);
+                            setSettings({
+                                ...settings,
+                                max_full_day_holidays_per_year: Number.isFinite(n) ? Math.max(0, n) : null,
+                            });
+                        }}
+                        min="0"
+                        placeholder="Empty = no limit"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                        Applies to staff who add full-day holidays under Settings → My Availability. Half-days and breaks
+                        are not counted. Leave empty for no cap.
+                    </p>
+                </div>
+
                 {/* Enable Tax */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -617,6 +648,8 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
     const [loading, setLoading] = useState(false);
     const [leaves, setLeaves] = useState<AvailabilityRecord[]>([]);
     const [staffId, setStaffId] = useState<string | null>(null);
+    const [holidayQuota, setHolidayQuota] = useState<number | null>(null);
+    const [holidayDaysUsedThisYear, setHolidayDaysUsedThisYear] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [formData, setFormData] = useState({
         startDate: '',
@@ -666,6 +699,25 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
         }
     }, [staffId, fetchLeaves]);
 
+    const loadHolidayQuota = useCallback(async () => {
+        if (!staffId || !user?.organizationId) return;
+        try {
+            const salon = await schedulingService.getSalonSettings(user.organizationId);
+            const cap = salon.max_full_day_holidays_per_year;
+            setHolidayQuota(typeof cap === 'number' && cap >= 0 ? cap : null);
+            const y = new Date().getFullYear();
+            const used = await availabilityService.sumFullDayHolidayDaysInYear(staffId, y);
+            setHolidayDaysUsedThisYear(used);
+        } catch {
+            setHolidayQuota(null);
+            setHolidayDaysUsedThisYear(null);
+        }
+    }, [staffId, user?.organizationId]);
+
+    useEffect(() => {
+        loadHolidayQuota();
+    }, [loadHolidayQuota]);
+
     const handleAddLeave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!staffId) return;
@@ -681,6 +733,22 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
                 // For full day, cover the whole working day or 00:00-23:59
                 startDateTime = `${formData.startDate}T00:00:00`;
                 endDateTime = `${formData.endDate || formData.startDate}T23:59:59`;
+            }
+
+            if (formData.type === 'holiday' && user?.organizationId) {
+                const salon = await schedulingService.getSalonSettings(user.organizationId);
+                const cap = salon.max_full_day_holidays_per_year;
+                const quotaErr = await availabilityService.validateFullDayHolidayQuota(
+                    staffId,
+                    new Date(startDateTime).toISOString(),
+                    new Date(endDateTime).toISOString(),
+                    typeof cap === 'number' && cap >= 0 ? cap : null
+                );
+                if (quotaErr) {
+                    showMessage('error', quotaErr);
+                    setLoading(false);
+                    return;
+                }
             }
 
             await availabilityService.createAvailability({
@@ -702,6 +770,7 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
                 reason: ''
             });
             fetchLeaves();
+            await loadHolidayQuota();
         } catch (error: unknown) {
             console.error('Error adding leave:', error);
             const message = error instanceof Error ? error.message : 'Failed to add leave';
@@ -717,6 +786,7 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
             await availabilityService.deleteAvailability(id);
             showMessage('success', 'Removed successfully');
             fetchLeaves();
+            await loadHolidayQuota();
         } catch (error) {
             console.error('Error deleting leave:', error);
             showMessage('error', 'Failed to delete');
@@ -733,6 +803,15 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
 
     return (
         <div className="space-y-6">
+            {holidayQuota != null && holidayDaysUsedThisYear != null && (
+                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-blue-900 dark:text-blue-100">
+                    Full-day holiday days used this calendar year:{' '}
+                    <span className="font-semibold">
+                        {holidayDaysUsedThisYear} / {holidayQuota}
+                    </span>
+                    . Half-days and breaks do not count toward this limit.
+                </div>
+            )}
             <div className="flex justify-between items-center">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -838,7 +917,7 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
                     <p className="text-center text-gray-500 py-8">No upcoming time off scheduled.</p>
                 ) : (
                     leaves.map((leave) => (
-                        <div key={leave.id} className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm">
+                        <div key={leave.id} className="flex items-center justify-between p-4 surface-panel rounded-xl shadow-sm">
                             <div className="flex items-start gap-3">
                                 <div className={`p-2 rounded-lg ${leave.type === 'holiday' ? 'bg-purple-100 text-purple-600' :
                                     leave.type === 'half_day' ? 'bg-orange-100 text-orange-600' :
@@ -1135,7 +1214,7 @@ function LoyaltySettingsTab({ showMessage }: LoyaltySettingsTabProps) {
 export default function SettingsPage() {
     const { user, hasRole } = useAuth();
     const [activeTab, setActiveTab] = useState<
-        'passwords' | 'scheduling' | 'availability' | 'loyalty' | 'tax' | 'branches' | 'page_access'
+        'passwords' | 'scheduling' | 'availability' | 'loyalty' | 'tax' | 'branches' | 'page_access' | 'branding'
     >('passwords');
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -1182,6 +1261,19 @@ export default function SettingsPage() {
                 </button>
 
 
+
+                {hasRole(['Owner']) && (
+                    <button
+                        onClick={() => setActiveTab('branding')}
+                        className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'branding'
+                            ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                            }`}
+                    >
+                        <Palette className="h-4 w-4 inline mr-2" />
+                        Branding
+                    </button>
+                )}
 
                 {hasRole(['Owner']) && (
                     <button
@@ -1264,7 +1356,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Tab Content */}
-            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-6 surface-panel">
                 {activeTab === 'passwords' && (
                     <div className="space-y-8">
                         <div>
@@ -1287,6 +1379,10 @@ export default function SettingsPage() {
                 )}
 
 
+
+                {activeTab === 'branding' && hasRole(['Owner']) && (
+                    <BrandingSettings showMessage={showMessage} />
+                )}
 
                 {activeTab === 'scheduling' && hasRole(['Owner']) && (
                     <SchedulingSettings showMessage={showMessage} />

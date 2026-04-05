@@ -5,6 +5,7 @@ import { Loader, CheckCircle, Save } from 'lucide-react';
 import { schedulingService } from '@/services/scheduling';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
+import { useAuth } from '@/lib/auth';
 
 interface ShowMessage {
     (type: 'success' | 'error', text: string): void;
@@ -12,13 +13,14 @@ interface ShowMessage {
 
 // Tax Settings Component
 export default function TaxSettings({ showMessage }: { showMessage: ShowMessage }) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState<any>(null);
 
     const fetchSettings = useCallback(async () => {
-        const data = await schedulingService.getSalonSettings();
+        const data = await schedulingService.getSalonSettings(user?.organizationId ?? null);
         setSettings(data);
-    }, []);
+    }, [user?.organizationId]);
 
     useEffect(() => {
         fetchSettings();
@@ -27,7 +29,7 @@ export default function TaxSettings({ showMessage }: { showMessage: ShowMessage 
     const handleUpdate = async () => {
         if (!settings) return;
         setLoading(true);
-        const result = await schedulingService.updateSalonSettings(settings);
+        const result = await schedulingService.updateSalonSettings(settings, user?.organizationId);
         setLoading(false);
 
         if (result.success) {

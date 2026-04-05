@@ -318,7 +318,7 @@ export default function AppointmentsPage() {
                             <p className="text-danger-700 dark:text-danger-400">{error}</p>
                         </div>
                     ) : filteredAppointments.length === 0 ? (
-                        <div className="card p-12 text-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                        <div className="card p-12 text-center surface-panel">
                             <Calendar className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Appointments</h3>
                             <p className="text-gray-500 dark:text-gray-400">
@@ -332,7 +332,7 @@ export default function AppointmentsPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="card p-6 hover:shadow-soft-lg transition-shadow duration-200 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                                className="card p-6 hover:shadow-soft-lg transition-shadow duration-200 surface-panel"
                             >
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="flex-1">

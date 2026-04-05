@@ -75,39 +75,39 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardData();
-    }, [effectiveBranchId]);
-
-    useEffect(() => {
-        if (user?.role === 'Stylist') {
-            fetchStaffIdAndStatus();
-        }
-    }, [user]);
-
-    const fetchStaffIdAndStatus = async () => {
-        if (!user?.email) return;
-        try {
-            const staff = await staffService.getStaffByEmail(user.email);
-            if (staff) {
-                setStaffId(staff.id);
-                const status = await availabilityService.getEmergencyStatus(staff.id);
-                setIsEmergencyUnavailable(status);
-            }
-        } catch (error) {
-            console.error('Error fetching staff info:', error);
-        }
-    };
+    }, [effectiveBranchId, user?.role, user?.email]);
 
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
+            let stylistStaffId: string | undefined;
+            if (user?.role === 'Stylist' && user?.email) {
+                try {
+                    const staff = await staffService.getStaffByEmail(user.email);
+                    if (staff?.id) {
+                        stylistStaffId = staff.id;
+                        setStaffId(staff.id);
+                        const status = await availabilityService.getEmergencyStatus(staff.id);
+                        setIsEmergencyUnavailable(status);
+                    } else {
+                        setStaffId(null);
+                    }
+                } catch (error) {
+                    console.error('Error fetching staff info:', error);
+                    setStaffId(null);
+                }
+            } else {
+                setStaffId(null);
+                setIsEmergencyUnavailable(false);
+            }
+
             const today = getLocalDateString();
             const b = effectiveBranchId;
-            const [basicStats, topServices, topStylists, revenueTrend, recentActivity] = await Promise.all([
-                reportsService.getDashboardStats(b),
-                reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59', b),
-                reportsService.getStaffPerformance(today, today, b),
-                fetchRevenueTrend(b),
-                fetchRecentActivity(b),
+            const [basicStats, topServices, revenueTrend, recentActivity] = await Promise.all([
+                reportsService.getDashboardStats(b, stylistStaffId),
+                reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59', b, stylistStaffId),
+                fetchRevenueTrend(b, stylistStaffId),
+                fetchRecentActivity(b, stylistStaffId),
             ]);
 
             setStats({
@@ -122,11 +122,7 @@ export default function DashboardPage() {
                     count: s.count,
                     revenue: s.revenue
                 })),
-                topStylists: topStylists.slice(0, 5).map(s => ({
-                    name: s.stylistName,
-                    revenue: s.revenue,
-                    appointments: s.appointmentCount
-                })),
+                topStylists: [],
                 revenueWeek: revenueTrend,
                 recentActivity: recentActivity,
             });
@@ -137,7 +133,7 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRevenueTrend = async (branchId?: string) => {
+    const fetchRevenueTrend = async (branchId?: string, stylistStaffId?: string) => {
         try {
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const today = new Date();
@@ -148,7 +144,7 @@ export default function DashboardPage() {
 
             let invQ = supabase
                 .from('invoices')
-                .select('total, created_at')
+                .select('total, created_at, appointment_id')
                 .gte('created_at', `${startDate}T00:00:00`)
                 .lte('created_at', `${endDate}T23:59:59`);
             if (branchId) invQ = invQ.eq('branch_id', branchId);
@@ -156,8 +152,23 @@ export default function DashboardPage() {
 
             if (error) throw error;
 
+            let rows: any[] = invoices || [];
+            if (stylistStaffId && rows.length > 0) {
+                const aptIds = [...new Set(rows.map((i: any) => i.appointment_id).filter(Boolean))] as string[];
+                if (aptIds.length === 0) rows = [];
+                else {
+                    const { data: apts } = await supabase
+                        .from('appointments')
+                        .select('id')
+                        .in('id', aptIds)
+                        .eq('stylist_id', stylistStaffId);
+                    const allowed = new Set((apts || []).map(a => a.id));
+                    rows = rows.filter((i: any) => i.appointment_id && allowed.has(i.appointment_id));
+                }
+            }
+
             const revenueByDate = new Map<string, number>();
-            (invoices || []).forEach((inv: any) => {
+            rows.forEach((inv: any) => {
                 const dateKey = String(inv.created_at || '').split('T')[0];
                 if (!dateKey) return;
                 revenueByDate.set(dateKey, (revenueByDate.get(dateKey) || 0) + (inv.total || 0));
@@ -182,7 +193,7 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRecentActivity = async (branchId?: string) => {
+    const fetchRecentActivity = async (branchId?: string, stylistStaffId?: string) => {
         try {
             const activities: { createdAtMs: number; time: string; action: string; customer: string; amount?: number }[] = [];
 
@@ -205,15 +216,30 @@ export default function DashboardPage() {
                     id,
                     total,
                     created_at,
+                    appointment_id,
                     customers (name)
                 `)
                 .order('created_at', { ascending: false })
-                .limit(5);
+                .limit(stylistStaffId ? 12 : 5);
             if (branchId) invQuery = invQuery.eq('branch_id', branchId);
             const { data: invoices, error: invoicesError } = await invQuery;
 
             if (!invoicesError && invoices) {
-                invoices.forEach((invoice: any) => {
+                let invRows: any[] = invoices;
+                if (stylistStaffId && invRows.length > 0) {
+                    const aptIds = [...new Set(invRows.map((i: any) => i.appointment_id).filter(Boolean))] as string[];
+                    if (aptIds.length === 0) invRows = [];
+                    else {
+                        const { data: apts } = await supabase
+                            .from('appointments')
+                            .select('id')
+                            .in('id', aptIds)
+                            .eq('stylist_id', stylistStaffId);
+                        const allowed = new Set((apts || []).map(a => a.id));
+                        invRows = invRows.filter((i: any) => i.appointment_id && allowed.has(i.appointment_id));
+                    }
+                }
+                invRows.slice(0, 5).forEach((invoice: any) => {
                     const createdAtMs = new Date(invoice.created_at).getTime();
 
                     activities.push({
@@ -239,6 +265,7 @@ export default function DashboardPage() {
                 .order('created_at', { ascending: false })
                 .limit(5);
             if (branchId) aptQuery = aptQuery.eq('branch_id', branchId);
+            if (stylistStaffId) aptQuery = aptQuery.eq('stylist_id', stylistStaffId);
             const { data: appointments, error: appointmentsError } = await aptQuery;
 
             if (!appointmentsError && appointments) {
@@ -298,7 +325,8 @@ export default function DashboardPage() {
             if (inFlight) return;
             inFlight = true;
             try {
-                const latest = await fetchRecentActivity(effectiveBranchId);
+                const stylistOnly = user?.role === 'Stylist' ? staffId || undefined : undefined;
+                const latest = await fetchRecentActivity(effectiveBranchId, stylistOnly);
                 if (!mounted) return;
                 setStats(prev => ({
                     ...prev,
@@ -321,7 +349,7 @@ export default function DashboardPage() {
             mounted = false;
             if (intervalId) clearInterval(intervalId);
         };
-    }, [user?.id, effectiveBranchId]);
+    }, [user?.id, user?.role, effectiveBranchId, staffId]);
 
     const handleEmergencyToggle = async () => {
         if (!staffId) {
@@ -360,6 +388,8 @@ export default function DashboardPage() {
         );
     }
 
+    const isStylistView = user?.role === 'Stylist';
+
     const appointmentStatusData = [
         { name: 'Completed', value: stats.completed, color: '#10b981' },
         { name: 'Pending', value: stats.pending, color: '#f59e0b' },
@@ -373,7 +403,11 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        {isStylistView
+                            ? `Hi${user?.name ? `, ${user.name.split(' ')[0]}` : ''} — here’s your day at a glance (only your appointments and payments).`
+                            : "Welcome back! Here's what's happening today."}
+                    </p>
                 </div>
 
                 {/* Emergency Toggle for Stylists */}
@@ -401,24 +435,24 @@ export default function DashboardPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                 <StatCard
-                    title="Today's Revenue"
+                    title={isStylistView ? 'Your revenue (today)' : "Today's Revenue"}
                     value={`Rs ${stats.todayRevenue.toLocaleString()}`}
                     icon={DollarSign}
                     trend={{ value: Math.abs(revenueTrendDelta), isPositive: revenueTrendDelta >= 0 }}
                 />
                 <StatCard
-                    title="Today's Appointments"
+                    title={isStylistView ? 'Your appointments (today)' : "Today's Appointments"}
                     value={stats.todayAppointments}
                     icon={Calendar}
                     trend={{ value: Math.abs(appointmentsTrendDelta), isPositive: appointmentsTrendDelta >= 0 }}
                 />
                 <StatCard
-                    title="Completed"
+                    title={isStylistView ? 'Your completed (today)' : 'Completed'}
                     value={stats.completed}
                     icon={CheckCircle2}
                 />
                 <StatCard
-                    title="Cancelled/No-Show"
+                    title={isStylistView ? 'Your cancelled / no-show' : 'Cancelled/No-Show'}
                     value={stats.cancelled + stats.noShow}
                     icon={XCircle}
                 />
@@ -429,14 +463,16 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                className="card p-6 surface-panel"
             >
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
                         <TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue Trend</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {isStylistView ? 'Your revenue trend' : 'Revenue Trend'}
+                        </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Last 7 days</p>
                     </div>
                 </div>
@@ -466,7 +502,7 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                    className="card p-6 surface-panel"
                 >
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-secondary-100 dark:bg-secondary-900/30 rounded-xl">
@@ -474,7 +510,9 @@ export default function DashboardPage() {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appointment Status</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Today&apos;s breakdown</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {isStylistView ? 'Your appointments today' : "Today's breakdown"}
+                            </p>
                         </div>
                     </div>
                     {appointmentStatusData.length > 0 ? (
@@ -516,7 +554,7 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                    className="card p-6 surface-panel"
                 >
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-secondary-100 dark:bg-secondary-900/30 rounded-xl">
@@ -524,7 +562,9 @@ export default function DashboardPage() {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Top Services</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">By revenue today</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {isStylistView ? 'Your services by revenue today' : 'By revenue today'}
+                            </p>
                         </div>
                     </div>
                     {stats.topServices.length > 0 ? (
@@ -553,21 +593,23 @@ export default function DashboardPage() {
                 </motion.div>
             </div>
 
-            {/* Recent Activity & Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activity (& quick actions for non-stylists) */}
+            <div className={`grid grid-cols-1 gap-6 ${isStylistView ? '' : 'lg:grid-cols-2'}`}>
                 {/* Recent Activity */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                    className="card p-6 surface-panel"
                 >
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
                             <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {isStylistView ? 'Your recent activity' : 'Recent Activity'}
+                            </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Latest updates</p>
                         </div>
                     </div>
@@ -590,16 +632,15 @@ export default function DashboardPage() {
                     </div>
                 </motion.div>
 
-                {/* Quick Actions */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
-                >
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {user?.role !== 'Stylist' && (
+                {!isStylistView && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="card p-6 surface-panel"
+                    >
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <a
                                 href={adminHref('/appointments')}
                                 className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
@@ -608,33 +649,33 @@ export default function DashboardPage() {
                                 <h3 className="font-medium text-gray-900 dark:text-white text-sm">New Appointment</h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Book a customer</p>
                             </a>
-                        )}
-                        <a
-                            href={adminHref('/pos')}
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
-                        >
-                            <DollarSign className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">Process Payment</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generate invoice</p>
-                        </a>
-                        <a
-                            href={adminHref('/customers')}
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
-                        >
-                            <Users className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">Add Customer</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">New customer record</p>
-                        </a>
-                        <a
-                            href={adminHref('/reports')}
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
-                        >
-                            <Scissors className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">View Reports</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Analytics &amp; insights</p>
-                        </a>
-                    </div>
-                </motion.div>
+                            <a
+                                href={adminHref('/pos')}
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
+                            >
+                                <DollarSign className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
+                                <h3 className="font-medium text-gray-900 dark:text-white text-sm">Process Payment</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generate invoice</p>
+                            </a>
+                            <a
+                                href={adminHref('/customers')}
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
+                            >
+                                <Users className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
+                                <h3 className="font-medium text-gray-900 dark:text-white text-sm">Add Customer</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">New customer record</p>
+                            </a>
+                            <a
+                                href={adminHref('/reports')}
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 group"
+                            >
+                                <Scissors className="h-8 w-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-2" />
+                                <h3 className="font-medium text-gray-900 dark:text-white text-sm">View Reports</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Analytics &amp; insights</p>
+                            </a>
+                        </div>
+                    </motion.div>
+                )}
             </div>
         </div>
     );

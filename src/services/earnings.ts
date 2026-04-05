@@ -39,19 +39,23 @@ export const earningsService = {
 
             const stylistId = invoice.appointment.stylist_id;
             const date = invoice.appointment.appointment_date;
+            const organizationId = (invoice as { organization_id?: string }).organization_id;
 
             if (!stylistId) {
                 console.warn('Appointment has no stylist assigned:', invoice.appointment_id);
                 return;
             }
 
-            // Get commission settings for stylist role
-            const { data: commissionSettings } = await supabase
+            // Get commission settings for stylist role (tenant-scoped)
+            let commissionQuery = supabase
                 .from('commission_settings')
                 .select('*')
                 .eq('role', 'Stylist')
-                .eq('is_active', true)
-                .single();
+                .eq('is_active', true);
+            if (organizationId) {
+                commissionQuery = commissionQuery.eq('organization_id', organizationId);
+            }
+            const { data: commissionSettings } = await commissionQuery.single();
 
             const commissionRate = commissionSettings?.commission_percentage || 40;
 
@@ -326,6 +330,13 @@ export const earningsService = {
 
             console.log(`✅ Found ${appointments.length} appointment(s)`);
 
+            const { data: invoiceRow } = await supabase
+                .from('invoices')
+                .select('organization_id')
+                .eq('id', invoiceId)
+                .single();
+            const invoiceOrganizationId = invoiceRow?.organization_id as string | undefined;
+
             // Default commission rate (fallback if staff doesn't have one set)
             const DEFAULT_COMMISSION = 40;
 
@@ -347,13 +358,16 @@ export const earningsService = {
                     commissionRate = stylistData.commission;
                     console.log(`💰 Using stylist commission: ${commissionRate}%`);
                 } else {
-                    // Fallback to commission_settings table
-                    const { data: commissionSettings, error: commissionError } = await supabase
+                    // Fallback to commission_settings table (tenant-scoped)
+                    let cq = supabase
                         .from('commission_settings')
                         .select('*')
                         .eq('role', 'Stylist')
-                        .eq('is_active', true)
-                        .single();
+                        .eq('is_active', true);
+                    if (invoiceOrganizationId) {
+                        cq = cq.eq('organization_id', invoiceOrganizationId);
+                    }
+                    const { data: commissionSettings, error: commissionError } = await cq.single();
 
                     if (commissionError) {
                         console.warn('⚠️ Error fetching commission settings, using default:', commissionError);

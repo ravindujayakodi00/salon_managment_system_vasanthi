@@ -18,7 +18,7 @@ const STEPS = ['Details', 'Audience', 'Schedule', 'Review'];
 
 export default function NewCampaignPage() {
     const router = useRouter();
-    const { hasRole } = useAuth();
+    const { hasRole, user } = useAuth();
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [segments, setSegments] = useState<any[]>([]);
@@ -36,8 +36,10 @@ export default function NewCampaignPage() {
     });
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (user?.organizationId) {
+            void loadData();
+        }
+    }, [user?.organizationId]);
 
     useEffect(() => {
         if (campaign.target_segments.length > 0 && campaign.channel) {
@@ -46,10 +48,11 @@ export default function NewCampaignPage() {
     }, [campaign.target_segments, campaign.channel]);
 
     const loadData = async () => {
+        if (!user?.organizationId) return;
         try {
             const [segs, temps] = await Promise.all([
                 segmentationService.getSegments(),
-                notificationsService.getTemplates()
+                notificationsService.getTemplates(user.organizationId)
             ]);
             setSegments(segs);
             setTemplates(temps.filter(t => t.type === 'promotional'));
@@ -165,7 +168,7 @@ export default function NewCampaignPage() {
             </div>
 
             {/* Step Content */}
-            <div className="card p-8 bg-white dark:bg-gray-800">
+            <div className="card surface-panel p-8">
                 {/* Step 0: Details */}
                 {currentStep === 0 && (
                     <div className="space-y-6">

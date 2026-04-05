@@ -61,7 +61,13 @@ export const pettyCashService = {
     /**
      * Add cash deposit (Owner only)
      */
-    async addDeposit(amount: number, description: string, userId: string, branchId: string | null) {
+    async addDeposit(
+        amount: number,
+        description: string,
+        userId: string,
+        branchId: string | null,
+        organizationId: string
+    ) {
         // Get current balance
         const currentBalance = await this.getCurrentBalance();
         const newBalance = currentBalance + amount;
@@ -74,7 +80,8 @@ export const pettyCashService = {
                 description,
                 balance_after: newBalance,
                 created_by: userId,
-                branch_id: branchId
+                branch_id: branchId,
+                organization_id: organizationId,
             })
             .select()
             .single();
@@ -86,7 +93,13 @@ export const pettyCashService = {
     /**
      * Record expense (withdrawal)
      */
-    async recordExpense(amount: number, description: string, userId: string, branchId: string | null) {
+    async recordExpense(
+        amount: number,
+        description: string,
+        userId: string,
+        branchId: string | null,
+        organizationId: string
+    ) {
         // Get current balance
         const currentBalance = await this.getCurrentBalance();
 
@@ -105,7 +118,8 @@ export const pettyCashService = {
                 description,
                 balance_after: newBalance,
                 created_by: userId,
-                branch_id: branchId
+                branch_id: branchId,
+                organization_id: organizationId,
             })
             .select()
             .single();

@@ -120,7 +120,7 @@ export default function EarningsPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Commission</p>
@@ -132,7 +132,7 @@ export default function EarningsPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Salary</p>
@@ -144,7 +144,7 @@ export default function EarningsPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Appointments</p>
@@ -158,7 +158,7 @@ export default function EarningsPage() {
             </div>
 
             {/* Daily Earnings Table */}
-            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-6 surface-panel">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Daily Breakdown</h3>
 
                 <div className="overflow-x-auto">
@@ -204,7 +204,7 @@ export default function EarningsPage() {
     );
 
     const renderOwnerView = () => (
-        <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <div className="card p-6 surface-panel">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Staff Earnings Summary</h3>
 
             <div className="overflow-x-auto">

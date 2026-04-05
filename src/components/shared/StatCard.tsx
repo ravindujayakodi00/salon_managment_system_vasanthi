@@ -29,7 +29,7 @@ export default function StatCard({
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}
             className={cn(
-                'card card-hover p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700',
+                'card card-hover surface-panel p-6',
                 className
             )}
         >
@@ -52,8 +52,8 @@ export default function StatCard({
                     )}
                 </div>
                 <div className="flex-shrink-0">
-                    <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-                        <Icon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                    <div className="p-3 bg-gradient-to-br from-primary-100 to-secondary-50/80 dark:from-primary-900/45 dark:to-secondary-950/25 rounded-xl ring-1 ring-primary-200/60 dark:ring-primary-700/45 shadow-[var(--brand-shadow-xs)]">
+                        <Icon className="h-6 w-6 text-primary-600 dark:text-primary-300" />
                     </div>
                 </div>
             </div>

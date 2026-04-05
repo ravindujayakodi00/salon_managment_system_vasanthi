@@ -107,7 +107,7 @@ export default function CampaignsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-4 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Total Campaigns</p>
@@ -117,7 +117,7 @@ export default function CampaignsPage() {
                     </div>
                 </div>
 
-                <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-4 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Scheduled</p>
@@ -127,7 +127,7 @@ export default function CampaignsPage() {
                     </div>
                 </div>
 
-                <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-4 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
@@ -137,7 +137,7 @@ export default function CampaignsPage() {
                     </div>
                 </div>
 
-                <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-4 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Total Sent</p>
@@ -153,7 +153,7 @@ export default function CampaignsPage() {
                 {loading ? (
                     <div className="text-center py-12 text-gray-500">Loading campaigns...</div>
                 ) : campaigns.length === 0 ? (
-                    <div className="card p-12 bg-white dark:bg-gray-800 text-center">
+                    <div className="card surface-panel p-12 text-center">
                         <Send className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                         <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             No campaigns yet
@@ -172,7 +172,7 @@ export default function CampaignsPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
+                            className="card p-6 surface-panel hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">

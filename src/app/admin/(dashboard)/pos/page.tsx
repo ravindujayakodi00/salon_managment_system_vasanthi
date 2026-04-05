@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ShoppingCart, Plus, Tag, Trash2, Printer, RotateCcw, Calendar, Clock, User, CheckCircle, ChevronDown, ChevronUp, CreditCard, Banknote, X } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Tag, Trash2, Printer, RotateCcw, Calendar, Clock, User, CheckCircle, ChevronDown, ChevronUp, CreditCard, Banknote, Landmark, X } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import ReceiptModal from '@/components/pos/ReceiptModal';
@@ -10,6 +10,11 @@ import SplitPaymentModal from '@/components/pos/SplitPaymentModal';
 import WalkInServicesPanel from '@/components/pos/WalkInServicesPanel';
 import QuickCustomerForm from '@/components/pos/QuickCustomerForm';
 import { formatCurrency } from '@/lib/utils';
+import {
+    calculateCartSubtotal,
+    taxOnSubtotalBeforeDiscount,
+    calculatePosGrandTotal,
+} from '@/lib/pos-calculations';
 import { PaymentBreakdown } from '@/lib/types';
 import { schedulingService } from '@/services/scheduling';
 import { servicesService } from '@/services/services';
@@ -95,17 +100,21 @@ export default function POSPage() {
         fetchAvailableCoupons();
         fetchProducts();
         fetchStaff();
-        fetchSettings();
     }, []);
 
     const fetchSettings = async () => {
+        if (!user?.organizationId) return;
         try {
-            const data = await schedulingService.getSalonSettings();
+            const data = await schedulingService.getSalonSettings(user.organizationId);
             setSalonSettings(data);
         } catch (error) {
             console.error('Error fetching settings:', error);
         }
     };
+
+    useEffect(() => {
+        void fetchSettings();
+    }, [user?.organizationId]);
 
     // Search customers when query changes
     useEffect(() => {
@@ -760,18 +769,25 @@ export default function POSPage() {
         }
     };
 
-    const subtotal = cart.reduce((sum, item) => {
-        const itemTotal = item.price * item.quantity;
-        const additionalFee = item.additionalFee || 0;
-        return sum + itemTotal + additionalFee;
-    }, 0);
+    const subtotal = calculateCartSubtotal(
+        cart.map((item: any) => ({
+            price: item.price,
+            quantity: item.quantity,
+            additionalFee: item.additionalFee,
+        }))
+    );
 
     const enableTax = salonSettings?.enable_tax ?? false;
     const taxRate = salonSettings?.tax_rate ?? 0;
-    const tax = enableTax ? (subtotal * taxRate) / 100 : 0;
+    const tax = taxOnSubtotalBeforeDiscount(subtotal, enableTax, taxRate);
 
     const totalDiscount = discount + loyaltyDiscount; // Combined promo + loyalty discount
-    const total = Math.max(0, subtotal - totalDiscount + tax);
+    const total = calculatePosGrandTotal({
+        subtotal,
+        promoDiscount: discount,
+        loyaltyDiscount,
+        tax,
+    });
 
     const loyaltyMode: 'none' | 'card' | 'points' | 'visits' = !loyaltyInfo
         ? 'none'
@@ -837,7 +853,7 @@ export default function POSPage() {
                 {/* Left: Customer & Selection */}
                 <div className="xl:col-span-2 space-y-4">
                     {/* Customer Search */}
-                    <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                    <div className="card p-4 surface-panel">
                         <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Step 1: Select Customer</h2>
                         <div className="relative">
                             <Input
@@ -913,7 +929,7 @@ export default function POSPage() {
 
                     {/* Today's Appointments */}
                     {selectedCustomer && (
-                        <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                        <div className="card p-4 surface-panel">
                             <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
                                 Step 2: Today's Appointments
@@ -1178,7 +1194,7 @@ export default function POSPage() {
 
                     {/* Manual Fee (Collapsible) */}
                     {selectedCustomer && (
-                        <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="card surface-panel overflow-hidden">
                             <button
                                 onClick={() => setShowManualFee(!showManualFee)}
                                 className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -1238,7 +1254,7 @@ export default function POSPage() {
 
                 {/* Right: Bill Summary - At bottom on tablet, right side on desktop */}
                 <div className="xl:col-span-3">
-                    <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 xl:sticky xl:top-24">
+                    <div className="card p-4 sm:p-6 surface-panel xl:sticky xl:top-24">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                 <ShoppingCart className="h-5 w-5 text-primary-600" />
@@ -1478,43 +1494,56 @@ export default function POSPage() {
                         {cart.length > 0 && (
                             <div className="mt-6 space-y-4">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-500 mb-2 block">Payment Method</label>
-                                    <div className="grid grid-cols-2 gap-2 mb-2">
-                                        {['Cash', 'Card'].map(method => (
-                                            <button
-                                                key={method}
-                                                onClick={() => { setPaymentMethod(method); setPaymentBreakdown(null); }}
-                                                className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentMethod === method && !paymentBreakdown
-                                                    ? 'bg-primary-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                                                    }`}
-                                            >
-                                                {method === 'Cash' && '💵'}
-                                                {method === 'Card' && '💳'}
-                                                <div className="text-xs mt-1">{method}</div>
-                                            </button>
-                                        ))}
-                                    </div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block">Payment Method</label>
                                     <div className="grid grid-cols-2 gap-2">
+                                        {(['Cash', 'Card'] as const).map(method => {
+                                            const selected = paymentMethod === method && !paymentBreakdown;
+                                            return (
+                                                <button
+                                                    key={method}
+                                                    type="button"
+                                                    onClick={() => { setPaymentMethod(method); setPaymentBreakdown(null); }}
+                                                    className={`p-3 rounded-xl text-sm font-medium transition-all border ${selected
+                                                        ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                                                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
+                                                        }`}
+                                                >
+                                                    {method === 'Cash' ? (
+                                                        <Banknote className={`h-5 w-5 mx-auto ${selected ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                                                    ) : (
+                                                        <CreditCard className={`h-5 w-5 mx-auto ${selected ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                                                    )}
+                                                    <div className="text-xs mt-1.5">{method}</div>
+                                                </button>
+                                            );
+                                        })}
                                         <button
+                                            type="button"
                                             onClick={() => { setPaymentMethod('BankTransfer'); setPaymentBreakdown(null); }}
-                                            className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentMethod === 'BankTransfer' && !paymentBreakdown
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                                            className={`p-3 rounded-xl text-sm font-medium transition-all border ${paymentMethod === 'BankTransfer' && !paymentBreakdown
+                                                ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
                                                 }`}
                                         >
-                                            🏦
-                                            <div className="text-xs mt-1">Bank</div>
+                                            <Landmark
+                                                className={`h-5 w-5 mx-auto ${paymentMethod === 'BankTransfer' && !paymentBreakdown ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                                                aria-hidden
+                                            />
+                                            <div className="text-xs mt-1.5">Bank</div>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setShowSplitPayment(true)}
-                                            className={`p-3 rounded-lg text-sm font-medium transition-all ${paymentBreakdown
-                                                ? 'bg-gradient-to-r from-primary-600 to-purple-600 text-white'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                                            className={`p-3 rounded-xl text-sm font-medium transition-all border ${paymentBreakdown
+                                                ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
                                                 }`}
                                         >
-                                            💳💵
-                                            <div className="text-xs mt-1">Split</div>
+                                            <div className="flex justify-center items-center gap-1 min-h-[1.25rem]">
+                                                <CreditCard className={`h-5 w-5 ${paymentBreakdown ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                                                <Banknote className={`h-5 w-5 ${paymentBreakdown ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                                            </div>
+                                            <div className="text-xs mt-1.5">Split</div>
                                         </button>
                                     </div>
                                     {paymentBreakdown && (

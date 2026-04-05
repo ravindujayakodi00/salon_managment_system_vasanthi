@@ -3,7 +3,7 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Primary Colors - Olive Green */
+  /* Primary Colors - Olive Green (build-time fallback; runtime may override via BrandingProvider) */
   --color-primary-50: #f4f7f4;
   --color-primary-100: #e3ebe3;
   --color-primary-200: #c5d6c5;
@@ -11,7 +11,6 @@
   --color-primary-400: #749674;
   --color-primary-500: #567856;
   --color-primary-600: #4B5945;
-  /* Main Brand Color */
   --color-primary-700: #3a453a;
   --color-primary-800: #303830;
   --color-primary-900: #282e28;
@@ -73,9 +72,16 @@
 :root {
   --background: #ffffff;
   --foreground: #111827;
+  /* Fallbacks before BrandingProvider runs (overridden with org hues) */
+  --brand-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --brand-shadow-sm: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --brand-shadow-md: 0 6px 12px -2px rgba(15, 23, 42, 0.08), 0 12px 18px -4px rgba(15, 23, 42, 0.08);
+  --brand-shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.1);
+  --brand-shadow-dark-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --brand-shadow-dark-md: 0 8px 20px rgba(0, 0, 0, 0.45);
+  --brand-ring-soft: rgba(20, 184, 166, 0.35);
+  --brand-glow-subtle: 0 0 0 3px rgba(20, 184, 166, 0.12);
 }
-
-
 
 .dark {
   --background: #111827;
@@ -86,6 +92,41 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl;
+  }
+
+  /**
+   * Branded panel: borders + shadows follow --color-primary-* (set per org).
+   * Replaces flat gray-100/700 cards that clash with custom brand colors.
+   */
+  .surface-panel {
+    @apply border bg-white/98 dark:bg-primary-950/45 backdrop-blur-[0.5px];
+    border-color: color-mix(in srgb, var(--color-primary-200) 78%, white);
+    box-shadow: var(--brand-shadow-sm);
+  }
+
+  .dark .surface-panel {
+    border-color: color-mix(in srgb, var(--color-primary-600) 38%, var(--color-primary-950));
+    box-shadow: var(--brand-shadow-dark-sm);
+  }
+
+  .card-hover {
+    @apply transition-[box-shadow,border-color,transform] duration-200;
+  }
+
+  .surface-panel.card-hover:hover {
+    box-shadow: var(--brand-shadow-md);
+    border-color: color-mix(in srgb, var(--color-primary-300) 55%, white);
+  }
+
+  .dark .surface-panel.card-hover:hover {
+    box-shadow: var(--brand-shadow-dark-md);
+    border-color: color-mix(in srgb, var(--color-primary-500) 42%, var(--color-primary-950));
+  }
 }
 
 /* Appointment blinking animations */
@@ -125,54 +166,44 @@ body {
   animation: appointment-blink-danger 1s ease-in-out infinite;
 }
 
-/* Custom Themed Scrollbar - Applied Globally */
-/* For Webkit browsers (Chrome, Safari, Edge) */
+/* Scrollbar tracks org primary palette when BrandingProvider sets --color-primary-* */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  /* gray-100 */
+  background: color-mix(in srgb, var(--color-primary-50, #f3f4f6) 90%, white);
   border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #1f2937;
-  /* gray-800 */
+  background: var(--color-primary-950, #1f2937);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #749674;
-  /* primary-400 */
+  background: var(--color-primary-400, #749674);
   border-radius: 4px;
   transition: background-color 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #567856;
-  /* primary-500 */
+  background: var(--color-primary-500, #567856);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #4B5945;
-  /* primary-600 */
+  background: var(--color-primary-600, #4b5945);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #567856;
-  /* primary-500 */
+  background: var(--color-primary-500, #567856);
 }
 
-/* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #749674 #f3f4f6;
-  /* primary-400 on gray-100 */
+  scrollbar-color: var(--color-primary-400, #749674) var(--color-primary-50, #f3f4f6);
 }
 
 .dark * {
-  scrollbar-color: #4B5945 #1f2937;
-  /* primary-600 on gray-800 */
+  scrollbar-color: var(--color-primary-600, #4b5945) var(--color-primary-950, #1f2937);
 }

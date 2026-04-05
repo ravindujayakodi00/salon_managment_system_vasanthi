@@ -124,7 +124,7 @@ export default function PromosPage() {
             </div>
 
             {/* Filters */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                         <Input
@@ -157,7 +157,7 @@ export default function PromosPage() {
                     <span className="ml-3 text-gray-600 dark:text-gray-400">Loading promo codes...</span>
                 </div>
             ) : filteredPromos.length === 0 ? (
-                <div className="card p-12 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-center">
+                <div className="card p-12 surface-panel text-center">
                     <div className="text-gray-400 dark:text-gray-500 mb-4">
                         <Search className="h-12 w-12 mx-auto" />
                     </div>
@@ -184,7 +184,7 @@ export default function PromosPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className={`card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 ${isExpired(promo.end_date) || isLimitReached(promo) ? 'opacity-60' : ''
+                            className={`card p-6 surface-panel ${isExpired(promo.end_date) || isLimitReached(promo) ? 'opacity-60' : ''
                                 }`}
                         >
                             <div className="flex items-start justify-between mb-4">

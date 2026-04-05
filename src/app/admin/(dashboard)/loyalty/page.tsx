@@ -147,7 +147,7 @@ export default function LoyaltyPage() {
                     {settings.option_card_enabled && (
                         <>
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                                className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                className="card p-4 surface-panel">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                                         <CreditCard className="h-5 w-5 text-green-600" />
@@ -159,7 +159,7 @@ export default function LoyaltyPage() {
                                 </div>
                             </motion.div>
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                                className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                className="card p-4 surface-panel">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                                         <Package className="h-5 w-5 text-blue-600" />
@@ -174,7 +174,7 @@ export default function LoyaltyPage() {
                     )}
                     {settings.option_points_enabled && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                            className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            className="card p-4 surface-panel">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                                     <Star className="h-5 w-5 text-amber-600" />
@@ -188,7 +188,7 @@ export default function LoyaltyPage() {
                     )}
                     {settings.option_visits_enabled && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                            className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            className="card p-4 surface-panel">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                     <Users className="h-5 w-5 text-purple-600" />
@@ -206,7 +206,7 @@ export default function LoyaltyPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Card Management */}
                 {settings.option_card_enabled && (
-                    <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                    <div className="card p-6 surface-panel">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <CreditCard className="h-5 w-5" /> Card Inventory
                         </h2>
@@ -255,7 +255,7 @@ export default function LoyaltyPage() {
                 )}
 
                 {/* Customer Lookup */}
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Users className="h-5 w-5" /> Customer Loyalty Lookup
                     </h2>

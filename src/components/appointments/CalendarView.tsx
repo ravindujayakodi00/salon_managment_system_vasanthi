@@ -125,7 +125,7 @@ export default function CalendarView({ appointments, onAppointmentClick, selecte
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                className="card p-4 sm:p-6 surface-panel"
             >
                 <div className="mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{dateString}</h3>
@@ -203,7 +203,7 @@ export default function CalendarView({ appointments, onAppointmentClick, selecte
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+            className="card p-4 sm:p-6 surface-panel"
         >
             {/* Weekday headers */}
             <div className="grid grid-cols-7 gap-2 mb-4">
@@ -390,7 +390,7 @@ export default function CalendarView({ appointments, onAppointmentClick, selecte
             </AnimatePresence>
 
             {/* Legend */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Status Legend</h3>
                 <div className="flex flex-wrap gap-3">
                     {Object.entries(statusColors).map(([status, colorClass]) => (

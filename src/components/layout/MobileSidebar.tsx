@@ -4,139 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserRole } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
+import { useBranding } from '@/lib/branding';
 import { supabase } from '@/lib/supabase';
-import { X } from 'lucide-react';
-import {
-    LayoutDashboard,
-    Calendar,
-    ShoppingCart,
-    Scissors,
-    Users,
-    UserCircle,
-    Tag,
-    Bell,
-    BarChart3,
-    CreditCard,
-    Settings,
-    DollarSign,
-    Wallet,
-    Target,
-    Megaphone,
-    LucideIcon,
-    Gift,
-    Package,
-} from 'lucide-react';
+import { X, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adminHref, adminPageKey } from '@/lib/admin-paths';
+import { adminHref } from '@/lib/admin-paths';
 import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
-
-interface NavItem {
-    label: string;
-    href: string;
-    icon: LucideIcon;
-    allowedRoles: UserRole[];
-}
-
-const navItems: NavItem[] = [
-    {
-        label: 'Dashboard',
-        href: adminHref('/dashboard'),
-        icon: LayoutDashboard,
-        allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'],
-    },
-    {
-        label: 'Appointments',
-        href: adminHref('/appointments'),
-        icon: Calendar,
-        allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'],
-    },
-    {
-        label: 'POS & Billing',
-        href: adminHref('/pos'),
-        icon: ShoppingCart,
-        allowedRoles: ['Owner', 'Manager', 'Receptionist'],
-    },
-    {
-        label: 'Services',
-        href: adminHref('/services'),
-        icon: Scissors,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Inventory',
-        href: adminHref('/inventory'),
-        icon: Package,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Staff',
-        href: adminHref('/staff'),
-        icon: Users,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Customers',
-        href: adminHref('/customers'),
-        icon: UserCircle,
-        allowedRoles: ['Owner', 'Manager', 'Receptionist'],
-    },
-    {
-        label: 'Earnings',
-        href: adminHref('/earnings'),
-        icon: DollarSign,
-        allowedRoles: ['Owner', 'Manager', 'Stylist', 'Receptionist'],
-    },
-    {
-        label: 'Financial',
-        href: adminHref('/financial'),
-        icon: Wallet,
-        allowedRoles: ['Owner', 'Manager', 'Stylist'],
-    },
-    {
-        label: 'Customer Segments',
-        href: adminHref('/segments'),
-        icon: Target,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Promo Codes',
-        href: adminHref('/promos'),
-        icon: Tag,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Loyalty Program',
-        href: adminHref('/loyalty'),
-        icon: Gift,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Notifications',
-        href: adminHref('/notifications'),
-        icon: Bell,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Campaigns',
-        href: adminHref('/campaigns'),
-        icon: Megaphone,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Reports',
-        href: adminHref('/reports'),
-        icon: BarChart3,
-        allowedRoles: ['Owner', 'Manager'],
-    },
-    {
-        label: 'Settings',
-        href: adminHref('/settings'),
-        icon: Settings,
-        allowedRoles: ['Owner', 'Stylist'],
-    },
-];
+import { ADMIN_NAV_ITEMS, filterNavItemsForUser } from '@/lib/admin-nav';
 
 interface MobileSidebarProps {
     isOpen: boolean;
@@ -146,6 +21,7 @@ interface MobileSidebarProps {
 export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     const pathname = usePathname();
     const { user } = useAuth();
+    const { displayName, tagline, logoUrl } = useBranding();
 
     const [pageAccess, setPageAccess] = useState<Record<string, Record<string, boolean>>>({});
 
@@ -180,19 +56,10 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         })();
     }, [user?.organizationId]);
 
-    const filteredNavItems = useMemo(() => {
-        if (!user) return [];
-
-        return navItems.filter((item) => {
-            if (user.role === 'Owner') return true;
-
-            const pageKey = adminPageKey(item.href);
-            const forcedAllowed = pageAccess[pageKey]?.[user.role];
-            if (typeof forcedAllowed === 'boolean') return forcedAllowed;
-
-            return item.allowedRoles.includes(user.role);
-        });
-    }, [pageAccess, user]);
+    const filteredNavItems = useMemo(
+        () => filterNavItemsForUser(user, pageAccess, ADMIN_NAV_ITEMS),
+        [pageAccess, user]
+    );
 
     return (
         <AnimatePresence>
@@ -213,21 +80,30 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                         animate={{ x: 0 }}
                         exit={{ x: '-100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed left-0 top-0 bottom-0 w-64 max-w-[85vw] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 lg:hidden flex flex-col"
+                        className="fixed left-0 top-0 bottom-0 w-64 max-w-[85vw] bg-white/95 dark:bg-primary-950/55 border-r border-primary-200/75 dark:border-primary-800/50 backdrop-blur-sm z-50 lg:hidden flex flex-col shadow-[var(--brand-shadow-md)]"
                     >
-                        <div className="p-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                        <div className="p-6 flex items-center justify-between border-b border-primary-200/60 dark:border-primary-800/45">
                             <Link href={adminHref('/dashboard')} className="flex items-center gap-3" onClick={onClose}>
-                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-                                    <Scissors className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl overflow-hidden">
+                                    {logoUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={logoUrl}
+                                            alt=""
+                                            className="h-6 w-6 object-contain"
+                                        />
+                                    ) : (
+                                        <Scissors className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                                    )}
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">SalonFlow</h1>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Salon Management</p>
+                                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">{displayName}</h1>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{tagline}</p>
                                 </div>
                             </Link>
                             <button
                                 onClick={onClose}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-xl transition-colors"
+                                className="p-2 hover:bg-primary-50/90 dark:hover:bg-primary-900/35 rounded-xl transition-colors"
                             >
                                 <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                             </button>
@@ -247,7 +123,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                                             'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
                                             isActive
                                                 ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-medium'
-                                                : 'text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                : 'text-gray-700 dark:text-gray-400 hover:bg-primary-50/85 dark:hover:bg-primary-900/30'
                                         )}
                                     >
                                         <Icon className={cn('h-5 w-5', isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-500')} />
@@ -257,7 +133,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                             })}
                         </nav>
 
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="p-4 border-t border-primary-200/60 dark:border-primary-800/45">
                             <div className="text-xs text-gray-500 dark:text-gray-500 text-center">
                                 v1.0.0 • {user?.role}
                             </div>

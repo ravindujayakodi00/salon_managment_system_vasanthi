@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { WorkspaceProvider } from '@/lib/workspace';
+import { BrandingProvider } from '@/lib/branding';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import MobileSidebar from '@/components/layout/MobileSidebar';
@@ -33,6 +34,7 @@ export default function DashboardLayout({
     return (
         <ProtectedRoute>
             <WorkspaceProvider>
+            <BrandingProvider>
             <div className="flex h-dvh overflow-hidden">
                 {/* Desktop Sidebar */}
                 <Sidebar />
@@ -47,13 +49,14 @@ export default function DashboardLayout({
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
-                    <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
+                    <main className="flex-1 overflow-y-auto bg-gradient-to-b from-primary-50/40 via-gray-50 to-gray-50 dark:from-primary-950/30 dark:via-gray-900 dark:to-gray-900 transition-colors">
                         <div className="container mx-auto px-4 lg:px-6 py-6 max-w-full">
                             {children}
                         </div>
                     </main>
                 </div>
             </div>
+            </BrandingProvider>
             </WorkspaceProvider>
         </ProtectedRoute>
     );

@@ -125,7 +125,7 @@ export default function SegmentsPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Active Segments</p>
@@ -137,7 +137,7 @@ export default function SegmentsPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Segment Size</p>
@@ -173,7 +173,7 @@ export default function SegmentsPage() {
                                     onClick={() => setSelectedSegment(segment.name)}
                                     className={`card p-5 cursor-pointer transition-all ${isSelected
                                             ? 'bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-500 shadow-lg'
-                                            : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md'
+                                            : 'surface-panel hover:shadow-md'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -214,7 +214,7 @@ export default function SegmentsPage() {
                     </h2>
 
                     {selectedSegment ? (
-                        <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                        <div className="card p-6 surface-panel">
                             {customers.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     No customers in this segment yet
@@ -251,7 +251,7 @@ export default function SegmentsPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="card p-12 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-center">
+                        <div className="card p-12 surface-panel text-center">
                             <Users className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                             <p className="text-gray-500 dark:text-gray-400">
                                 Select a segment to view customers

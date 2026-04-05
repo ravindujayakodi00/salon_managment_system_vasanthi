@@ -11,6 +11,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:qa": "playwright test tests/e2e/manual-qa-inventory.spec.ts --project=chromium",
+    "test:e2e:crud": "playwright test tests/e2e/admin-crud.spec.ts --project=chromium",
+    "test:e2e:full": "playwright test tests/e2e/admin-full-check.spec.ts --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test && npm run test:e2e"

@@ -75,14 +75,14 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     {activeTab === 'overview' ? (
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div className="p-4 surface-panel rounded-xl">
                                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
                                         <Calendar className="h-4 w-4" />
                                         <span className="text-sm">Total Visits</span>
                                     </div>
                                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{customer.totalVisits}</p>
                                 </div>
-                                <div className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div className="p-4 surface-panel rounded-xl">
                                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
                                         <DollarSign className="h-4 w-4" />
                                         <span className="text-sm">Total Spent</span>
@@ -91,7 +91,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl">
+                            <div className="p-4 surface-panel rounded-xl">
                                 <h4 className="font-medium text-gray-900 dark:text-white mb-3">Additional Info</h4>
                                 <div className="space-y-3">
                                     <div className="flex justify-between text-sm">

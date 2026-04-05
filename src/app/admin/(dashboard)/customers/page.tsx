@@ -127,7 +127,7 @@ export default function CustomersPage() {
             </div>
 
             {/* Search */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <Input
                     type="text"
                     placeholder="Search by name, phone, or email..."
@@ -139,17 +139,17 @@ export default function CustomersPage() {
 
             {/* Customer Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Customers</p>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{customers.length}</p>
                 </div>
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">This Month</p>
                     <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">
                         +{customers.filter(c => new Date(c.createdAt).getMonth() === new Date().getMonth()).length}
                     </p>
                 </div>
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Active This Week</p>
                     <p className="text-3xl font-bold text-success-600 dark:text-success-400">
                         {customers.filter(c => {
@@ -171,7 +171,7 @@ export default function CustomersPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                        className="card p-6 surface-panel"
                     >
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div className="flex items-start gap-4 flex-1">

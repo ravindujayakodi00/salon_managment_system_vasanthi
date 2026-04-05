@@ -15,6 +15,8 @@ interface SalonSettings {
     default_end_time: string;
     enable_tax: boolean;
     tax_rate: number;
+    /** Max full-day holidays per staff per calendar year; null/undefined = no limit */
+    max_full_day_holidays_per_year: number | null;
 }
 
 export interface StylistBreak {
@@ -27,11 +29,21 @@ export interface StylistBreak {
     created_at?: string;
 }
 
+function logPostgrestError(context: string, error: unknown) {
+    const e = error as { message?: string; code?: string; details?: string; hint?: string };
+    console.error(context, {
+        message: e?.message,
+        code: e?.code,
+        details: e?.details,
+        hint: e?.hint,
+    });
+}
+
 export const schedulingService = {
     /**
-     * Get salon settings
+     * Get salon settings for the current organization (must pass organization_id from auth profile).
      */
-    async getSalonSettings(): Promise<SalonSettings> {
+    async getSalonSettings(organizationId?: string | null): Promise<SalonSettings> {
         const defaults: SalonSettings = {
             slot_interval: 30,
             booking_window_days: 30,
@@ -40,27 +52,33 @@ export const schedulingService = {
             default_end_time: '18:00',
             enable_tax: false,
             tax_rate: 0,
+            max_full_day_holidays_per_year: null,
         };
+
+        const oid = organizationId?.trim();
+        if (!oid) {
+            return defaults;
+        }
 
         try {
             const { data: row, error } = await supabase
                 .from('salon_settings')
                 .select('*')
+                .eq('organization_id', oid)
                 .maybeSingle();
 
             if (error) {
-                console.error('Error fetching salon settings:', error);
+                logPostgrestError('Error fetching salon settings:', error);
                 return defaults;
             }
 
             if (!row) {
-                console.warn('No salon settings found, using defaults');
                 return defaults;
             }
 
             return { ...defaults, ...row };
         } catch (error) {
-            console.error('Error fetching salon settings:', error);
+            logPostgrestError('Error fetching salon settings:', error);
             return defaults;
         }
     },
@@ -68,28 +86,39 @@ export const schedulingService = {
     /**
      * Update salon settings (Owner only)
      */
-    async updateSalonSettings(settings: Partial<SalonSettings>): Promise<{ success: boolean; message: string }> {
+    async updateSalonSettings(
+        settings: Partial<SalonSettings>,
+        organizationId?: string | null
+    ): Promise<{ success: boolean; message: string }> {
+        const oid = organizationId?.trim();
+        if (!oid) {
+            return { success: false, message: 'Missing organization. Please sign in again.' };
+        }
+
         try {
-            // First, get the existing settings row ID
             const { data: existingRow, error: fetchError } = await supabase
                 .from('salon_settings')
                 .select('id')
+                .eq('organization_id', oid)
                 .maybeSingle();
 
             if (fetchError) {
-                console.error('Error fetching existing settings:', fetchError);
+                logPostgrestError('Error fetching existing settings:', fetchError);
                 throw fetchError;
             }
 
             if (!existingRow) {
-                const { error: insertError } = await supabase
-                    .from('salon_settings')
-                    .insert({
-                        ...settings,
-                        slot_interval: settings.slot_interval || 30,
-                        booking_window_days: settings.booking_window_days || 30,
-                        booking_buffer_minutes: settings.booking_buffer_minutes || 10,
-                    });
+                const { error: insertError } = await supabase.from('salon_settings').insert({
+                    organization_id: oid,
+                    slot_interval: settings.slot_interval ?? 30,
+                    booking_window_days: settings.booking_window_days ?? 30,
+                    booking_buffer_minutes: settings.booking_buffer_minutes ?? 10,
+                    default_start_time: settings.default_start_time ?? '09:00',
+                    default_end_time: settings.default_end_time ?? '18:00',
+                    enable_tax: settings.enable_tax ?? false,
+                    tax_rate: settings.tax_rate ?? 0,
+                    max_full_day_holidays_per_year: settings.max_full_day_holidays_per_year ?? null,
+                });
 
                 if (insertError) throw insertError;
                 return { success: true, message: 'Settings created successfully' };
@@ -98,7 +127,8 @@ export const schedulingService = {
             const { error: updateError } = await supabase
                 .from('salon_settings')
                 .update(settings)
-                .eq('id', existingRow.id);
+                .eq('id', existingRow.id)
+                .eq('organization_id', oid);
 
             if (updateError) throw updateError;
 
@@ -119,22 +149,23 @@ export const schedulingService = {
         serviceDuration: number
     ): Promise<TimeSlot[]> {
         try {
+            // 1. Resolve org from stylist (required for per-tenant salon_settings)
+            const { data: staffRow } = await supabase
+                .from('staff')
+                .select('organization_id, working_hours, working_days, is_emergency_unavailable')
+                .eq('id', stylistId)
+                .maybeSingle();
 
+            if (!staffRow?.organization_id) return [];
 
-            // 1. Get salon settings
-            const settings = await this.getSalonSettings();
+            const settings = await this.getSalonSettings(staffRow.organization_id);
             if (!settings) return [];
 
-
-            // 2. Get stylist working hours and emergency status
-            const { data: stylist } = await supabase
-                .from('staff')
-                .select('working_hours, working_days, is_emergency_unavailable')
-                .eq('id', stylistId)
-                .single();
-
-            if (!stylist) return [];
-
+            const stylist = {
+                working_hours: staffRow.working_hours,
+                working_days: staffRow.working_days,
+                is_emergency_unavailable: staffRow.is_emergency_unavailable,
+            };
 
             // Check for emergency unavailability
             const today = getLocalDateString();

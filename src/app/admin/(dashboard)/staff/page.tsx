@@ -251,9 +251,11 @@ export default function StaffPage() {
 
     const filteredStaff = staffMembers.filter(staff => {
         const matchesRole = roleFilter === 'All' || staff.role === roleFilter;
-        const matchesSearch = searchQuery === '' ||
-            staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            staff.email.toLowerCase().includes(searchQuery.toLowerCase());
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+            searchQuery === '' ||
+            (staff.name?.toLowerCase() ?? '').includes(q) ||
+            (staff.email?.toLowerCase() ?? '').includes(q);
         return matchesRole && matchesSearch;
     });
 
@@ -294,7 +296,7 @@ export default function StaffPage() {
             </AnimatePresence>
 
             {/* Filters */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                         <Input
@@ -339,7 +341,7 @@ export default function StaffPage() {
                             key={staff.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
+                            className="card p-6 surface-panel hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div>

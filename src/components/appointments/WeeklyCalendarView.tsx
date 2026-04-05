@@ -236,7 +236,7 @@ export default function WeeklyCalendarView({
             </div>
 
             {/* Calendar Grid */}
-            <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="card surface-panel overflow-hidden">
                 <div className="overflow-x-auto">
                     <div className="min-w-[720px] md:min-w-[800px]">
                         {/* Day Headers - Compact */}

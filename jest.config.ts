@@ -4,7 +4,7 @@ const config: Config = {
     preset: 'ts-jest',
     testEnvironment: 'node',
     roots: ['<rootDir>/tests'],
-    testMatch: ['**/tests/services/**/*.test.ts'], // Only run service tests, not E2E
+    testMatch: ['**/tests/services/**/*.test.ts', '**/tests/qa/**/*.test.ts', '**/tests/lib/**/*.test.ts'],
     testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'], // Ignore E2E tests
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',

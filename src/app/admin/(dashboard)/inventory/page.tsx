@@ -90,7 +90,7 @@ export default function InventoryPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
                             <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -102,7 +102,7 @@ export default function InventoryPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-xl">
                             <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -114,7 +114,7 @@ export default function InventoryPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-xl">
                             <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -128,7 +128,7 @@ export default function InventoryPage() {
                     </div>
                 </div>
 
-                <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="card p-6 surface-panel">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-xl">
                             <BarChart3 className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -160,7 +160,7 @@ export default function InventoryPage() {
             )}
 
             {/* Filters and Search */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
@@ -195,7 +195,7 @@ export default function InventoryPage() {
             </div>
 
             {/* Products Table */}
-            <div className="card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="card surface-panel overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-700/50">

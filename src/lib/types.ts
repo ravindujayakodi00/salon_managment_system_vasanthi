@@ -10,6 +10,8 @@ export interface User {
     organizationId: string;
     organizationSlug?: string;
     organizationName?: string;
+    /** Full organization row (branding + slug); loaded after login */
+    organization?: Organization | null;
     isActive: boolean;
 }
 
@@ -158,6 +160,17 @@ export interface Organization {
     slug: string;
     is_active: boolean;
     created_at?: string;
+    updated_at?: string;
+    display_name?: string | null;
+    tagline?: string | null;
+    logo_url?: string | null;
+    favicon_url?: string | null;
+    primary_color?: string | null;
+    secondary_color?: string | null;
+    accent_color?: string | null;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    timezone?: string | null;
 }
 
 // Notification Types

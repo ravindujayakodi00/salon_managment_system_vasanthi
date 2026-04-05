@@ -10,7 +10,7 @@ import { notificationsService } from '@/services/notifications';
 import { supabase } from '@/lib/supabase';
 
 export default function NotificationsPage() {
-    const { hasRole } = useAuth();
+    const { hasRole, user } = useAuth();
     const canManageTemplates = hasRole(['Owner', 'Manager']);
 
     const [loading, setLoading] = useState(false);
@@ -32,16 +32,17 @@ export default function NotificationsPage() {
     });
 
     useEffect(() => {
-        if (canManageTemplates) {
+        if (canManageTemplates && user?.organizationId) {
             fetchTemplates();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canManageTemplates]);
+    }, [canManageTemplates, user?.organizationId]);
 
     const fetchTemplates = async () => {
+        if (!user?.organizationId) return;
         try {
             setLoading(true);
-            const data = await notificationsService.getTemplates();
+            const data = await notificationsService.getTemplates(user.organizationId);
             setTemplates(data || []);
         } catch (error) {
             console.error('Error fetching templates:', error);
@@ -60,7 +61,20 @@ export default function NotificationsPage() {
         try {
             setLoading(true);
             if (isCreating) {
-                await notificationsService.createTemplate(editingTemplate);
+                if (!user?.organizationId) {
+                    showMessage('error', 'Missing organization');
+                    return;
+                }
+                await notificationsService.createTemplate({
+                    name: editingTemplate.name,
+                    type: editingTemplate.type,
+                    channel: editingTemplate.channel,
+                    subject: editingTemplate.subject,
+                    message: editingTemplate.message,
+                    is_active: editingTemplate.is_active,
+                    whatsapp_template_name: editingTemplate.whatsapp_template_name,
+                    organization_id: user.organizationId,
+                });
                 showMessage('success', 'Template created successfully');
             } else {
                 await notificationsService.updateTemplate(editingTemplate.id, editingTemplate);
@@ -159,7 +173,7 @@ export default function NotificationsPage() {
     return (
         <div className="space-y-6">
             {/* My Notifications */}
-            <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-6 surface-panel">
                 <div className="flex items-start justify-between gap-4 mb-5">
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
@@ -272,7 +286,7 @@ export default function NotificationsPage() {
                             key={template.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
+                            className="card p-6 surface-panel hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div>
@@ -352,7 +366,7 @@ export default function NotificationsPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="card p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                    className="card p-6 surface-panel"
                 >
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">

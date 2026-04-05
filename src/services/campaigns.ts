@@ -322,7 +322,8 @@ export const campaignService = {
                             customer_id: customer.id,
                             channel: campaign.channel,
                             message_content: template.message,
-                            status: 'pending'
+                            status: 'pending',
+                            organization_id: campaign.organization_id,
                         })
                         .select()
                         .single();

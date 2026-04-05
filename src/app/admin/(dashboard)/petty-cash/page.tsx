@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Plus, Minus, Wallet, TrendingUp, TrendingDown, Search, Download } from 'lucide-react';
 import { pettyCashService, PettyCashTransaction } from '@/services/petty-cash';
 import { useAuth } from '@/lib/auth';
+import { useWorkspace } from '@/lib/workspace';
 import Input from '@/components/shared/Input';
 import Button from '@/components/shared/Button';
 import Modal from '@/components/shared/Modal';
@@ -12,6 +13,7 @@ import { useToast } from '@/context/ToastContext';
 
 export default function PettyCashPage() {
     const { user } = useAuth();
+    const { effectiveBranchId } = useWorkspace();
     const { showToast } = useToast();
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState<PettyCashTransaction[]>([]);
@@ -69,7 +71,8 @@ export default function PettyCashPage() {
                 parseFloat(depositAmount),
                 depositDescription,
                 user.id,
-                user.branchId || null
+                user.branchId ?? effectiveBranchId ?? null,
+                user.organizationId
             );
             showToast('Cash added successfully', 'success');
             setDepositAmount('');
@@ -110,7 +113,8 @@ export default function PettyCashPage() {
                 parseFloat(expenseAmount),
                 expenseDescription,
                 user.id,
-                user.branchId || null
+                user.branchId ?? effectiveBranchId ?? null,
+                user.organizationId
             );
             showToast('Expense recorded successfully', 'success');
             setExpenseAmount('');

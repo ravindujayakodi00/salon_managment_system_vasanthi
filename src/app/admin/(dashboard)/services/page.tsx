@@ -127,7 +127,7 @@ export default function ServicesPage() {
             </div>
 
             {/* Filters */}
-            <div className="card p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+            <div className="card p-4 surface-panel">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                         <Input
@@ -188,7 +188,7 @@ export default function ServicesPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="card p-6 card-hover bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                        className="card p-6 card-hover surface-panel"
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div>

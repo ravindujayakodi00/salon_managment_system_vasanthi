@@ -6,12 +6,25 @@ export const reportsService = {
     /**
      * Get basic dashboard stats for today
      */
-    async getDashboardStats(branchId?: string) {
+    async getDashboardStats(branchId?: string, stylistStaffId?: string) {
         const today = getLocalDateString();
+
+        let apptQuery = supabase.from('appointments').select('id, status').eq('appointment_date', today);
+        if (branchId) apptQuery = apptQuery.eq('branch_id', branchId);
+        if (stylistStaffId) apptQuery = apptQuery.eq('stylist_id', stylistStaffId);
+        const { data: appointments, error: apptError } = await apptQuery;
+
+        if (apptError) throw apptError;
+
+        const aptRows = appointments || [];
+        const todayAppointments = aptRows.length;
+        const completedAppointments = aptRows.filter(a => a.status === 'Completed').length;
+        const cancelledAppointments = aptRows.filter(a => a.status === 'Cancelled').length;
+        const noShowAppointments = aptRows.filter(a => a.status === 'NoShow').length;
 
         let invQuery = supabase
             .from('invoices')
-            .select('total, created_at')
+            .select('total, created_at, appointment_id')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
         if (branchId) invQuery = invQuery.eq('branch_id', branchId);
@@ -19,21 +32,19 @@ export const reportsService = {
 
         if (invoiceError) throw invoiceError;
 
-        const todayRevenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-
-        let apptQuery = supabase
-            .from('appointments')
-            .select('status')
-            .eq('appointment_date', today);
-        if (branchId) apptQuery = apptQuery.eq('branch_id', branchId);
-        const { data: appointments, error: apptError } = await apptQuery;
-
-        if (apptError) throw apptError;
-
-        const todayAppointments = appointments?.length || 0;
-        const completedAppointments = appointments?.filter(a => a.status === 'Completed').length || 0;
-        const cancelledAppointments = appointments?.filter(a => a.status === 'Cancelled').length || 0;
-        const noShowAppointments = appointments?.filter(a => a.status === 'NoShow').length || 0;
+        let todayRevenue = 0;
+        if (stylistStaffId) {
+            const allowed = new Set(aptRows.map(a => a.id));
+            todayRevenue =
+                (invoices || []).reduce((sum, inv: { total?: number; appointment_id?: string | null }) => {
+                    if (inv.appointment_id && allowed.has(inv.appointment_id)) {
+                        return sum + (inv.total || 0);
+                    }
+                    return sum;
+                }, 0) || 0;
+        } else {
+            todayRevenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+        }
 
         return {
             todayRevenue,
@@ -47,10 +58,10 @@ export const reportsService = {
     /**
      * Get top performing services by revenue
      */
-    async getTopServices(startDate: string, endDate: string, branchId?: string) {
+    async getTopServices(startDate: string, endDate: string, branchId?: string, stylistStaffId?: string) {
         let q = supabase
             .from('invoices')
-            .select('items')
+            .select('items, appointment_id')
             .gte('created_at', startDate)
             .lte('created_at', endDate);
         if (branchId) q = q.eq('branch_id', branchId);
@@ -58,9 +69,24 @@ export const reportsService = {
 
         if (error) throw error;
 
+        let rows = invoices || [];
+        if (stylistStaffId && rows.length > 0) {
+            const aptIds = [...new Set(rows.map((i: { appointment_id?: string | null }) => i.appointment_id).filter(Boolean))] as string[];
+            if (aptIds.length === 0) rows = [];
+            else {
+                const { data: apts } = await supabase
+                    .from('appointments')
+                    .select('id')
+                    .in('id', aptIds)
+                    .eq('stylist_id', stylistStaffId);
+                const allowed = new Set((apts || []).map(a => a.id));
+                rows = rows.filter((i: { appointment_id?: string | null }) => i.appointment_id && allowed.has(i.appointment_id));
+            }
+        }
+
         const serviceStats = new Map<string, { revenue: number; count: number }>();
 
-        invoices?.forEach(invoice => {
+        rows.forEach(invoice => {
             const items = invoice.items as any[];
             if (Array.isArray(items)) {
                 items.forEach(item => {
@@ -84,12 +110,13 @@ export const reportsService = {
     /**
      * Get staff performance (revenue and appointment count)
      */
-    async getStaffPerformance(startDate: string, endDate: string, branchId?: string) {
+    async getStaffPerformance(startDate: string, endDate: string, branchId?: string, stylistStaffId?: string) {
         let q = supabase
             .from('invoices')
             .select(`
                 total,
                 appointment:appointments(
+                    stylist_id,
                     stylist:staff(name)
                 )
             `)
@@ -104,6 +131,7 @@ export const reportsService = {
         const stylistStats = new Map<string, { revenue: number; appointmentCount: number }>();
 
         invoicesWithAppt?.forEach((inv: any) => {
+            if (stylistStaffId && inv.appointment?.stylist_id !== stylistStaffId) return;
             const stylistName = inv.appointment?.stylist?.name;
             if (stylistName) {
                 const current = stylistStats.get(stylistName) || { revenue: 0, appointmentCount: 0 };
