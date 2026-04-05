@@ -3,6 +3,9 @@
 
 import { supabase, DbService, DbStaff, DbStylistBreak, DbStylistUnavailability, DbSalonSettings } from './supabase';
 
+// Organization scope — all queries are filtered to this org
+const ORG_ID = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? '';
+
 // ============================================
 // PUBLIC TYPES
 // ============================================
@@ -85,6 +88,7 @@ async function getSalonSettings(): Promise<DbSalonSettings> {
     const { data, error } = await supabase
         .from('salon_settings')
         .select('*')
+        .eq('organization_id', ORG_ID)
         .limit(1)
         .single();
 
@@ -228,6 +232,7 @@ export async function fetchServices(category?: string, gender?: string): Promise
         .from('services')
         .select('*')
         .eq('is_active', true)
+        .eq('organization_id', ORG_ID)
         .order('category')
         .order('name');
 
@@ -258,13 +263,14 @@ export async function fetchServices(category?: string, gender?: string): Promise
 export async function fetchStylistsForService(serviceId: string, date?: string): Promise<Stylist[]> {
     console.log('👥 Fetching stylists for service:', serviceId);
 
-    // Get all active stylists
+    // Get all active stylists for this organization
     const { data: staffData, error: staffError } = await supabase
         .from('staff')
         .select('*')
         .eq('is_active', true)
         .eq('role', 'Stylist')
-        .eq('is_emergency_unavailable', false);
+        .eq('organization_id', ORG_ID)
+        .not('is_emergency_unavailable', 'is', true);
 
     if (staffError) {
         console.error('❌ Error fetching stylists:', staffError);
@@ -275,7 +281,8 @@ export async function fetchStylistsForService(serviceId: string, date?: string):
     const { data: servicesData, error: servicesError } = await supabase
         .from('services')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('organization_id', ORG_ID);
 
     if (servicesError) {
         console.error('❌ Error fetching services:', servicesError);
@@ -338,6 +345,7 @@ export async function fetchTimeSlots(
         .from('staff')
         .select('*')
         .eq('id', stylistId)
+        .eq('organization_id', ORG_ID)
         .single();
 
     if (stylistError || !stylistData) {
@@ -346,9 +354,9 @@ export async function fetchTimeSlots(
     }
 
     const stylist = stylistData as DbStaff;
-    const workingHours = stylist.working_hours || {
-        start: settings.default_start_time,
-        end: settings.default_end_time,
+    const workingHours = {
+        start: stylist.working_hours?.start || settings.default_start_time || '09:00',
+        end: stylist.working_hours?.end || settings.default_end_time || '18:00',
     };
 
     // Get day of week (0 = Sunday, 1 = Monday, etc.)
@@ -398,6 +406,7 @@ export async function fetchTimeSlots(
         .select('start_time, duration, status')
         .eq('stylist_id', stylistId)
         .eq('appointment_date', date)
+        .eq('organization_id', ORG_ID)
         .not('status', 'in', '("Cancelled","NoShow")');
 
     const appointments = (appointmentsData || []) as { start_time: string; duration: number }[];
@@ -430,7 +439,9 @@ export async function fetchTimeSlots(
 }
 
 /**
- * Get consolidated availability for "no preference" booking flow
+ * Get consolidated availability for "no preference" booking flow.
+ * Uses direct Supabase queries (same pattern as other functions in this file).
+ * A slot is available if AT LEAST ONE qualified stylist is free at that time.
  */
 export async function fetchConsolidatedAvailability(
     serviceId: string,
@@ -444,6 +455,7 @@ export async function fetchConsolidatedAvailability(
         .from('services')
         .select('*')
         .eq('id', serviceId)
+        .eq('organization_id', ORG_ID)
         .single();
 
     if (serviceError || !serviceData) {
@@ -453,30 +465,25 @@ export async function fetchConsolidatedAvailability(
     const service = mapDbServiceToService(serviceData as DbService);
     const serviceDuration = duration || service.duration;
 
-    // Get all qualified stylists
+    // Get all qualified stylists for this service
     const stylists = await fetchStylistsForService(serviceId, date);
 
     if (stylists.length === 0) {
         console.log('⚠️ No qualified stylists available');
-        return {
-            slots: [],
-            service,
-            totalStylists: 0,
-            availableCount: 0,
-        };
+        return { slots: [], service, totalStylists: 0, availableCount: 0 };
     }
 
-    // Get settings for slot generation
+    // Get salon settings for slot interval
     const settings = await getSalonSettings();
 
-    // Use the first stylist's hours or defaults
-    const startTime = stylists[0]?.workingHours?.start || settings.default_start_time;
-    const endTime = stylists[0]?.workingHours?.end || settings.default_end_time;
+    // Use the earliest start / latest end across all stylists
+    const startTime = stylists[0]?.workingHours?.start || settings.default_start_time || '09:00';
+    const endTime = stylists[0]?.workingHours?.end || settings.default_end_time || '18:00';
 
-    // Generate all possible time slots
+    // Generate all possible time slots for the day
     const allSlotTimes = generateTimeSlots(startTime, endTime, settings.slot_interval);
 
-    // Get availability for each stylist
+    // Get per-stylist availability in parallel
     const stylistAvailabilities = await Promise.all(
         stylists.map(async stylist => {
             const response = await fetchTimeSlots(stylist.id, date, serviceDuration);
@@ -486,29 +493,22 @@ export async function fetchConsolidatedAvailability(
 
     // Consolidate: a slot is available if ANY stylist can take it
     const consolidatedSlots: ConsolidatedSlot[] = allSlotTimes.map(slotTime => {
-        const availableStylists = stylistAvailabilities.filter(sa =>
+        const availableCount = stylistAvailabilities.filter(sa =>
             sa.slots.find((s: TimeSlot) => s.time === slotTime && s.available)
         ).length;
 
         return {
             time: slotTime,
-            available: availableStylists > 0,
-            availableStylists,
-            reason: availableStylists === 0 ? 'No stylists available' : undefined,
+            available: availableCount > 0,
+            availableStylists: availableCount,
+            reason: availableCount === 0 ? 'No stylists available' : undefined,
         };
     });
 
     const availableCount = consolidatedSlots.filter(s => s.available).length;
+    console.log(`✅ Consolidated availability: ${availableCount}/${consolidatedSlots.length} slots from ${stylists.length} stylists`);
 
-    console.log(`✅ Consolidated availability: ${availableCount}/${consolidatedSlots.length} slots available`);
-    console.log(`   From ${stylists.length} qualified stylists`);
-
-    return {
-        slots: consolidatedSlots,
-        service,
-        totalStylists: stylists.length,
-        availableCount,
-    };
+    return { slots: consolidatedSlots, service, totalStylists: stylists.length, availableCount };
 }
 
 /**
@@ -556,12 +556,65 @@ export async function fetchAllStylistsWithAvailability(
 }
 
 /**
- * Create a new booking
+ * Create a new booking via the server-side API (handles NO_PREFERENCE dispatch,
+ * bypasses RLS, sends SMS/email confirmation).
  * @param booking - The booking request data
- * @param authClient - Optional authenticated Supabase client for protected operations
+ * @param _authClient - Kept for API compatibility (unused — server handles auth)
  */
 export async function createBooking(
     booking: BookingRequest,
+    _authClient?: any
+): Promise<{
+    appointmentId: string;
+    date: string;
+    time: string;
+    status: string;
+    service: { name: string; duration: number; price: number };
+    stylist: { name: string };
+}> {
+    console.log('📝 Creating booking via API...');
+
+    const orgSlug = process.env.NEXT_PUBLIC_ORGANIZATION_SLUG || 'vasanthi_salon';
+
+    const res = await fetch('/api/public/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            organization_slug: orgSlug,
+            customer: booking.customer,
+            appointment: booking.appointment,
+        }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to create booking');
+    }
+
+    const d = json.data;
+    console.log('✅ Booking created:', d.appointmentId);
+
+    return {
+        appointmentId: d.appointmentId,
+        date: d.date,
+        time: d.time,
+        status: d.status,
+        service: d.service,
+        stylist: d.stylist,
+    };
+}
+
+/**
+ * Create a booking with random stylist assignment.
+ * Finds all stylists free at the requested time, picks one at random,
+ * then creates the appointment using direct Supabase calls.
+ */
+export async function createRandomBooking(
+    booking: {
+        customer: BookingRequest['customer'];
+        appointment: Omit<BookingRequest['appointment'], 'stylist_id'>;
+    },
     authClient?: any
 ): Promise<{
     appointmentId: string;
@@ -571,51 +624,16 @@ export async function createBooking(
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
-    console.log('📝 Creating booking...');
+    console.log('🎲 Creating random booking...');
 
-    // Use authenticated client if provided, otherwise use public client
     const client = authClient || supabase;
 
-    // Get or create customer
-    let customerId: string;
-
-    // Check if customer exists by phone
-    const { data: existingCustomer } = await client
-        .from('customers')
-        .select('id')
-        .eq('phone', booking.customer.phone)
-        .single();
-
-    if (existingCustomer) {
-        customerId = existingCustomer.id;
-        console.log('✅ Found existing customer:', customerId);
-    } else {
-        // Create new customer
-        const { data: newCustomer, error: customerError } = await client
-            .from('customers')
-            .insert({
-                name: booking.customer.name,
-                phone: booking.customer.phone,
-                email: booking.customer.email || null,
-                gender: booking.customer.gender || null,
-            })
-            .select('id')
-            .single();
-
-        if (customerError || !newCustomer) {
-            console.error('❌ Error creating customer:', customerError);
-            throw new Error(`Failed to create customer: ${customerError?.message}`);
-        }
-
-        customerId = newCustomer.id;
-        console.log('✅ Created new customer:', customerId);
-    }
-
-    // Get service details (can use public client)
+    // 1. Get service details
     const { data: serviceData, error: serviceError } = await supabase
         .from('services')
         .select('*')
         .eq('id', booking.appointment.service_id)
+        .eq('organization_id', ORG_ID)
         .single();
 
     if (serviceError || !serviceData) {
@@ -624,21 +642,41 @@ export async function createBooking(
 
     const service = serviceData as DbService;
 
-    // Get stylist details (can use public client)
-    const { data: stylistData, error: stylistError } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('id', booking.appointment.stylist_id)
-        .single();
+    // 2. Get all qualified stylists available on this date
+    const stylists = await fetchStylistsForService(booking.appointment.service_id, booking.appointment.date);
 
-    if (stylistError || !stylistData) {
-        throw new Error('Stylist not found');
+    if (stylists.length === 0) {
+        throw new Error('No stylists available for this service on this date');
     }
 
-    const stylist = stylistData as DbStaff;
+    // 3. Find which stylists are free at the requested time
+    const freeStylists: Stylist[] = [];
 
-    // Get branch (use stylist's branch or first active branch)
-    let branchId = stylist.branch_id;
+    await Promise.all(
+        stylists.map(async (stylist) => {
+            const response = await fetchTimeSlots(stylist.id, booking.appointment.date, service.duration);
+            const slot = response.slots.find((s: TimeSlot) => s.time === booking.appointment.time && s.available);
+            if (slot) freeStylists.push(stylist);
+        })
+    );
+
+    if (freeStylists.length === 0) {
+        throw new Error('No stylists available at this time slot');
+    }
+
+    // 4. Pick a random free stylist
+    const selected = freeStylists[Math.floor(Math.random() * freeStylists.length)];
+    console.log(`🎲 Randomly selected stylist: ${selected.name} (from ${freeStylists.length} available)`);
+
+    // 5. Get branch and organization_id from the selected stylist
+    const { data: stylistRecord } = await supabase
+        .from('staff')
+        .select('branch_id, organization_id')
+        .eq('id', selected.id)
+        .single();
+
+    const organizationId = stylistRecord?.organization_id;
+    let branchId = stylistRecord?.branch_id;
     if (!branchId) {
         const { data: branchData } = await supabase
             .from('branches')
@@ -646,7 +684,6 @@ export async function createBooking(
             .eq('is_active', true)
             .limit(1)
             .single();
-
         branchId = branchData?.id;
     }
 
@@ -654,42 +691,86 @@ export async function createBooking(
         throw new Error('No active branch found');
     }
 
-    // Create appointment (must use authenticated client)
-    const { data: appointment, error: appointmentError } = await client
+    // 6. Get or create customer (organization_id required)
+    let customerId: string;
+
+    const { data: existingCustomer } = await client
+        .from('customers')
+        .select('id')
+        .eq('phone', booking.customer.phone)
+        .eq('organization_id', ORG_ID)
+        .maybeSingle();
+
+    if (existingCustomer) {
+        customerId = existingCustomer.id;
+        await client.from('customers').update({
+            name: booking.customer.name,
+            email: booking.customer.email || undefined,
+        }).eq('id', customerId);
+    } else {
+        const { data: newCustomer, error: customerError } = await client
+            .from('customers')
+            .insert({
+                name: booking.customer.name,
+                phone: booking.customer.phone,
+                email: booking.customer.email || null,
+                gender: booking.customer.gender || null,
+                is_active: true,
+                organization_id: ORG_ID || organizationId,
+            })
+            .select('id')
+            .single();
+
+        if (customerError || !newCustomer) {
+            throw new Error(`Failed to create customer: ${customerError?.message}`);
+        }
+
+        customerId = newCustomer.id;
+    }
+
+    // 7. Create appointment
+    const timeParts = booking.appointment.time.split(':');
+    const startTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}:00`;
+
+    const { data: newAppointment, error: appointmentError } = await client
         .from('appointments')
         .insert({
             customer_id: customerId,
-            stylist_id: booking.appointment.stylist_id,
+            stylist_id: selected.id,
             branch_id: branchId,
+            organization_id: ORG_ID || organizationId,
             services: [booking.appointment.service_id],
             appointment_date: booking.appointment.date,
-            start_time: booking.appointment.time,
+            start_time: startTime,
             duration: service.duration,
             status: 'Pending',
             notes: booking.appointment.notes || null,
         })
-        .select('id')
+        .select('id, appointment_date, start_time, status')
         .single();
 
-    if (appointmentError || !appointment) {
-        console.error('❌ Error creating appointment:', appointmentError);
+    if (appointmentError || !newAppointment) {
         throw new Error(`Failed to create appointment: ${appointmentError?.message}`);
     }
 
-    console.log('✅ Booking created:', appointment.id);
+    const startDisp = typeof newAppointment.start_time === 'string'
+        ? newAppointment.start_time.slice(0, 5)
+        : booking.appointment.time;
+
+    console.log(`✅ Random booking created: ${newAppointment.id} → ${selected.name}`);
 
     return {
-        appointmentId: appointment.id,
-        date: booking.appointment.date,
-        time: booking.appointment.time,
-        status: 'Pending',
+        appointmentId: newAppointment.id,
+        date: newAppointment.appointment_date,
+        time: startDisp,
+        status: newAppointment.status,
         service: {
             name: service.name,
             duration: service.duration,
             price: service.price,
         },
         stylist: {
-            name: stylist.name,
+            name: selected.name,
         },
     };
 }

@@ -7,15 +7,11 @@ import { gsap, ScrollTrigger } from '@/utils/gsapConfig';
 import { useWebsiteAuth } from '@/context/WebsiteAuthContext';
 import {
     fetchServices,
-    fetchStylistsForService,
-    fetchTimeSlots,
     fetchConsolidatedAvailability,
-    createBooking,
+    createRandomBooking,
     formatTime,
     getMinDate,
     type Service,
-    type Stylist,
-    type TimeSlot,
     type ConsolidatedSlot,
 } from '@/lib/website/api';
 
@@ -25,9 +21,6 @@ interface BookingData {
     serviceName: string;
     servicePrice: number;
     serviceDuration: number;
-    wantsStylist: 'yes' | 'no' | '';
-    stylist: string;
-    stylistName: string;
     date: string;
     time: string;
 }
@@ -46,6 +39,7 @@ const steps = [
     { id: 4, title: 'Verify', icon: '📱', subtitle: 'OTP verification' },
     { id: 5, title: 'Confirm', icon: '✓', subtitle: 'Submit booking' },
 ];
+
 
 const serviceCategories = [
     { id: 'all', name: 'All', icon: '✨' },
@@ -71,10 +65,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
     // API Data States
     const [services, setServices] = useState<Service[]>([]);
-    const [stylists, setStylists] = useState<Stylist[]>([]);
-    const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [consolidatedSlots, setConsolidatedSlots] = useState<ConsolidatedSlot[]>([]);
-    const [stylistUnavailabilityMessage, setStylistUnavailabilityMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -109,23 +100,16 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     // Current service being configured (before adding to cart)
     const [configuring, setConfiguring] = useState<{
         service: Service | null;
-        wantsStylist: 'yes' | 'no' | '';
-        stylist: string;
-        stylistName: string;
         date: string;
         time: string;
     }>({
         service: null,
-        wantsStylist: '',
-        stylist: '',
-        stylistName: '',
         date: '',
         time: '',
     });
 
     // Modal state for configuring appointment
     const [showModal, setShowModal] = useState(false);
-    const [modalStep, setModalStep] = useState(1); // 1: preference, 2: stylist, 3: date/time
 
     // Get total price
     const totalPrice = cart.reduce((sum, item) => sum + item.servicePrice, 0);
@@ -354,66 +338,22 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         loadServices();
     }, []);
 
-    // Fetch stylists when configuring a service
-    useEffect(() => {
-        if (!configuring.service || configuring.wantsStylist !== 'yes') {
-            return;
-        }
-
-        async function loadStylists() {
-            try {
-                setLoading(true);
-                const data = await fetchStylistsForService(configuring.service!.id, configuring.date);
-                setStylists(data);
-                setError(null);
-            } catch (err) {
-                console.error('Error loading stylists:', err);
-                setError('Failed to load stylists.');
-            } finally {
-                setLoading(false);
-            }
-        }
-        loadStylists();
-    }, [configuring.service, configuring.wantsStylist, configuring.date]);
-
-    // Fetch time slots when date is selected
+    // Fetch consolidated availability when date is selected
     useEffect(() => {
         if (!configuring.date || !configuring.service) {
-            setTimeSlots([]);
             setConsolidatedSlots([]);
             return;
         }
 
-        const isNoPreference = configuring.wantsStylist === 'no' || configuring.stylist === 'any';
-
         async function loadAvailability() {
             try {
                 setLoading(true);
-                setStylistUnavailabilityMessage(null);
-
-                if (isNoPreference) {
-                    const data = await fetchConsolidatedAvailability(
-                        configuring.service!.id,
-                        configuring.date,
-                        configuring.service!.duration
-                    );
-                    setConsolidatedSlots(data.slots);
-                    setTimeSlots([]);
-                } else if (configuring.stylist && configuring.stylist !== 'any') {
-                    const response = await fetchTimeSlots(
-                        configuring.stylist,
-                        configuring.date,
-                        configuring.service!.duration
-                    );
-                    setTimeSlots(response.slots);
-                    setConsolidatedSlots([]);
-
-                    // Set unavailability message if stylist is on holiday or doesn't work this day
-                    if (response.unavailabilityReason) {
-                        setStylistUnavailabilityMessage(response.unavailabilityReason);
-                    }
-                }
-
+                const data = await fetchConsolidatedAvailability(
+                    configuring.service!.id,
+                    configuring.date,
+                    configuring.service!.duration
+                );
+                setConsolidatedSlots(data.slots);
                 setError(null);
             } catch (err) {
                 console.error('Error loading availability:', err);
@@ -423,7 +363,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             }
         }
         loadAvailability();
-    }, [configuring.service, configuring.date, configuring.stylist, configuring.wantsStylist]);
+    }, [configuring.service, configuring.date]);
 
     // ScrollTrigger for pinning
     useEffect(() => {
@@ -465,13 +405,9 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     const openServiceModal = (service: Service) => {
         setConfiguring({
             service,
-            wantsStylist: '',
-            stylist: '',
-            stylistName: '',
             date: '',
             time: '',
         });
-        setModalStep(1);
         setShowModal(true);
     };
 
@@ -485,9 +421,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             serviceName: configuring.service.name,
             servicePrice: configuring.service.price,
             serviceDuration: configuring.service.duration,
-            wantsStylist: configuring.wantsStylist,
-            stylist: configuring.stylist,
-            stylistName: configuring.stylistName || 'Any Available',
             date: configuring.date,
             time: configuring.time,
         };
@@ -496,9 +429,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         setShowModal(false);
         setConfiguring({
             service: null,
-            wantsStylist: '',
-            stylist: '',
-            stylistName: '',
             date: '',
             time: '',
         });
@@ -520,16 +450,12 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             setLoading(true);
             setError(null);
 
-            // Get authenticated Supabase client
             const authClient = getAuthenticatedClient();
             const results: { date: string; time: string; serviceName: string; price: number }[] = [];
 
-            // Submit each appointment separately
+            // Submit each appointment separately using random stylist allocation
             for (const booking of cart) {
-                const isNoPreference = booking.wantsStylist === 'no' || booking.stylist === 'any';
-                const stylistId = isNoPreference ? 'NO_PREFERENCE' : booking.stylist;
-
-                const result = await createBooking({
+                const result = await createRandomBooking({
                     customer: {
                         name: customer.name,
                         phone: customer.phone,
@@ -537,7 +463,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     },
                     appointment: {
                         service_id: booking.service,
-                        stylist_id: stylistId,
                         date: booking.date,
                         time: booking.time,
                         notes: customer.notes || undefined,
@@ -581,9 +506,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             setCart([]);
             setConfiguring({
                 service: null,
-                wantsStylist: '',
-                stylist: '',
-                stylistName: '',
                 date: '',
                 time: '',
             });
@@ -639,199 +561,114 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         </div>
     );
 
-    // Render modal content for configuring a service
+    // Render modal content for configuring a service (date & time only — stylist allocated randomly)
     const renderModalContent = () => {
         if (!configuring.service) return null;
 
-        switch (modalStep) {
-            case 1: // Stylist Preference
-                return (
-                    <div className="space-y-6">
-                        <div className="text-center mb-4">
-                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Stylist Preference</p>
-                            <p className="text-[var(--t-text-2)] text-sm">For: {configuring.service.name}</p>
-                        </div>
+        return (
+            <div className="space-y-4">
+                <div className="text-center mb-4">
+                    <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Date & Time</p>
+                    <p className="text-[var(--t-text-2)] text-sm">{configuring.service.name}</p>
+                </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                onClick={() => {
-                                    setConfiguring(prev => ({ ...prev, wantsStylist: 'yes', stylist: '' }));
-                                    setModalStep(2);
-                                }}
-                                className="p-4 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
-                            >
-                                <div className="text-3xl mb-2">👤</div>
-                                <h4 className="font-medium text-[var(--t-text)] text-sm">Choose Stylist</h4>
-                            </button>
+                <div>
+                    <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
+                    <input
+                        type="date"
+                        value={configuring.date}
+                        onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
+                        min={getMinDate()}
+                        className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all"
+                    />
+                </div>
 
-                            <button
-                                onClick={() => {
-                                    setConfiguring(prev => ({ ...prev, wantsStylist: 'no', stylist: 'any', stylistName: 'Any Available' }));
-                                    setModalStep(3);
-                                }}
-                                className="p-4 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
-                            >
-                                <div className="text-3xl mb-2">👥</div>
-                                <h4 className="font-medium text-[var(--t-text)] text-sm">No Preference</h4>
-                            </button>
-                        </div>
+                {configuring.date && loading && (
+                    <div className="text-center py-4">
+                        <div className="w-5 h-5 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
                     </div>
-                );
+                )}
 
-            case 2: // Stylist Selection
-                return (
-                    <div className="space-y-6">
-                        <div className="text-center mb-4">
-                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Stylist</p>
-                            <p className="text-[var(--t-text-2)] text-sm">For: {configuring.service.name}</p>
-                        </div>
+                {configuring.date && !loading && consolidatedSlots.length === 0 && (
+                    <div className="bg-amber-50 border border-amber-200 p-4 text-center">
+                        <div className="text-2xl mb-2">📅</div>
+                        <p className="text-amber-700 font-medium text-sm">No available slots on this date</p>
+                        <p className="text-amber-600 text-xs mt-1">Please select a different date.</p>
+                    </div>
+                )}
 
-                        {loading ? (
-                            <div className="text-center py-8">
-                                <div className="w-6 h-6 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
+                {configuring.date && !loading && consolidatedSlots.length > 0 && (
+                    <div>
+                        <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Time</label>
+                        <div className="flex flex-wrap gap-3 text-[10px] text-[var(--t-text-3)] mb-3">
+                            <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 bg-[var(--t-bg-2)] border border-[var(--t-border)]"></div>
+                                <span>Available</span>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
-                                {stylists.map(stylist => (
+                            {cart.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2.5 h-2.5 bg-amber-100 border border-amber-300"></div>
+                                    <span>In Your Cart</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 bg-red-50 border border-red-200"></div>
+                                <span>Booked</span>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
+                            {consolidatedSlots.map(slot => {
+                                const cartBlocked = isSlotBlockedByCart(
+                                    slot.time,
+                                    configuring.service!.duration,
+                                    getCartBlockedSlots(configuring.date)
+                                );
+                                const isDisabled = !slot.available || cartBlocked.blocked;
+
+                                return (
                                     <button
-                                        key={stylist.id}
-                                        onClick={() => {
-                                            setConfiguring(prev => ({ ...prev, stylist: stylist.id, stylistName: stylist.name }));
-                                            setModalStep(3);
-                                        }}
-                                        className="p-3 text-center bg-[var(--t-bg-2)] border border-[var(--t-border)] hover:border-[var(--t-accent-2)] hover:bg-[var(--t-bg-3)] transition-all"
+                                        key={slot.time}
+                                        onClick={() => setConfiguring(prev => ({ ...prev, time: slot.time }))}
+                                        disabled={isDisabled}
+                                        title={cartBlocked.blocked ? `Conflicts with: ${cartBlocked.conflictWith}` : undefined}
+                                        className={`p-2 text-xs font-medium transition-all border ${configuring.time === slot.time
+                                            ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
+                                            : cartBlocked.blocked
+                                                ? 'bg-amber-50 text-amber-500 cursor-not-allowed border-amber-200'
+                                                : slot.available
+                                                    ? 'bg-[var(--t-bg-2)] text-[var(--t-text-2)] hover:border-[var(--t-accent-2)] border-[var(--t-border)]'
+                                                    : 'bg-red-50 text-red-300 cursor-not-allowed border-red-100'
+                                            }`}
                                     >
-                                        <div className="text-2xl mb-1">👩‍🦰</div>
-                                        <h4 className="font-medium text-[var(--t-text)] text-sm">{stylist.name}</h4>
+                                        {formatTime(slot.time)}
+                                        {cartBlocked.blocked && <span className="block text-[8px] opacity-70">In Cart</span>}
                                     </button>
-                                ))}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => setModalStep(1)}
-                            className="text-[var(--t-text-3)] text-sm hover:text-[var(--t-text)] transition-colors"
-                        >
-                            ← Back
-                        </button>
-                    </div>
-                );
-
-            case 3: // Date & Time
-                const isNoPreference = configuring.wantsStylist === 'no' || configuring.stylist === 'any';
-                const slotsToShow = isNoPreference ? consolidatedSlots : timeSlots;
-
-                return (
-                    <div className="space-y-4">
-                        <div className="text-center mb-4">
-                            <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Date & Time</p>
-                            <p className="text-[var(--t-text-2)] text-sm">
-                                {configuring.service.name} with {configuring.stylistName}
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
-                            <input
-                                type="date"
-                                value={configuring.date}
-                                onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
-                                min={getMinDate()}
-                                className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all"
-                            />
-                        </div>
-
-                        {configuring.date && loading && (
-                            <div className="text-center py-4">
-                                <div className="w-5 h-5 border-2 border-[var(--t-accent-2)] border-t-transparent rounded-full mx-auto animate-spin"></div>
-                            </div>
-                        )}
-
-                        {/* Stylist Unavailability Notice */}
-                        {configuring.date && !loading && stylistUnavailabilityMessage && slotsToShow.length === 0 && (
-                            <div className="bg-amber-50 border border-amber-200 p-4 text-center">
-                                <div className="text-2xl mb-2">📅</div>
-                                <p className="text-amber-700 font-medium text-sm">{stylistUnavailabilityMessage}</p>
-                                <p className="text-amber-600 text-xs mt-1">Please select a different date or choose another stylist.</p>
-                            </div>
-                        )}
-
-                        {configuring.date && !loading && slotsToShow.length > 0 && (
-                            <div>
-                                <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Time</label>
-                                <div className="flex flex-wrap gap-3 text-[10px] text-[var(--t-text-3)] mb-3">
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-2.5 h-2.5 bg-[var(--t-bg-2)] border border-[var(--t-border)]"></div>
-                                        <span>Available</span>
-                                    </div>
-                                    {cart.length > 0 && (
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-2.5 h-2.5 bg-amber-100 border border-amber-300"></div>
-                                            <span>In Your Cart</span>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-2.5 h-2.5 bg-red-50 border border-red-200"></div>
-                                        <span>Booked</span>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
-                                    {slotsToShow.map(slot => {
-                                        const cartBlocked = isSlotBlockedByCart(
-                                            slot.time,
-                                            configuring.service!.duration,
-                                            getCartBlockedSlots(configuring.date)
-                                        );
-                                        const isDisabled = !slot.available || cartBlocked.blocked;
-
-                                        return (
-                                            <button
-                                                key={slot.time}
-                                                onClick={() => setConfiguring(prev => ({ ...prev, time: slot.time }))}
-                                                disabled={isDisabled}
-                                                title={cartBlocked.blocked ? `Conflicts with: ${cartBlocked.conflictWith}` : undefined}
-                                                className={`p-2 text-xs font-medium transition-all border ${configuring.time === slot.time
-                                                    ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
-                                                    : cartBlocked.blocked
-                                                        ? 'bg-amber-50 text-amber-500 cursor-not-allowed border-amber-200'
-                                                        : slot.available
-                                                            ? 'bg-[var(--t-bg-2)] text-[var(--t-text-2)] hover:border-[var(--t-accent-2)] border-[var(--t-border)]'
-                                                            : 'bg-red-50 text-red-300 cursor-not-allowed border-red-100'
-                                                    }`}
-                                            >
-                                                {formatTime(slot.time)}
-                                                {cartBlocked.blocked && <span className="block text-[8px] opacity-70">In Cart</span>}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex gap-3 pt-4">
-                            <button
-                                onClick={() => setModalStep(configuring.wantsStylist === 'yes' ? 2 : 1)}
-                                className="flex-1 px-4 py-2 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] text-sm transition-all"
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={addToAppointments}
-                                disabled={!configuring.time}
-                                className={`flex-1 px-4 py-2 font-medium text-sm tracking-wider uppercase transition-all ${configuring.time
-                                    ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]'
-                                    : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'
-                                    }`}
-                            >
-                                Add Appointment
-                            </button>
+                                );
+                            })}
                         </div>
                     </div>
-                );
+                )}
 
-            default:
-                return null;
-        }
+                <div className="flex gap-3 pt-4">
+                    <button
+                        onClick={() => setShowModal(false)}
+                        className="flex-1 px-4 py-2 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] text-sm transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={addToAppointments}
+                        disabled={!configuring.time}
+                        className={`flex-1 px-4 py-2 font-medium text-sm tracking-wider uppercase transition-all ${configuring.time
+                            ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]'
+                            : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'
+                            }`}
+                    >
+                        Add Appointment
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     // Render step content
@@ -908,13 +745,13 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                         <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Selected Appointment</p>
                                         <h4 className="font-medium text-[var(--t-text)] text-sm">{configuring.service.name}</h4>
                                         <p className="text-xs text-[var(--t-text-2)] mt-0.5">
-                                            {configuring.date} at {formatTime(configuring.time)} · {configuring.stylistName || 'Any Available'}
+                                            {configuring.date} at {formatTime(configuring.time)} · Stylist auto-assigned
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <span className="text-[var(--t-accent-2)] font-semibold">Rs {configuring.service.price}</span>
                                         <button
-                                            onClick={() => setConfiguring({ service: null, wantsStylist: '', stylist: '', stylistName: '', date: '', time: '' })}
+                                            onClick={() => setConfiguring({ service: null, date: '', time: '' })}
                                             className="block text-xs text-red-400 hover:text-red-600 mt-1 transition-colors"
                                         >
                                             Change
@@ -952,7 +789,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                                 <div>
                                                     <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
                                                     <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
-                                                    <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · {item.stylistName}</p>
+                                                    <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · Stylist auto-assigned</p>
                                                     <p className="text-xs text-[var(--t-text-3)] mt-0.5">{item.serviceDuration} mins</p>
                                                 </div>
                                                 <div className="text-right">
@@ -1186,7 +1023,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                             <div>
                                                 <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
                                                 <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
-                                                <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · {item.stylistName}</p>
+                                                <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · Stylist auto-assigned</p>
                                                 <p className="text-xs text-[var(--t-text-3)]">{item.serviceDuration} mins</p>
                                             </div>
                                             <div className="text-right">
