@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 interface StaffEarning {
     id: string;
@@ -17,6 +18,7 @@ export const earningsService = {
      */
     async updateEarningsForInvoice(invoiceId: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
 
             // Get invoice details
             const { data: invoice, error: invoiceError } = await supabase
@@ -29,6 +31,7 @@ export const earningsService = {
                     )
                 `)
                 .eq('id', invoiceId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (invoiceError) throw invoiceError;
@@ -39,7 +42,6 @@ export const earningsService = {
 
             const stylistId = invoice.appointment.stylist_id;
             const date = invoice.appointment.appointment_date;
-            const organizationId = (invoice as { organization_id?: string }).organization_id;
 
             if (!stylistId) {
                 console.warn('Appointment has no stylist assigned:', invoice.appointment_id);
@@ -47,15 +49,13 @@ export const earningsService = {
             }
 
             // Get commission settings for stylist role (tenant-scoped)
-            let commissionQuery = supabase
+            const { data: commissionSettings } = await supabase
                 .from('commission_settings')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .eq('role', 'Stylist')
-                .eq('is_active', true);
-            if (organizationId) {
-                commissionQuery = commissionQuery.eq('organization_id', organizationId);
-            }
-            const { data: commissionSettings } = await commissionQuery.single();
+                .eq('is_active', true)
+                .single();
 
             const commissionRate = commissionSettings?.commission_percentage || 40;
 
@@ -122,11 +122,13 @@ export const earningsService = {
      */
     async calculateDailySalary(staffId: string, date: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get staff role
             const { data: staff } = await supabase
                 .from('staff')
                 .select('role')
                 .eq('id', staffId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (staff?.role === 'Stylist') {
@@ -188,6 +190,15 @@ export const earningsService = {
      */
     async getStaffEarnings(staffId: string, startDate: string, endDate: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: staffRow } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', staffId)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!staffRow) return [];
+
             const { data, error } = await supabase
                 .from('staff_earnings')
                 .select('*')
@@ -209,12 +220,22 @@ export const earningsService = {
      */
     async getAllStaffEarnings(startDate: string, endDate: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: orgStaff, error: staffIdsError } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('organization_id', organizationId);
+            if (staffIdsError) throw staffIdsError;
+            const staffIds = (orgStaff || []).map(s => s.id);
+            if (staffIds.length === 0) return [];
+
             const { data, error } = await supabase
                 .from('staff_earnings')
                 .select(`
                     *,
                     staff:staff(id, name, role)
                 `)
+                .in('staff_id', staffIds)
                 .gte('date', startDate)
                 .lte('date', endDate)
                 .order('date', { ascending: false });
@@ -232,10 +253,12 @@ export const earningsService = {
      */
     async getEarningsSummaryByStaff(startDate: string, endDate: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // 1. Get all active staff first
             const { data: allStaff, error: staffError } = await supabase
                 .from('staff')
                 .select('id, name, role')
+                .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
 
@@ -301,6 +324,7 @@ export const earningsService = {
     ) {
         try {
             console.log('📊 Starting earnings update for appointments:', appointmentIds);
+            const organizationId = await getCurrentOrganizationId();
 
             // Get all appointments with stylist info
             const { data: appointments, error: appointmentsError } = await supabase
@@ -312,6 +336,7 @@ export const earningsService = {
                     services,
                     stylist:staff!stylist_id(id, commission)
                 `)
+                .eq('organization_id', organizationId)
                 .in('id', appointmentIds);
 
             if (appointmentsError) {
@@ -334,6 +359,7 @@ export const earningsService = {
                 .from('invoices')
                 .select('organization_id')
                 .eq('id', invoiceId)
+                .eq('organization_id', organizationId)
                 .single();
             const invoiceOrganizationId = invoiceRow?.organization_id as string | undefined;
 
@@ -359,14 +385,12 @@ export const earningsService = {
                     console.log(`💰 Using stylist commission: ${commissionRate}%`);
                 } else {
                     // Fallback to commission_settings table (tenant-scoped)
-                    let cq = supabase
+                    const cq = supabase
                         .from('commission_settings')
                         .select('*')
+                        .eq('organization_id', invoiceOrganizationId || organizationId)
                         .eq('role', 'Stylist')
                         .eq('is_active', true);
-                    if (invoiceOrganizationId) {
-                        cq = cq.eq('organization_id', invoiceOrganizationId);
-                    }
                     const { data: commissionSettings, error: commissionError } = await cq.single();
 
                     if (commissionError) {
@@ -486,6 +510,18 @@ export const earningsService = {
         try {
             console.log('💰 Updating earnings for walk-in services...');
 
+            const organizationId = await getCurrentOrganizationId();
+            const { data: invOrg } = await supabase
+                .from('invoices')
+                .select('organization_id')
+                .eq('id', invoiceId)
+                .eq('organization_id', organizationId)
+                .single();
+            if (!invOrg) {
+                console.warn('Walk-in earnings: invoice not found in tenant');
+                return;
+            }
+
             // Filter walk-in service items that have stylistId
             const walkInItems = items.filter((item: any) =>
                 item.type === 'walk-in-service' && item.stylistId
@@ -520,6 +556,7 @@ export const earningsService = {
                     .from('staff')
                     .select('commission, name')
                     .eq('id', stylistId)
+                    .eq('organization_id', organizationId)
                     .single();
 
                 const commissionRate = stylist?.commission || 40;

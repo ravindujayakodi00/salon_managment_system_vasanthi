@@ -33,9 +33,11 @@ export const promosService = {
      * Get all promo codes with optional filtering
      */
     async getPromoCodes(filters?: { isActive?: boolean }): Promise<PromoCode[]> {
+        const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('promo_codes')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false });
 
         if (filters?.isActive !== undefined) {
@@ -52,10 +54,12 @@ export const promosService = {
      * Get single promo code by ID
      */
     async getPromoCodeById(id: string): Promise<PromoCode | null> {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('promo_codes')
             .select('*')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -105,10 +109,12 @@ export const promosService = {
         if (promoData.description !== undefined) updateData.description = promoData.description || null;
         if (promoData.is_active !== undefined) updateData.is_active = promoData.is_active;
 
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('promo_codes')
             .update(updateData)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -120,10 +126,12 @@ export const promosService = {
      * Toggle promo code active status
      */
     async togglePromoCodeStatus(id: string, isActive: boolean): Promise<PromoCode> {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('promo_codes')
             .update({ is_active: isActive })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -135,10 +143,12 @@ export const promosService = {
      * Delete a promo code
      */
     async deletePromoCode(id: string): Promise<void> {
+        const organizationId = await getCurrentOrganizationId();
         const { error } = await supabase
             .from('promo_codes')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
     }

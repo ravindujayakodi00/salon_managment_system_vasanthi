@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Appointment, AppointmentStatus } from '@/lib/types';
 import { invoicesService } from './invoices';
 import { earningsService } from './earnings';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export const appointmentsService = {
     /**
@@ -41,6 +42,7 @@ export const appointmentsService = {
             }
         }
 
+        const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('appointments')
             .select(`
@@ -48,6 +50,7 @@ export const appointmentsService = {
                 customer:customers(*),
                 stylist:staff(*)
             `)
+            .eq('organization_id', organizationId)
             .order('appointment_date', { ascending: true })
             .order('start_time', { ascending: true });
 
@@ -86,6 +89,7 @@ export const appointmentsService = {
                 ? await supabase
                     .from('services')
                     .select('id, name')
+                    .eq('organization_id', organizationId)
                     .in('id', serviceIdsArray)
                 : { data: [] };
 
@@ -121,6 +125,7 @@ export const appointmentsService = {
      * Get a single appointment by ID
      */
     async getAppointmentById(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .select(`
@@ -129,6 +134,7 @@ export const appointmentsService = {
                 stylist:staff(*)
             `)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -138,6 +144,7 @@ export const appointmentsService = {
             const { data: services } = await supabase
                 .from('services')
                 .select('id, name')
+                .eq('organization_id', organizationId)
                 .in('id', data.services);
 
             return {
@@ -182,11 +189,13 @@ export const appointmentsService = {
             throw new Error(validation.reason || 'Cannot book this time slot');
         }
 
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .insert({
                 ...appointment,
-                status: 'Pending'
+                status: 'Pending',
+                organization_id: organizationId,
             })
             .select(`
                 *,
@@ -253,12 +262,14 @@ export const appointmentsService = {
         }
 
         // All validations passed - proceed with creation
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .insert(
                 appointments.map(apt => ({
                     ...apt,
-                    status: 'Pending' as AppointmentStatus
+                    status: 'Pending' as AppointmentStatus,
+                    organization_id: organizationId,
                 }))
             )
             .select(`
@@ -305,11 +316,13 @@ export const appointmentsService = {
     async updateAppointment(id: string, updates: Partial<Appointment>) {
         // Get current appointment before update (to compare changes)
         const oldAppointment = await this.getAppointmentById(id);
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error } = await supabase
             .from('appointments')
             .update(updates)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select(`
                 *,
                 customer:customers(*),
@@ -357,11 +370,13 @@ export const appointmentsService = {
     async updateStatus(id: string, status: AppointmentStatus) {
         // Get appointment details first (for notifications)
         const appointment = await this.getAppointmentById(id);
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error } = await supabase
             .from('appointments')
             .update({ status })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -420,10 +435,12 @@ export const appointmentsService = {
      * Delete an appointment
      */
     async deleteAppointment(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { error } = await supabase
             .from('appointments')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
     },
@@ -441,6 +458,7 @@ export const appointmentsService = {
 
         console.log('Fetching appointments for customer:', customerId, 'on date:', today);
 
+        const organizationId = await getCurrentOrganizationId();
         // First get appointments
         const { data: appointments, error } = await supabase
             .from('appointments')
@@ -448,6 +466,7 @@ export const appointmentsService = {
                 *,
                 stylist:staff(id, name)
             `)
+            .eq('organization_id', organizationId)
             .eq('customer_id', customerId)
             .eq('appointment_date', today)
             .in('status', ['Pending', 'Confirmed', 'InService'])
@@ -470,6 +489,7 @@ export const appointmentsService = {
             ? await supabase
                 .from('services')
                 .select('id, name, price, duration')
+                .eq('organization_id', organizationId)
                 .in('id', serviceIdsArray)
             : { data: [] };
 
@@ -503,9 +523,11 @@ export const appointmentsService = {
     async markAppointmentsCompletedViaPOS(appointmentIds: string[]) {
         if (!appointmentIds || appointmentIds.length === 0) return [];
 
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .update({ status: 'Completed' })
+            .eq('organization_id', organizationId)
             .in('id', appointmentIds)
             .select();
 

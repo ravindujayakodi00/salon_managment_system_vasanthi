@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { getLocalDateString } from '@/lib/utils';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 interface TimeSlot {
     time: string;
@@ -55,9 +56,13 @@ export const schedulingService = {
             max_full_day_holidays_per_year: null,
         };
 
-        const oid = organizationId?.trim();
+        let oid = organizationId?.trim();
         if (!oid) {
-            return defaults;
+            try {
+                oid = await getCurrentOrganizationId();
+            } catch {
+                return defaults;
+            }
         }
 
         try {
@@ -90,9 +95,13 @@ export const schedulingService = {
         settings: Partial<SalonSettings>,
         organizationId?: string | null
     ): Promise<{ success: boolean; message: string }> {
-        const oid = organizationId?.trim();
+        let oid = organizationId?.trim();
         if (!oid) {
-            return { success: false, message: 'Missing organization. Please sign in again.' };
+            try {
+                oid = await getCurrentOrganizationId();
+            } catch {
+                return { success: false, message: 'Missing organization. Please sign in again.' };
+            }
         }
 
         try {
@@ -363,6 +372,15 @@ export const schedulingService = {
      */
     async getStylistBreaks(stylistId: string): Promise<StylistBreak[]> {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: st } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', stylistId)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!st) return [];
+
             const { data, error } = await supabase
                 .from('stylist_breaks')
                 .select('*')
@@ -383,6 +401,20 @@ export const schedulingService = {
      */
     async upsertBreak(breakData: Partial<StylistBreak>): Promise<{ success: boolean; message: string }> {
         try {
+            if (!breakData.stylist_id) {
+                return { success: false, message: 'Missing stylist' };
+            }
+            const organizationId = await getCurrentOrganizationId();
+            const { data: st } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', breakData.stylist_id)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!st) {
+                return { success: false, message: 'Stylist not in your organization' };
+            }
+
             const { error } = await supabase
                 .from('stylist_breaks')
                 .upsert(breakData);
@@ -402,6 +434,25 @@ export const schedulingService = {
      */
     async deleteBreak(breakId: string): Promise<{ success: boolean; message: string }> {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: row } = await supabase
+                .from('stylist_breaks')
+                .select('stylist_id')
+                .eq('id', breakId)
+                .maybeSingle();
+            if (!row) {
+                return { success: false, message: 'Break not found' };
+            }
+            const { data: st } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', row.stylist_id)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!st) {
+                return { success: false, message: 'Not allowed' };
+            }
+
             const { error } = await supabase
                 .from('stylist_breaks')
                 .delete()
@@ -488,9 +539,11 @@ export const schedulingService = {
             // or update the API to return them. For now, let's try to map what we have.
 
             // Fetch all services map for badges (cached/lightweight)
+            const orgId = await getCurrentOrganizationId();
             const { data: services } = await supabase
                 .from('services')
-                .select('id, name, category');
+                .select('id, name, category')
+                .eq('organization_id', orgId);
 
             const serviceMap = new Map(services?.map(s => [s.id, s]) || []);
 

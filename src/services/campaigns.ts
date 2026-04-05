@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { notificationsService } from './notifications';
 import { segmentationService } from './segmentation';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 interface Campaign {
     id: string;
@@ -28,10 +29,12 @@ export const campaignService = {
      */
     async getCampaigns() {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // First, try fetching campaigns without the join
             const { data, error } = await supabase
                 .from('campaigns')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -58,6 +61,7 @@ export const campaignService = {
                         const { data: templates } = await supabase
                             .from('notification_templates')
                             .select('id, name, message')
+                            .eq('organization_id', organizationId)
                             .in('id', templateIds);
 
                         if (templates) {
@@ -96,11 +100,13 @@ export const campaignService = {
      */
     async getCampaignById(id: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Fetch campaign without joins first
             const { data, error } = await supabase
                 .from('campaigns')
                 .select('*')
                 .eq('id', id)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (error) throw error;
@@ -113,6 +119,7 @@ export const campaignService = {
                             .from('notification_templates')
                             .select('*')
                             .eq('id', data.template_id)
+                            .eq('organization_id', organizationId)
                             .single();
 
                         if (template) {
@@ -123,7 +130,8 @@ export const campaignService = {
                     const { data: sends } = await supabase
                         .from('campaign_sends')
                         .select('*')
-                        .eq('campaign_id', id);
+                        .eq('campaign_id', id)
+                        .eq('organization_id', organizationId);
 
                     if (sends) {
                         data.campaign_sends = sends;
@@ -157,10 +165,12 @@ export const campaignService = {
                 return { count: 0, estimatedCost: 0, customers: [] };
             }
 
+            const organizationId = await getCurrentOrganizationId();
             // Get customers that match any of the selected segments
             const { data: customers, error } = await supabase
                 .from('customers')
                 .select('id, name, email, phone, segment_tags')
+                .eq('organization_id', organizationId)
                 .overlaps('segment_tags', segments)
                 .eq('is_active', true);
 
@@ -206,6 +216,7 @@ export const campaignService = {
     }) {
         try {
             const { data: { user } } = await supabase.auth.getUser();
+            const organizationId = await getCurrentOrganizationId();
 
             // Get audience preview for stats
             const preview = await this.previewAudience(campaign.target_segments, campaign.channel);
@@ -217,7 +228,8 @@ export const campaignService = {
                     status: campaign.scheduled_for ? 'scheduled' : 'draft',
                     target_count: preview.count,
                     estimated_cost: preview.estimatedCost,
-                    created_by: user?.id
+                    created_by: user?.id,
+                    organization_id: organizationId,
                 })
                 .select()
                 .single();
@@ -240,10 +252,12 @@ export const campaignService = {
      */
     async updateCampaign(id: string, updates: Partial<Campaign>) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('campaigns')
                 .update(updates)
                 .eq('id', id)
+                .eq('organization_id', organizationId)
                 .select()
                 .single();
 
@@ -268,10 +282,12 @@ export const campaignService = {
      */
     async deleteCampaign(id: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { error } = await supabase
                 .from('campaigns')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
         } catch (error) {
@@ -290,10 +306,12 @@ export const campaignService = {
             if (!campaign) throw new Error('Campaign not found');
 
             // Get template details
+            const orgId = await getCurrentOrganizationId();
             const { data: template, error: templateError } = await supabase
                 .from('notification_templates')
                 .select('*')
                 .eq('id', campaign.template_id)
+                .eq('organization_id', orgId)
                 .single();
 
             if (templateError || !template) {
@@ -354,7 +372,8 @@ export const campaignService = {
                             status: 'sent',
                             sent_at: new Date().toISOString()
                         })
-                        .eq('id', sendRecord.id);
+                        .eq('id', sendRecord.id)
+                        .eq('organization_id', orgId);
 
                     sent_count++;
 
@@ -371,7 +390,8 @@ export const campaignService = {
                             error_message: error instanceof Error ? error.message : 'Unknown error'
                         })
                         .eq('campaign_id', campaignId)
-                        .eq('customer_id', customer.id);
+                        .eq('customer_id', customer.id)
+                        .eq('organization_id', orgId);
                 }
             }
 
@@ -406,10 +426,12 @@ export const campaignService = {
      */
     async cancelCampaign(id: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('campaigns')
                 .update({ status: 'cancelled' })
                 .eq('id', id)
+                .eq('organization_id', organizationId)
                 .select()
                 .single();
 

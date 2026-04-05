@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { earningsService } from './earnings';
 import { getLocalDateString } from '@/lib/utils';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export const invoicesService = {
     async createInvoice(invoice: {
@@ -57,6 +58,7 @@ export const invoicesService = {
             payment_breakdown: paymentBreakdownToStore
         });
 
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('invoices')
             .insert({
@@ -71,7 +73,8 @@ export const invoicesService = {
                 tax: invoice.tax,
                 total: invoice.total,
                 payment_method: invoice.payment_method,
-                payment_breakdown: paymentBreakdownToStore
+                payment_breakdown: paymentBreakdownToStore,
+                organization_id: organizationId,
             })
             .select()
             .single();
@@ -166,10 +169,12 @@ export const invoicesService = {
      */
     async getActivePromoCodes() {
         const now = getLocalDateString();
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error } = await supabase
             .from('promo_codes')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .lte('start_date', now)
             .gte('end_date', now);
@@ -194,12 +199,14 @@ export const invoicesService = {
         endDate?: string;
         limit?: number;
     }) {
+        const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('invoices')
             .select(`
                 *,
                 customer:customers(*)
             `)
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false });
 
         if (filters?.customerId) {
@@ -228,6 +235,7 @@ export const invoicesService = {
      * Get invoice by ID
      */
     async getInvoiceById(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('invoices')
             .select(`
@@ -236,6 +244,7 @@ export const invoicesService = {
                 appointment:appointments(*)
             `)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -246,10 +255,12 @@ export const invoicesService = {
      * Validate promo code
      */
     async validatePromoCode(code: string, cartTotal: number) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('promo_codes')
             .select('*')
             .eq('code', code)
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .single();
 
@@ -286,17 +297,20 @@ export const invoicesService = {
      * Increment promo code usage
      */
     async incrementPromoUsage(code: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data } = await supabase
             .from('promo_codes')
             .select('used_count')
             .eq('code', code)
+            .eq('organization_id', organizationId)
             .single();
 
         if (data) {
             await supabase
                 .from('promo_codes')
                 .update({ used_count: data.used_count + 1 })
-                .eq('code', code);
+                .eq('code', code)
+                .eq('organization_id', organizationId);
         }
     }
 };

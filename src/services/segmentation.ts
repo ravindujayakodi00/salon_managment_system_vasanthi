@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 interface CustomerSegment {
     id: string;
@@ -21,9 +22,11 @@ export const segmentationService = {
      */
     async getSegments(): Promise<CustomerSegment[]> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('customer_segments')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
 
@@ -40,9 +43,11 @@ export const segmentationService = {
      */
     async getCustomersBySegment(segmentName: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('customers')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .contains('segment_tags', [segmentName])
                 .order('name');
 
@@ -59,10 +64,12 @@ export const segmentationService = {
      */
     async analyzeCustomerServices(customerId: string): Promise<ServiceCategoryCount> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get all appointments for this customer
             const { data: appointments, error: aptError } = await supabase
                 .from('appointments')
                 .select('services')
+                .eq('organization_id', organizationId)
                 .eq('customer_id', customerId)
                 .eq('status', 'Completed');
 
@@ -82,6 +89,7 @@ export const segmentationService = {
             const { data: services, error: svcError } = await supabase
                 .from('services')
                 .select('id, category')
+                .eq('organization_id', organizationId)
                 .in('id', Array.from(serviceIds));
 
             if (svcError) throw svcError;
@@ -105,11 +113,13 @@ export const segmentationService = {
      */
     async categorizeCustomer(customerId: string): Promise<void> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get customer info
             const { data: customer, error: custError } = await supabase
                 .from('customers')
                 .select('gender, total_visits')
                 .eq('id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (custError) throw custError;
@@ -143,7 +153,8 @@ export const segmentationService = {
             const { error: updateError } = await supabase
                 .from('customers')
                 .update({ segment_tags: newTags })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
 
             if (updateError) throw updateError;
 
@@ -164,10 +175,12 @@ export const segmentationService = {
             await this.initializeSegments();
             console.log('✅ Segments initialized');
 
+            const organizationId = await getCurrentOrganizationId();
             // Get all customers
             const { data: customers, error } = await supabase
                 .from('customers')
-                .select('id, name');
+                .select('id, name')
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
 
@@ -201,10 +214,12 @@ export const segmentationService = {
      */
     async refreshSegmentCounts(): Promise<void> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get all segments
             const { data: segments, error: segError } = await supabase
                 .from('customer_segments')
-                .select('id, name');
+                .select('id, name')
+                .eq('organization_id', organizationId);
 
             if (segError) throw segError;
 
@@ -216,6 +231,7 @@ export const segmentationService = {
                 const { data: customers, error: countError } = await supabase
                     .from('customers')
                     .select('id')
+                    .eq('organization_id', organizationId)
                     .contains('segment_tags', [segment.name]);
 
                 if (countError) {
@@ -230,7 +246,8 @@ export const segmentationService = {
                 await supabase
                     .from('customer_segments')
                     .update({ customer_count: count })
-                    .eq('id', segment.id);
+                    .eq('id', segment.id)
+                    .eq('organization_id', organizationId);
             }
 
             console.log('✅ All segment counts updated');
@@ -244,9 +261,11 @@ export const segmentationService = {
             // Refresh counts first
             await this.refreshSegmentCounts();
 
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('customer_segments')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('customer_count', { ascending: false });
 
@@ -267,6 +286,7 @@ export const segmentationService = {
      */
     async initializeSegments(): Promise<void> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const defaultSegments = [
                 { name: 'Hair Services', description: 'Customers who frequently use hair services', color: '#ec4899', icon: 'scissors' },
                 { name: 'Facial Services', description: 'Customers who prefer facial treatments', color: '#8b5cf6', icon: 'sparkles' },
@@ -283,8 +303,9 @@ export const segmentationService = {
                 const { data: existing } = await supabase
                     .from('customer_segments')
                     .select('id')
+                    .eq('organization_id', organizationId)
                     .eq('name', segment.name)
-                    .single();
+                    .maybeSingle();
 
                 if (!existing) {
                     await supabase
@@ -292,7 +313,8 @@ export const segmentationService = {
                         .insert({
                             ...segment,
                             is_active: true,
-                            customer_count: 0
+                            customer_count: 0,
+                            organization_id: organizationId,
                         });
                 }
             }
@@ -306,11 +328,13 @@ export const segmentationService = {
      */
     async addCustomerToSegment(customerId: string, segmentName: string): Promise<void> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get current segments
             const { data: customer } = await supabase
                 .from('customers')
                 .select('segment_tags')
                 .eq('id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             const currentTags = customer?.segment_tags || [];
@@ -321,7 +345,8 @@ export const segmentationService = {
                 const { error } = await supabase
                     .from('customers')
                     .update({ segment_tags: newTags })
-                    .eq('id', customerId);
+                    .eq('id', customerId)
+                    .eq('organization_id', organizationId);
 
                 if (error) throw error;
             }
@@ -336,10 +361,12 @@ export const segmentationService = {
      */
     async removeCustomerFromSegment(customerId: string, segmentName: string): Promise<void> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data: customer } = await supabase
                 .from('customers')
                 .select('segment_tags')
                 .eq('id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             const currentTags = customer?.segment_tags || [];
@@ -348,7 +375,8 @@ export const segmentationService = {
             const { error } = await supabase
                 .from('customers')
                 .update({ segment_tags: newTags })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
         } catch (error) {

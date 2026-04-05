@@ -56,6 +56,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const orgIds = new Set(
+            appointments.map((a: { organization_id?: string | null }) => a.organization_id).filter(Boolean) as string[]
+        );
+        if (orgIds.size !== 1) {
+            return NextResponse.json(
+                { success: false, error: 'Appointments must belong to a single organization' },
+                { status: 400 }
+            );
+        }
+        const organizationId = [...orgIds][0]!;
+
         // Collect unique service IDs for all appointments
         const allServiceIds = new Set<string>();
         appointments.forEach(apt => {
@@ -68,6 +79,7 @@ export async function POST(request: NextRequest) {
         const { data: servicesData } = await supabase
             .from('services')
             .select('id, name')
+            .eq('organization_id', organizationId)
             .in('id', Array.from(allServiceIds));
 
         const servicesMap = new Map(servicesData?.map((s: any) => [s.id, s.name]) || []);
@@ -166,7 +178,8 @@ export async function POST(request: NextRequest) {
                 .from('staff')
                 .select('id, name, phone')
                 .eq('role', 'Manager')
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .eq('organization_id', organizationId);
 
             if (managers && managers.length > 0) {
                 const aptSummary = appointments.map(apt => {
@@ -231,7 +244,8 @@ export async function POST(request: NextRequest) {
                 .from('staff')
                 .select('id, name, phone')
                 .eq('role', 'Manager')
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .eq('organization_id', organizationId);
 
             if (managers && managers.length > 0) {
                 const managerMsg = `🔄 Appointment Rescheduled! ${customer?.name || 'Customer'}'s ${serviceNames} moved from ${oldDateStr} ${oldTimeStr} to ${shortDate} ${appointment.start_time}. - SalonFlow`;
@@ -268,6 +282,7 @@ export async function POST(request: NextRequest) {
                     .from('staff')
                     .select('id')
                     .eq('branch_id', baseBranchId)
+                    .eq('organization_id', organizationId)
                     .eq('is_active', true);
 
                 if (staffRecipientsError) {
@@ -280,7 +295,7 @@ export async function POST(request: NextRequest) {
                             title: inAppNotification.title,
                             message: inAppNotification.message,
                             branch_id: baseBranchId,
-                            organization_id: (appointments[0] as { organization_id?: string }).organization_id,
+                            organization_id: organizationId,
                             appointment_id: appointments.length === 1 ? appointments[0].id : null,
                             metadata: {
                                 appointmentIds: idsToProcess

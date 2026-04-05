@@ -43,6 +43,7 @@ export const customersService = {
         }
 
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Build query
             let query = supabase
                 .from('customers')
@@ -52,7 +53,8 @@ export const customersService = {
                         total,
                         created_at
                     )
-                `);
+                `)
+                .eq('organization_id', organizationId);
 
             // Add search conditions
             if (isPhoneSearch && phoneSearchPatterns.length > 0) {
@@ -91,10 +93,12 @@ export const customersService = {
     async getCustomers(page = 0, limit = 50) {
         const from = page * limit;
         const to = from + limit - 1;
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error, count } = await supabase
             .from('customers')
             .select('*', { count: 'exact' })
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
             .range(from, to);
 
@@ -106,6 +110,7 @@ export const customersService = {
      * Get customer by ID with appointment history
      */
     async getCustomerById(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('customers')
             .select(`
@@ -113,6 +118,7 @@ export const customersService = {
                 appointments(*)
             `)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -123,10 +129,12 @@ export const customersService = {
      * Get customer by phone number
      */
     async getCustomerByPhone(phone: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('customers')
             .select('*')
             .eq('phone', phone)
+            .eq('organization_id', organizationId)
             .maybeSingle();
 
         if (error) throw error;
@@ -158,10 +166,12 @@ export const customersService = {
      * Update customer information
      */
     async updateCustomer(id: string, updates: Partial<Customer>) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('customers')
             .update(updates)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -173,10 +183,12 @@ export const customersService = {
      * Increment customer visit count and update last visit
      */
     async recordVisit(customerId: string, amount: number) {
+        const organizationId = await getCurrentOrganizationId();
         const { data: customer } = await supabase
             .from('customers')
             .select('total_visits, total_spent')
             .eq('id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         if (customer) {
@@ -187,7 +199,8 @@ export const customersService = {
                     total_spent: customer.total_spent + amount,
                     last_visit: new Date().toISOString()
                 })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
         }
@@ -197,11 +210,13 @@ export const customersService = {
      * Delete a customer (and all related records)
      */
     async deleteCustomer(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         // Delete related campaign sends first (foreign key constraint)
         const { error: campaignSendsError } = await supabase
             .from('campaign_sends')
             .delete()
-            .eq('customer_id', id);
+            .eq('customer_id', id)
+            .eq('organization_id', organizationId);
 
         if (campaignSendsError) {
             console.error('Error deleting campaign sends:', campaignSendsError);
@@ -212,7 +227,8 @@ export const customersService = {
         const { error } = await supabase
             .from('customers')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) {
             console.error('Supabase delete error:', error);

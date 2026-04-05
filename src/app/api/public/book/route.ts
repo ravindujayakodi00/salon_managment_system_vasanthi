@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
             const { data: allAppointments } = await supabase
                 .from('appointments')
                 .select('stylist_id, start_time, duration')
+                .eq('organization_id', organizationId)
                 .in('stylist_id', availableStylistIds)
                 .eq('appointment_date', appointment.date)
                 .neq('status', 'Cancelled');
@@ -289,6 +290,7 @@ export async function POST(request: NextRequest) {
             const { data: existingAppointments } = await supabase
                 .from('appointments')
                 .select('id, start_time, duration')
+                .eq('organization_id', organizationId)
                 .eq('stylist_id', selectedStylistId)
                 .eq('appointment_date', appointment.date)
                 .neq('status', 'Cancelled');
@@ -333,7 +335,8 @@ export async function POST(request: NextRequest) {
                     email: customer.email || undefined,
                     gender: customer.gender || undefined
                 })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
         } else {
             // Create new customer
             const { data: newCustomer, error: customerError } = await supabase
@@ -386,6 +389,7 @@ export async function POST(request: NextRequest) {
         const { data: newAppointment, error: appointmentError } = await supabase
             .from('appointments')
             .insert({
+                organization_id: organizationId,
                 customer_id: customerId,
                 stylist_id: selectedStylistId,
                 branch_id: branchId,

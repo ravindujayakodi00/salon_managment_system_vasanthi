@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 
 interface NotificationTemplate {
@@ -30,10 +31,12 @@ export const notificationsService = {
      */
     async getTemplates(organizationId?: string) {
         try {
-            let q = supabase.from('notification_templates').select('*').order('type');
-            if (organizationId) {
-                q = q.eq('organization_id', organizationId);
-            }
+            const orgId = organizationId ?? (await getCurrentOrganizationId());
+            const q = supabase
+                .from('notification_templates')
+                .select('*')
+                .eq('organization_id', orgId)
+                .order('type');
             const { data, error } = await q;
 
             if (error) throw error;
@@ -49,14 +52,13 @@ export const notificationsService = {
      */
     async getTemplateByType(type: string, organizationId?: string | null) {
         try {
-            let q = supabase
+            const orgId = organizationId ?? (await getCurrentOrganizationId());
+            const q = supabase
                 .from('notification_templates')
                 .select('*')
+                .eq('organization_id', orgId)
                 .eq('type', type)
                 .eq('is_active', true);
-            if (organizationId) {
-                q = q.eq('organization_id', organizationId);
-            }
             const { data, error } = await q.single();
 
             if (error) {
@@ -106,10 +108,12 @@ export const notificationsService = {
      */
     async updateTemplate(id: string, updates: Partial<NotificationTemplate>) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('notification_templates')
                 .update(updates)
                 .eq('id', id)
+                .eq('organization_id', organizationId)
                 .select()
                 .single();
 
@@ -126,10 +130,12 @@ export const notificationsService = {
      */
     async deleteTemplate(id: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { error } = await supabase
                 .from('notification_templates')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
         } catch (error) {
@@ -159,10 +165,12 @@ export const notificationsService = {
      */
     async previewTemplate(templateId: string, variables: TemplateVariables) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data: template, error } = await supabase
                 .from('notification_templates')
                 .select('*')
                 .eq('id', templateId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (error) throw error;
@@ -300,11 +308,13 @@ export const notificationsService = {
         variables: TemplateVariables
     ) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             // Get customer details
             const { data: customer, error: customerError } = await supabase
                 .from('customers')
                 .select('email, phone, name, organization_id')
                 .eq('id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (customerError) {
@@ -438,10 +448,12 @@ export const notificationsService = {
 
             // Get customer details (all appointments should have same customer)
             const customerId = appointments[0].customer_id;
+            const organizationId = await getCurrentOrganizationId();
             const { data: customer } = await supabase
                 .from('customers')
                 .select('name, phone, email')
                 .eq('id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (!customer) {
@@ -513,6 +525,7 @@ export const notificationsService = {
                 const { data: managers } = await supabase
                     .from('staff')
                     .select('phone, name')
+                    .eq('organization_id', organizationId)
                     .eq('branch_id', branchId)
                     .eq('role', 'Manager')
                     .eq('is_active', true);

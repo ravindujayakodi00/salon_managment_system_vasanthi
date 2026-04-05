@@ -10,11 +10,18 @@ const supabaseAdmin = createClient(
 export async function PUT(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, updates } = body;
+        const { id, updates, organization_id: organizationId } = body;
 
         if (!id) {
             return NextResponse.json(
                 { success: false, error: 'Staff ID is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!organizationId || typeof organizationId !== 'string') {
+            return NextResponse.json(
+                { success: false, error: 'organization_id is required' },
                 { status: 400 }
             );
         }
@@ -26,6 +33,7 @@ export async function PUT(request: NextRequest) {
             .from('staff')
             .update(updates)
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select();
 
         if (staffError) {
