@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { getLocalDateString } from '@/lib/utils';
 import { calculatePaymentTotals } from '@/lib/payment-utils';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export const reportsService = {
     /**
@@ -8,8 +9,13 @@ export const reportsService = {
      */
     async getDashboardStats(branchId?: string, stylistStaffId?: string) {
         const today = getLocalDateString();
+        const organizationId = await getCurrentOrganizationId();
 
-        let apptQuery = supabase.from('appointments').select('id, status').eq('appointment_date', today);
+        let apptQuery = supabase
+            .from('appointments')
+            .select('id, status')
+            .eq('organization_id', organizationId)
+            .eq('appointment_date', today);
         if (branchId) apptQuery = apptQuery.eq('branch_id', branchId);
         if (stylistStaffId) apptQuery = apptQuery.eq('stylist_id', stylistStaffId);
         const { data: appointments, error: apptError } = await apptQuery;
@@ -25,6 +31,7 @@ export const reportsService = {
         let invQuery = supabase
             .from('invoices')
             .select('total, created_at, appointment_id')
+            .eq('organization_id', organizationId)
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
         if (branchId) invQuery = invQuery.eq('branch_id', branchId);
@@ -59,9 +66,11 @@ export const reportsService = {
      * Get top performing services by revenue
      */
     async getTopServices(startDate: string, endDate: string, branchId?: string, stylistStaffId?: string) {
+        const organizationId = await getCurrentOrganizationId();
         let q = supabase
             .from('invoices')
             .select('items, appointment_id')
+            .eq('organization_id', organizationId)
             .gte('created_at', startDate)
             .lte('created_at', endDate);
         if (branchId) q = q.eq('branch_id', branchId);
@@ -77,6 +86,7 @@ export const reportsService = {
                 const { data: apts } = await supabase
                     .from('appointments')
                     .select('id')
+                    .eq('organization_id', organizationId)
                     .in('id', aptIds)
                     .eq('stylist_id', stylistStaffId);
                 const allowed = new Set((apts || []).map(a => a.id));
@@ -111,6 +121,7 @@ export const reportsService = {
      * Get staff performance (revenue and appointment count)
      */
     async getStaffPerformance(startDate: string, endDate: string, branchId?: string, stylistStaffId?: string) {
+        const organizationId = await getCurrentOrganizationId();
         let q = supabase
             .from('invoices')
             .select(`
@@ -120,6 +131,7 @@ export const reportsService = {
                     stylist:staff(name)
                 )
             `)
+            .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`)
             .not('appointment', 'is', null);
@@ -156,10 +168,12 @@ export const reportsService = {
     async getSalesReportData(month: number, year: number) {
         const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+        const organizationId = await getCurrentOrganizationId();
 
         const { data: invoices, error } = await supabase
             .from('invoices')
             .select('*')
+            .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`);
 
@@ -224,9 +238,11 @@ export const reportsService = {
      * Get customer growth report data for PDF
      */
     async getCustomerGrowthReportData() {
+        const organizationId = await getCurrentOrganizationId();
         const { data: customers, error } = await supabase
             .from('customers')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('total_spent', { ascending: false });
 
         if (error) throw error;
@@ -290,9 +306,11 @@ export const reportsService = {
             endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
         }
 
+        const organizationId = await getCurrentOrganizationId();
         const { data: staff, error: staffError } = await supabase
             .from('staff')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .order('name');
 
@@ -303,6 +321,7 @@ export const reportsService = {
                 const { data: appointments } = await supabase
                     .from('appointments')
                     .select('id')
+                    .eq('organization_id', organizationId)
                     .eq('stylist_id', staffMember.id)
                     .eq('status', 'Completed')
                     .gte('appointment_date', startDate!)
@@ -339,9 +358,11 @@ export const reportsService = {
      * Get inventory status report data for PDF
      */
     async getInventoryReportData() {
+        const organizationId = await getCurrentOrganizationId();
         const { data: products, error } = await supabase
             .from('inventory')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .order('name');
 

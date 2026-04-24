@@ -3,7 +3,7 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Primary Colors - Olive Green (build-time fallback; runtime may override via BrandingProvider) */
+  /* Primary Colors - Olive Green (fixed palette; BrandingProvider aligns runtime CSS vars to these) */
   --color-primary-50: #f4f7f4;
   --color-primary-100: #e3ebe3;
   --color-primary-200: #c5d6c5;
@@ -72,7 +72,7 @@
 :root {
   --background: #ffffff;
   --foreground: #111827;
-  /* Fallbacks before BrandingProvider runs (overridden with org hues) */
+  /* Fallbacks before BrandingProvider runs */
   --brand-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
   --brand-shadow-sm: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
   --brand-shadow-md: 0 6px 12px -2px rgba(15, 23, 42, 0.08), 0 12px 18px -4px rgba(15, 23, 42, 0.08);
@@ -166,7 +166,7 @@ body {
   animation: appointment-blink-danger 1s ease-in-out infinite;
 }
 
-/* Scrollbar tracks org primary palette when BrandingProvider sets --color-primary-* */
+/* Scrollbar tracks primary palette when BrandingProvider sets --color-primary-* */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 type SalaryType = 'daily' | 'monthly';
 
@@ -82,11 +83,13 @@ export const financialService = {
         };
     }> {
         const { startDate, endDate, branchId, requesterId, requesterRole } = args;
+        const organizationId = await getCurrentOrganizationId();
 
         // 1) Select stylists based on who is requesting.
         let stylistsQuery = supabase
             .from('staff')
             .select('id, name, branch_id, profile_id, role')
+            .eq('organization_id', organizationId)
             .eq('role', 'Stylist')
             .eq('is_active', true)
             .order('name');
@@ -219,6 +222,16 @@ export const financialService = {
         createdByUserId: string;
     }) {
         const { staffId, amount, description, createdByUserId } = args;
+        const organizationId = await getCurrentOrganizationId();
+        const { data: staffOk } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('id', staffId)
+            .eq('organization_id', organizationId)
+            .maybeSingle();
+        if (!staffOk) {
+            throw new Error('Staff not found in your organization');
+        }
 
         const { data, error } = await supabase
             .from('staff_salary_advances')

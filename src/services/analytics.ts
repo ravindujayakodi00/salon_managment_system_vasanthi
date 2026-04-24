@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export interface AnalyticsSummary {
     total_campaigns: number;
@@ -22,9 +23,11 @@ export const analyticsService = {
      */
     async getSummary(): Promise<AnalyticsSummary> {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data: campaigns, error } = await supabase
                 .from('campaigns')
                 .select('sent_count, delivered_count, failed_count, actual_cost')
+                .eq('organization_id', organizationId)
                 .eq('status', 'completed');
 
             if (error) throw error;
@@ -60,10 +63,12 @@ export const analyticsService = {
         try {
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - days);
+            const organizationId = await getCurrentOrganizationId();
 
             const { data: sends, error } = await supabase
                 .from('campaign_sends')
                 .select('sent_at, status')
+                .eq('organization_id', organizationId)
                 .gte('sent_at', startDate.toISOString())
                 .order('sent_at', { ascending: true });
 

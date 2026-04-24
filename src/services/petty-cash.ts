@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export interface PettyCashTransaction {
     id: string;
@@ -20,9 +21,11 @@ export const pettyCashService = {
      * Get current petty cash balance
      */
     async getCurrentBalance(): Promise<number> {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('petty_cash_transactions')
             .select('balance_after')
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -41,6 +44,7 @@ export const pettyCashService = {
     async getTransactions(page = 0, limit = 50) {
         const from = page * limit;
         const to = from + limit - 1;
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error, count } = await supabase
             .from('petty_cash_transactions')
@@ -51,6 +55,7 @@ export const pettyCashService = {
                     role
                 )
             `, { count: 'exact' })
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
             .range(from, to);
 
@@ -132,10 +137,12 @@ export const pettyCashService = {
      * Delete transaction (Owner/Manager only)
      */
     async deleteTransaction(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { error } = await supabase
             .from('petty_cash_transactions')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
         return true;
@@ -145,9 +152,11 @@ export const pettyCashService = {
      * Get transactions summary for date range
      */
     async getSummary(startDate: string, endDate: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('petty_cash_transactions')
             .select('type, amount')
+            .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`);
 
@@ -176,6 +185,7 @@ export const pettyCashService = {
      * Search transactions by description
      */
     async searchTransactions(searchQuery: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('petty_cash_transactions')
             .select(`
@@ -185,6 +195,7 @@ export const pettyCashService = {
                     role
                 )
             `)
+            .eq('organization_id', organizationId)
             .ilike('description', `%${searchQuery}%`)
             .order('created_at', { ascending: false })
             .limit(20);

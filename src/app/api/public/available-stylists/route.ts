@@ -148,6 +148,7 @@ export async function GET(request: NextRequest) {
         const { data: allAppointments, error: appointmentsError } = await supabase
             .from('appointments')
             .select('stylist_id, start_time, duration')
+            .eq('organization_id', organizationId)
             .in('stylist_id', stylistIds)
             .eq('appointment_date', date)
             .neq('status', 'Cancelled')
@@ -164,7 +165,8 @@ export async function GET(request: NextRequest) {
         const { data: allServices } = await supabase
             .from('services')
             .select('id, name, category')
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .eq('organization_id', organizationId);
 
         const serviceMap = new Map(allServices?.map(s => [s.id, s]) || []);
 

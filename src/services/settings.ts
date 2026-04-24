@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 export const settingsService = {
     /**
@@ -98,6 +99,15 @@ export const settingsService = {
      */
     async getSalarySettings(staffId: string) {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: staffOk } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', staffId)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!staffOk) return null;
+
             const { data, error } = await supabase
                 .from('salary_settings')
                 .select('*')
@@ -118,6 +128,15 @@ export const settingsService = {
      */
     async updateSalarySettings(staffId: string, salaryType: 'daily' | 'monthly', amount: number) {
         try {
+            const organizationId = await getCurrentOrganizationId();
+            const { data: staffOk } = await supabase
+                .from('staff')
+                .select('id')
+                .eq('id', staffId)
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+            if (!staffOk) throw new Error('Staff not in your organization');
+
             // Check if settings exist
             const existing = await this.getSalarySettings(staffId);
 
@@ -131,6 +150,7 @@ export const settingsService = {
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', existing.id)
+                    .eq('staff_id', staffId)
                     .select()
                     .single();
 
@@ -164,9 +184,11 @@ export const settingsService = {
      */
     async getAllStaff() {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('staff')
                 .select('id, name, email, role, is_active')
+                .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
 

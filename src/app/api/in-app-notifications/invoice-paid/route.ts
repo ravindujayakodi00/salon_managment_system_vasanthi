@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { assertBranchInOrganization } from '@/lib/public-tenant';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -59,10 +60,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const branchOk = await assertBranchInOrganization(
+            supabaseAdmin,
+            branchId,
+            invoiceRow.organization_id
+        );
+        if (!branchOk) {
+            return NextResponse.json(
+                { success: false, error: 'branchId does not belong to invoice organization' },
+                { status: 400 }
+            );
+        }
+
         const { data: customer, error: customerError } = await supabaseAdmin
             .from('customers')
             .select('name')
             .eq('id', customerId)
+            .eq('organization_id', invoiceRow.organization_id)
             .single();
 
         if (customerError || !customer) {
@@ -80,6 +94,7 @@ export async function POST(request: NextRequest) {
             .from('staff')
             .select('id')
             .eq('branch_id', branchId)
+            .eq('organization_id', invoiceRow.organization_id)
             .eq('is_active', true);
 
         if (recipientsError) {

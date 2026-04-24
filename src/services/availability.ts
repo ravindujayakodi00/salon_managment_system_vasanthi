@@ -1,4 +1,15 @@
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
+
+async function assertStylistInOrganization(stylistId: string, organizationId: string) {
+    const { data } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('id', stylistId)
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+    return !!data;
+}
 
 /** Calendar days (local) covered by a range, grouped by year — for holiday quota checks. */
 export function fullDayHolidayDaysByCalendarYear(startISO: string, endISO: string): Map<number, number> {
@@ -47,6 +58,9 @@ export const availabilityService = {
      * Get availability records for a stylist within a date range
      */
     async getAvailability(stylistId: string, startDate: string, endDate: string) {
+        const organizationId = await getCurrentOrganizationId();
+        if (!(await assertStylistInOrganization(stylistId, organizationId))) return [];
+
         const { data, error } = await supabase
             .from('stylist_availability')
             .select('*')
@@ -68,6 +82,11 @@ export const availabilityService = {
         type: 'holiday' | 'half_day' | 'emergency' | 'break' | 'other';
         reason?: string;
     }) {
+        const organizationId = await getCurrentOrganizationId();
+        if (!(await assertStylistInOrganization(record.stylist_id, organizationId))) {
+            throw new Error('Stylist not in your organization');
+        }
+
         const { data, error } = await supabase
             .from('stylist_availability')
             .insert(record)
@@ -82,6 +101,16 @@ export const availabilityService = {
      * Delete an availability record
      */
     async deleteAvailability(id: string) {
+        const organizationId = await getCurrentOrganizationId();
+        const { data: row } = await supabase
+            .from('stylist_availability')
+            .select('stylist_id')
+            .eq('id', id)
+            .maybeSingle();
+        if (!row || !(await assertStylistInOrganization(row.stylist_id, organizationId))) {
+            throw new Error('Availability record not found');
+        }
+
         const { error } = await supabase
             .from('stylist_availability')
             .delete()
@@ -94,10 +123,12 @@ export const availabilityService = {
      * Toggle emergency unavailability status for a stylist
      */
     async toggleEmergencyStatus(stylistId: string, isUnavailable: boolean) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('staff')
             .update({ is_emergency_unavailable: isUnavailable })
             .eq('id', stylistId)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -109,10 +140,12 @@ export const availabilityService = {
      * Get emergency status for a stylist
      */
     async getEmergencyStatus(stylistId: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('staff')
             .select('is_emergency_unavailable')
             .eq('id', stylistId)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -123,6 +156,9 @@ export const availabilityService = {
      * Full-day holiday "days" already used in a calendar year (sum of calendar days per holiday row).
      */
     async sumFullDayHolidayDaysInYear(stylistId: string, year: number, excludeAvailabilityId?: string) {
+        const organizationId = await getCurrentOrganizationId();
+        if (!(await assertStylistInOrganization(stylistId, organizationId))) return 0;
+
         const yearStart = `${year}-01-01T00:00:00.000Z`;
         const yearEnd = `${year}-12-31T23:59:59.999Z`;
         const { data, error } = await supabase

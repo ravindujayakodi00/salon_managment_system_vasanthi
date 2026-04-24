@@ -123,6 +123,7 @@ export const loyaltyService = {
                 .from('loyalty_settings')
                 .update(merged)
                 .eq('id', existing.id)
+                .eq('organization_id', organizationId)
                 .select()
                 .single();
 
@@ -256,7 +257,8 @@ export const loyaltyService = {
         const { error: updateError } = await supabase
             .from('customer_loyalty')
             .update({ loyalty_card_id: cardId })
-            .eq('customer_id', customerId);
+            .eq('customer_id', customerId)
+            .eq('organization_id', organizationId);
 
         if (updateError) throw updateError;
 
@@ -275,9 +277,11 @@ export const loyaltyService = {
     },
 
     async getCustomerCard(customerId: string): Promise<LoyaltyCard | null> {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('loyalty_cards')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('customer_id', customerId)
             .eq('status', 'sold')
             .single();
@@ -290,7 +294,8 @@ export const loyaltyService = {
             await supabase
                 .from('loyalty_cards')
                 .update({ status: 'expired' })
-                .eq('id', data.id);
+                .eq('id', data.id)
+                .eq('organization_id', organizationId);
             return null;
         }
 
@@ -320,6 +325,7 @@ export const loyaltyService = {
         if (pointsEarned <= 0) return 0;
 
         await this.ensureCustomerLoyalty(customerId);
+        const organizationId = await getCurrentOrganizationId();
 
         const { error } = await supabase.rpc('increment_loyalty_points', {
             p_customer_id: customerId,
@@ -332,12 +338,14 @@ export const loyaltyService = {
                 .from('customer_loyalty')
                 .select('total_points')
                 .eq('customer_id', customerId)
+                .eq('organization_id', organizationId)
                 .single();
 
             await supabase
                 .from('customer_loyalty')
                 .update({ total_points: (current?.total_points || 0) + pointsEarned })
-                .eq('customer_id', customerId);
+                .eq('customer_id', customerId)
+                .eq('organization_id', organizationId);
         }
 
         await this.recordTransaction(customerId, 'points_earned', pointsEarned, invoiceId, `Earned ${pointsEarned} points from Rs ${amount} purchase`);
@@ -353,17 +361,20 @@ export const loyaltyService = {
         if (points > balance) throw new Error('Insufficient points');
 
         const rsValue = points * settings.points_redemption_value;
+        const organizationId = await getCurrentOrganizationId();
 
         const { data: current } = await supabase
             .from('customer_loyalty')
             .select('redeemed_points')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         await supabase
             .from('customer_loyalty')
             .update({ redeemed_points: (current?.redeemed_points || 0) + points })
-            .eq('customer_id', customerId);
+            .eq('customer_id', customerId)
+            .eq('organization_id', organizationId);
 
         await this.recordTransaction(customerId, 'points_redeemed', -points, invoiceId, `Redeemed ${points} points for Rs ${rsValue} discount`);
 
@@ -371,10 +382,12 @@ export const loyaltyService = {
     },
 
     async getPointsBalance(customerId: string): Promise<number> {
+        const organizationId = await getCurrentOrganizationId();
         const { data } = await supabase
             .from('customer_loyalty')
             .select('total_points, redeemed_points')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         if (!data) return 0;
@@ -387,11 +400,13 @@ export const loyaltyService = {
 
     async recordVisit(customerId: string, invoiceId?: string): Promise<{ visitNumber: number; rewardEarned: boolean }> {
         await this.ensureCustomerLoyalty(customerId);
+        const organizationId = await getCurrentOrganizationId();
 
         const { data: current } = await supabase
             .from('customer_loyalty')
             .select('total_visits, last_reward_visit')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         const newVisitCount = (current?.total_visits || 0) + 1;
@@ -399,7 +414,8 @@ export const loyaltyService = {
         await supabase
             .from('customer_loyalty')
             .update({ total_visits: newVisitCount })
-            .eq('customer_id', customerId);
+            .eq('customer_id', customerId)
+            .eq('organization_id', organizationId);
 
         // Check if this visit earns a reward
         const settings = await this.getSettings();
@@ -415,10 +431,12 @@ export const loyaltyService = {
             return { eligible: false, discount: 0, currentVisit: 0, nextRewardVisit: 0 };
         }
 
+        const organizationId = await getCurrentOrganizationId();
         const { data } = await supabase
             .from('customer_loyalty')
             .select('total_visits, last_reward_visit')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         const totalVisits = data?.total_visits || 0;
@@ -438,10 +456,12 @@ export const loyaltyService = {
     },
 
     async applyVisitReward(customerId: string, invoiceId?: string): Promise<void> {
+        const organizationId = await getCurrentOrganizationId();
         const { data: current } = await supabase
             .from('customer_loyalty')
             .select('total_visits')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         const settings = await this.getSettings();
@@ -449,7 +469,8 @@ export const loyaltyService = {
         await supabase
             .from('customer_loyalty')
             .update({ last_reward_visit: current?.total_visits || 0 })
-            .eq('customer_id', customerId);
+            .eq('customer_id', customerId)
+            .eq('organization_id', organizationId);
 
         await this.recordTransaction(customerId, 'visit_reward', settings.visit_reward_discount_percent, invoiceId, `Visit reward: ${settings.visit_reward_discount_percent}% discount applied`);
     },
@@ -464,10 +485,12 @@ export const loyaltyService = {
         const pointsBalance = await this.getPointsBalance(customerId);
         const visitReward = await this.checkVisitReward(customerId);
 
+        const organizationId = await getCurrentOrganizationId();
         const { data: loyalty } = await supabase
             .from('customer_loyalty')
             .select('total_visits')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         return {
@@ -535,10 +558,12 @@ export const loyaltyService = {
     // =====================
 
     async ensureCustomerLoyalty(customerId: string): Promise<void> {
+        const organizationId = await getCurrentOrganizationId();
         const { data: existing } = await supabase
             .from('customer_loyalty')
             .select('id')
             .eq('customer_id', customerId)
+            .eq('organization_id', organizationId)
             .maybeSingle();
 
         if (existing) return;
@@ -547,6 +572,7 @@ export const loyaltyService = {
             .from('customers')
             .select('organization_id')
             .eq('id', customerId)
+            .eq('organization_id', organizationId)
             .single();
 
         if (custErr || !customer?.organization_id) {
@@ -583,9 +609,11 @@ export const loyaltyService = {
     },
 
     async getTransactionHistory(customerId: string, limit = 20): Promise<any[]> {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('loyalty_transactions')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('customer_id', customerId)
             .order('created_at', { ascending: false })
             .limit(limit);

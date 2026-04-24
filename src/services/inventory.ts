@@ -7,9 +7,11 @@ export const inventoryService = {
      * Get all inventory products
      */
     async getProducts(includeInactive = false) {
+        const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('inventory')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('name');
 
         if (!includeInactive) {
@@ -25,9 +27,11 @@ export const inventoryService = {
      * Get products by category
      */
     async getProductsByCategory(category: InventoryCategory) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('category', category)
             .eq('is_active', true)
             .order('name');
@@ -40,9 +44,11 @@ export const inventoryService = {
      * Get low stock products
      */
     async getLowStockProducts() {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .order('current_stock', { ascending: true });
 
@@ -60,10 +66,12 @@ export const inventoryService = {
      * Get product by ID
      */
     async getProductById(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .select('*')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
@@ -115,6 +123,7 @@ export const inventoryService = {
      * Update product
      */
     async updateProduct(id: string, updates: Partial<InventoryProduct>) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .update({
@@ -122,6 +131,7 @@ export const inventoryService = {
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -133,10 +143,12 @@ export const inventoryService = {
      * Delete product (soft delete)
      */
     async deleteProduct(id: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { error } = await supabase
             .from('inventory')
             .update({ is_active: false, updated_at: new Date().toISOString() })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
     },
@@ -148,6 +160,7 @@ export const inventoryService = {
         // Get current stock
         const product = await this.getProductById(id);
 
+        const organizationId = await getCurrentOrganizationId();
         // Update stock
         const { data, error } = await supabase
             .from('inventory')
@@ -157,6 +170,7 @@ export const inventoryService = {
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -179,6 +193,7 @@ export const inventoryService = {
     async adjustStock(id: string, newQuantity: number, reason: string) {
         const product = await this.getProductById(id);
         const difference = newQuantity - product.current_stock;
+        const organizationId = await getCurrentOrganizationId();
 
         const { data, error } = await supabase
             .from('inventory')
@@ -187,6 +202,7 @@ export const inventoryService = {
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -213,6 +229,7 @@ export const inventoryService = {
             throw new Error(`Insufficient stock. Available: ${product.current_stock}, Requested: ${quantity}`);
         }
 
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .update({
@@ -220,6 +237,7 @@ export const inventoryService = {
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .select()
             .single();
 
@@ -260,10 +278,12 @@ export const inventoryService = {
      * Get transaction history for a product
      */
     async getProductTransactions(inventoryId: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory_transactions')
             .select('*')
             .eq('inventory_id', inventoryId)
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
             .limit(50);
 
@@ -275,9 +295,11 @@ export const inventoryService = {
      * Search products
      */
     async searchProducts(query: string) {
+        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('inventory')
             .select('*')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .or(`name.ilike.%${query}%,sku.ilike.%${query}%,description.ilike.%${query}%`)
             .order('name')

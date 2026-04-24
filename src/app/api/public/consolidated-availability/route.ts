@@ -167,6 +167,7 @@ export async function GET(request: NextRequest) {
         const { data: allAppointments, error: appointmentError } = await supabase
             .from('appointments')
             .select('stylist_id, start_time, duration')
+            .eq('organization_id', organizationId)
             .in('stylist_id', stylistIds)
             .eq('appointment_date', date)
             .neq('status', 'Cancelled')
