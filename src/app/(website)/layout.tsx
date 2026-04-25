@@ -3,6 +3,8 @@ import { Montserrat, Cormorant_Garamond, Pinyon_Script } from 'next/font/google'
 import './website-globals.css';
 import WebsiteProviders from '@/components/website/Providers';
 import SmoothScroller from '@/components/website/SmoothScroller';
+import WhatsAppButton from '@/components/website/WhatsAppButton';
+import ScrollToTopButton from '@/components/website/ScrollToTopButton';
 import { themeContent } from '@/themes';
 
 const montserrat = Montserrat({
@@ -44,6 +46,8 @@ export default function WebsiteLayout({ children }: { children: React.ReactNode 
       <WebsiteProviders>
         <SmoothScroller />
         {children}
+        <WhatsAppButton />
+        <ScrollToTopButton />
       </WebsiteProviders>
     </div>
   );

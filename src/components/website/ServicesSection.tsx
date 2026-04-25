@@ -114,7 +114,7 @@ export default function ServicesSection() {
         {/* Book CTA */}
         <div className="mt-8 lg:mt-12">
           <a href="/booking" className="t-btn t-btn-accent">
-            Book a Service
+            Reserve Your Session
           </a>
         </div>
       </div>

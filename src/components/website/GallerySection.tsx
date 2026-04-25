@@ -94,6 +94,12 @@ export default function GallerySection() {
       {/* Header */}
       <div ref={titleRef} className="max-w-screen-xl mx-auto px-6 lg:px-12 mb-8 lg:mb-10">
         <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>{gallery.label}</p>
+        <h2 className="t-display font-light text-[var(--t-text)] mt-1 mb-4" style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.8rem)' }}>
+          {gallery.heading}
+        </h2>
+        <p className="text-[var(--t-text-2)] text-sm leading-relaxed max-w-xl">
+          {gallery.subtext}
+        </p>
       </div>
 
       {/* Full-width tight grid */}

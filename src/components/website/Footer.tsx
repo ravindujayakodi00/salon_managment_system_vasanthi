@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaInstagram, FaFacebookF, FaWhatsapp } from 'react-icons/fa';
+import { FaInstagram, FaFacebookF } from 'react-icons/fa';
+import { FaTiktok } from 'react-icons/fa6';
 import { themeContent } from '@/themes';
 import logoFooter from '@/assets/logo-pack/final one-08.png';
 import {JSX} from "react";
@@ -8,7 +9,7 @@ import {JSX} from "react";
 const socialIcons: Record<string, JSX.Element> = {
   Instagram: <FaInstagram size={16} />,
   Facebook:  <FaFacebookF size={15} />,
-  WhatsApp:  <FaWhatsapp size={16} />,
+  TikTok:    <FaTiktok size={15} />,
 };
 
 const { salonName, tagline, footer } = themeContent;
@@ -51,12 +52,21 @@ export default function Footer() {
             <ul className="space-y-3">
               {footer.links.map(link => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
-                  >
-                    {link.name}
-                  </a>
+                  {link.href.startsWith('/') ? (
+                    <Link
+                      href={link.href}
+                      className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
+                    >
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -66,7 +76,7 @@ export default function Footer() {
           <div>
             <p className="t-label text-white/30 mb-5 tracking-[0.35em]">Appointment</p>
             <Link href="/booking" className="t-btn t-btn-accent inline-block">
-              Book Now
+              Reserve Your Session
             </Link>
           </div>
 

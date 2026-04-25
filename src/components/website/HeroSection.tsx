@@ -39,14 +39,12 @@ export default function HeroSection() {
         >
           {/* Heading */}
           <h1
-            className="t-display font-light leading-[1.0] text-white mb-6"
+            className="t-display font-light leading-[1.1] text-white mb-6"
             style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4.5rem)' }}
           >
             {hero.heading[0]}
             <br />
-            <em className="t-script font-normal" style={{ fontSize: 'clamp(2.6rem, 6.5vw, 5.2rem)' }}>
-              {hero.heading[1]}
-            </em>
+            {hero.heading[1]}
           </h1>
 
           {/* Sub */}

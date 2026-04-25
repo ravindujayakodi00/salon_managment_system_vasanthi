@@ -11,11 +11,12 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { name: 'Home',         href: '#home'         },
-  { name: 'Services',     href: '#services'     },
-  { name: 'Gallery',      href: '#gallery'      },
-  { name: 'Testimonials', href: '#testimonials' },
-  { name: 'Contact',      href: '#contact'      },
+  { name: 'Home',         href: '/#home'         },
+  { name: 'Our Journey',  href: '/our-journey'   },
+  { name: 'Services',     href: '/#services'     },
+  { name: 'Testimonials', href: '/#testimonials' },
+  { name: 'FAQ',          href: '/faq'           },
+  { name: 'Contact',      href: '/#contact'      },
 ];
 
 export default function Navbar({ alwaysVisible = false }: NavbarProps) {
@@ -57,63 +58,87 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
         onMouseEnter={() => setIsVisible(true)}
       >
         <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
-          <div className={`relative flex items-center justify-between transition-all duration-300 ${
-            isScrolled || alwaysVisible ? 'py-6 lg:py-4' : 'py-6 lg:py-6'
-          }`}>
+          <div className={`transition-all duration-300 ${isScrolled || alwaysVisible ? 'py-4' : 'py-6'}`}>
 
-            {/* Logo — centered on mobile, left-aligned on desktop */}
-            <a href="#home" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 flex-shrink-0">
-              <Image
-                src={logoLongLight}
-                alt={themeContent.salonName}
-                height={42}
-                className="w-auto transition-all duration-300"
-                priority
-              />
-            </a>
+            {/* ── DESKTOP: 3-column centered layout ── */}
+            <div className="hidden lg:grid lg:grid-cols-3 items-center">
 
-            {/* Desktop nav links */}
-            <div className="hidden lg:flex items-center gap-9">
-              {navLinks.map(link => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className={`t-nav-link transition-colors duration-200 ${
+              {/* Left links */}
+              <div className="flex items-center gap-8">
+                {navLinks.slice(0, 3).map(link => {
+                  const cls = `t-nav-link transition-colors duration-200 ${
                     onHero
                       ? 'text-white/80 hover:text-white'
                       : 'text-[var(--t-text-2)] hover:text-[var(--t-text)]'
-                  }`}
-                >
-                  {link.name}
+                  }`;
+                  return (
+                    <Link key={link.name} href={link.href} className={cls}>{link.name}</Link>
+                  );
+                })}
+              </div>
+
+              {/* Center: Logo */}
+              <div className="flex justify-center">
+                <a href="#home">
+                  <Image
+                    src={logoLongLight}
+                    alt={themeContent.salonName}
+                    height={42}
+                    className="w-auto transition-all duration-300"
+                    priority
+                  />
                 </a>
-              ))}
+              </div>
+
+              {/* Right links */}
+              <div className="flex items-center justify-end gap-8">
+                {navLinks.slice(3).map(link => {
+                  const cls = `t-nav-link transition-colors duration-200 ${
+                    onHero
+                      ? 'text-white/80 hover:text-white'
+                      : 'text-[var(--t-text-2)] hover:text-[var(--t-text)]'
+                  }`;
+                  return (
+                    <Link key={link.name} href={link.href} className={cls}>{link.name}</Link>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Right: Book Now */}
-            <div className="hidden lg:flex items-center gap-3">
-              <Link href="/booking" className="t-btn t-btn-accent">
-                Book Now
-              </Link>
+            {/* ── MOBILE: Logo center + hamburger ── */}
+            <div className="flex lg:hidden items-center justify-between">
+              {/* Hamburger */}
+              <button
+                className={`p-1 transition-colors ${onHero ? 'text-white' : 'text-[var(--t-text)]'}`}
+                onClick={() => setIsMobileMenuOpen(o => !o)}
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="square" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="square" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h8" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Logo centered */}
+              <a href="#home" className="absolute left-1/2 -translate-x-1/2">
+                <Image
+                  src={logoLongLight}
+                  alt={themeContent.salonName}
+                  height={36}
+                  className="w-auto"
+                  priority
+                />
+              </a>
+
+              {/* Spacer to balance hamburger */}
+              <div className="w-7" />
             </div>
 
-            {/* Hamburger */}
-            <button
-              className={`lg:hidden p-1 transition-colors ${
-                onHero ? 'text-white' : 'text-[var(--t-text)]'
-              }`}
-              onClick={() => setIsMobileMenuOpen(o => !o)}
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="square" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="square" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h8" />
-                </svg>
-              )}
-            </button>
           </div>
         </div>
       </nav>
@@ -128,7 +153,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
 
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8">
           {navLinks.map((link, i) => (
-            <a
+            <Link
               key={link.name}
               href={link.href}
               className="t-display text-4xl font-light italic tracking-[0.06em] text-[var(--t-text)] hover:text-[var(--t-accent-2)] transition-colors duration-200"
@@ -136,22 +161,15 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {link.name}
-            </a>
+            </Link>
           ))}
-          <div className="flex flex-col items-center gap-3 mt-6 w-full max-w-[200px]">
+          <div className="flex flex-col items-center gap-3 mt-6 w-full max-w-[220px]">
             <Link
               href="/booking"
               className="t-btn t-btn-accent w-full text-center"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Book Now
-            </Link>
-            <Link
-              href="/booking"
-              className="t-btn t-btn-outline w-full text-center"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Appointments
+              Reserve Your Session
             </Link>
           </div>
         </div>

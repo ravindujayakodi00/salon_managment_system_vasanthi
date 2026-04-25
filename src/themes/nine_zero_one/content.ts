@@ -2,15 +2,15 @@
 // Based on: @vasanthi.gulasekharam_salon on Instagram
 
 export const content = {
-  salonName: 'Vasanthi Salon',
-  tagline:   'Beauty & Elegance, Redefined',
+  salonName: 'Vasanthi Gulasekharam Salon',
+  tagline:   'Professional Care. Personal Attention',
 
   hero: {
     label:        'Award-Winning Salon',
-    heading:      ['Your Beauty,', 'Our Passion'],
-    subtext:      'Premium hair, bridal & beauty services by Vasanthi Gulasekharam — trusted by brides and beauty lovers across Sri Lanka.',
-    ctaPrimary:   'Book Appointment',
-    ctaSecondary: 'View Services',
+    heading:      ['Professional Care.', 'Personal Attention'],
+    subtext:      'Experience the luxury of undivided attention in a space that feels entirely your own.',
+    ctaPrimary:   'Reserve Your Session',
+    ctaSecondary: 'Explore Our Services',
   },
 
   services: {
@@ -18,18 +18,18 @@ export const content = {
     label:   'What We Offer',
     subtext: 'A curated selection of premium beauty treatments',
     items: [
-      { number: '01', title: 'Hair Styling',     description: 'Cuts, blowouts, smoothening, keratin and premium hair colour treatments.' },
-      { number: '02', title: 'Bridal Packages',  description: 'Complete bridal makeup and hair packages tailored for your special day.' },
-      { number: '03', title: 'Makeup',           description: 'Party, occasion and editorial makeup by our certified artists.' },
-      { number: '04', title: 'Skin Treatments',  description: 'Facials, clean-up, bleaching and advanced skincare consultations.' },
-      { number: '05', title: 'Nail Care',        description: 'Manicures, pedicures, gel nails and nail art by expert technicians.' },
-      { number: '06', title: 'Spa & Wellness',   description: 'Relaxing body treatments, massages and head spa services.' },
+      { number: '01', title: 'Sugaring',  description: 'A gentle and natural way to remove hair while deeply exfoliating the skin.' },
+      { number: '02', title: 'Hair',      description: 'From precision cuts and trendy color techniques to hair treatments, we offer everything to keep your hair healthy and stylish.' },
+      { number: '03', title: 'Nails',     description: 'From trendy art and classic French tips to natural, neutral styles, we ensure your nails always get noticed.' },
+      { number: '04', title: 'Facials',   description: 'Our Facials are tailored to restore your skin\'s natural glow and radiance.' },
+      { number: '05', title: 'Spa',       description: 'Experience a personal escape designed to refresh your mind, restore your energy. Our massage therapies are specifically tailored to meet your body\'s unique needs.' },
     ],
   },
 
   gallery: {
     label:   'Portfolio',
-    heading: 'Gallery',
+    heading: 'The Beauty of Being Seen',
+    subtext: 'Step away from the hurried pace of conventional beauty into an intimate, one-on-one beauty destination. We have traded the shared atmosphere of high-traffic salons for a dedicated 1:1 experience, because your beauty deserves a customized creation, not just a standard solution.',
     images: [
       { id: 1, type: 'video', alt: 'Where Beauty Begins',   src: '/gallery/gallery-video-1.mp4',          wide: true,  orientation: 'landscape' },
       { id: 2, type: 'image', alt: 'The Studio',           src: '/gallery/salon-image-horizontal.jpg',   wide: true,  orientation: 'landscape' },
@@ -43,10 +43,10 @@ export const content = {
   },
 
   testimonials: {
-    label:   'Client Stories',
-    heading: 'What Our Clients Say',
+    label:   'A Shared Journey of Elegance.',
+    heading: 'Client Testimonials',
     items: [
-      { quote: 'Vasanthi did my bridal makeup and I looked absolutely stunning. Every single guest complimented me. She is truly an artist!', name: 'Priya K.', service: 'Bridal Package' },
+      { quote: 'Vasanthi\'s studio feels less like a salon and more like a second home. It is the only place where I feel truly seen and heard.', name: 'Client Name', service: 'Bridal Package' },
       { quote: 'Best salon experience I have ever had. The hair treatment left my hair incredibly smooth and shiny for weeks.', name: 'Nisha R.', service: 'Hair Treatment' },
       { quote: 'I have been a regular client for over three years. The quality and care here is unmatched anywhere else in the city.', name: 'Divya M.', service: 'Skin Treatments' },
       { quote: 'My nails have never looked this beautiful. The nail art was exactly what I wanted and the service was so professional.', name: 'Anitha S.', service: 'Nail Care' },
@@ -55,20 +55,20 @@ export const content = {
 
   cta: {
     label:      'Ready?',
-    heading:    'Book Your Appointment Today',
-    subtext:    'Experience premium beauty services with Vasanthi Salon. Easy online booking, instant confirmation.',
-    buttonText: 'Book Now',
-    footnote:   'No registration required · Book in under 2 minutes',
+    heading:    'Return to Your Best Self Today',
+    subtext:    'Whether you are preparing for your wedding day or seeking a quiet moment of self-care, our doors are open for you.',
+    buttonText: 'Reserve Your Session',
+    footnote:   'No registration required · Instant Confirmation',
   },
 
   contact: {
     label:   'Contact Us',
     heading: 'Find Us',
     subtext: 'Visit our salon or get in touch',
-    address: ['No. 123, Galle Road,', 'Colombo 03,', 'Sri Lanka'],
-    phones:  ['+94 77 123 4567', '+94 11 234 5678'],
-    emails:  ['hello@vasanthisalon.lk', 'bookings@vasanthisalon.lk'],
-    hours:   ['Mon – Fri: 9:00 AM – 7:00 PM', 'Sat: 9:00 AM – 5:00 PM', 'Sun: By Appointment'],
+    address: ['No. 22, G. H. Perera Mawatha,', 'Raththanapitiya,', 'Borelasgamuwa'],
+    phones:  ['0776300577'],
+    emails:  ['vasanthi.salon@gmail.com'],
+    hours:   ['Mon, Wed – Sat: 9:00 AM – 7:00 PM', 'Tue: 9:00 AM – 10:00 PM', 'Sun: Closed'],
     mapUrl:  'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9!2d79.856!3d6.914!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwNTQnNTAuNiJOIDc5wrA1MSczMy42IkU!5e0!3m2!1sen!2slk!4v1',
   },
 
@@ -108,18 +108,19 @@ export const content = {
   },
 
   footer: {
-    tagline: 'Premium beauty services by Vasanthi Gulasekharam — trusted by brides and beauty lovers across Sri Lanka.',
+    tagline: 'Professional Care. Personal Attention.',
     links: [
-      { name: 'Home',         href: '#home'         },
-      { name: 'Services',     href: '#services'     },
-      { name: 'Gallery',      href: '#gallery'      },
-      { name: 'Testimonials', href: '#testimonials' },
-      { name: 'Contact',      href: '#contact'      },
+      { name: 'Our Journey',        href: '/our-journey'   },
+      { name: 'Services',           href: '/#services'     },
+      { name: 'Testimonials',       href: '/#testimonials' },
+      { name: 'FAQ',                href: '/faq'           },
+      { name: 'Terms & Conditions', href: '/terms-of-care' },
+      { name: 'Contact',            href: '/#contact'      },
     ],
     socials: [
       { name: 'Instagram', href: 'https://www.instagram.com/vasanthi.gulasekharam_salon/', letter: 'IG' },
-      { name: 'Facebook',  href: '#', letter: 'FB' },
-      { name: 'WhatsApp',  href: 'https://wa.me/94771234567',  letter: 'WA' },
+      { name: 'Facebook',  href: 'https://www.facebook.com/vasanthiGulasekharamsSalon/', letter: 'FB' },
+      { name: 'TikTok',   href: 'https://www.tiktok.com/@vasanthigulasekharam', letter: 'TK' },
     ],
   },
 }
