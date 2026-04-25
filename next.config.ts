@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
       },
       {
         // Next.js optimised images — already cached by CDN but add explicit header
-        source: '/_next/image:slug*',
+        source: '/_next/image/:slug*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, stale-while-revalidate=86400, immutable' },
         ],
