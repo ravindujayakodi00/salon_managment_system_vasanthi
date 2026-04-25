@@ -52,7 +52,7 @@ function AutoPlayVideo({ src, className }: { src: string; className: string }) {
       muted
       loop
       playsInline
-      preload="auto"
+      preload="none"
       className={className}
     />
   );

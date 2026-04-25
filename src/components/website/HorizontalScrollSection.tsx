@@ -106,6 +106,8 @@ export default function HorizontalScrollSection() {
                   fill
                   className="object-cover transition-transform duration-700 hover:scale-105 grayscale-[20%]"
                   sizes="(max-width: 768px) 100vw, 50vw"
+                  quality={80}
+                  loading="lazy"
                 />
                 {/* Bottom gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--t-bg-2)]/60 to-transparent pointer-events-none" />

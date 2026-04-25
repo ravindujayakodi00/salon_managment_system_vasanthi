@@ -46,6 +46,8 @@ export default function OurJourneyPage() {
                   fill
                   className="object-cover object-center"
                   priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  quality={85}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#302621]/60 via-transparent to-transparent" />
               </div>
@@ -65,6 +67,9 @@ export default function OurJourneyPage() {
                   alt="A Legacy of Expertise"
                   fill
                   className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  quality={80}
+                  loading="lazy"
                 />
               </div>
 
@@ -130,6 +135,9 @@ export default function OurJourneyPage() {
                   alt="Our Commitment to Care"
                   fill
                   className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  quality={80}
+                  loading="lazy"
                 />
               </div>
             </div>
@@ -174,6 +182,9 @@ export default function OurJourneyPage() {
                     alt="Professional Excellence"
                     fill
                     className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    quality={80}
+                    loading="lazy"
                   />
                 </div>
               </div>
