@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 export default function WebsiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${montserrat.variable} ${cormorant.variable} ${pinyonScript.variable} website-font-scope antialiased`}
+      className={`${montserrat.variable} ${cormorant.variable} ${pinyonScript.variable} website-font-scope antialiased overflow-x-hidden`}
     >
       <WebsiteProviders>
         <SmoothScroller />

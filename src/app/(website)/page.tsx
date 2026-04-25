@@ -32,7 +32,7 @@ export default function Home() {
       <div className="fixed inset-0 bg-[var(--t-bg)] -z-20" />
 
       <main
-        className={`relative min-h-screen transition-opacity duration-700 ease-out ${
+        className={`relative min-h-screen overflow-x-hidden transition-opacity duration-700 ease-out ${
           showContent ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ visibility: isLoading ? 'hidden' : 'visible' }}
