@@ -26,8 +26,6 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        console.log('API: Updating staff:', id, updates);
-
         // Update staff entry using admin client (bypasses RLS)
         const { data, error: staffError } = await supabaseAdmin
             .from('staff')
@@ -50,8 +48,6 @@ export async function PUT(request: NextRequest) {
                 { status: 404 }
             );
         }
-
-        console.log('Staff updated successfully:', data[0]);
 
         // If name or role changed, update profile too
         if (updates.name || updates.role) {

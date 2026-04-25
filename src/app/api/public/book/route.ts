@@ -435,7 +435,6 @@ export async function POST(request: NextRequest) {
                     const textlk = createTextLkService(apiKey, senderId);
                     const smsMessage = `✅ Booking Confirmed!\n\n📅 ${formattedDate}\n⏰ ${appointment.time}\n💇 ${service.name}\n👤 Stylist: ${stylist.name}\n\nThank you for choosing our salon!`;
                     await textlk.sendSMS(customer.phone, smsMessage);
-                    console.log('✅ Booking SMS sent to customer:', customer.phone);
                 } else {
                     console.error('❌ SMS config missing: TEXTLK_API_KEY or TEXTLK_SENDER_ID');
                 }

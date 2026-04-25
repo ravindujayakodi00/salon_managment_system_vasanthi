@@ -161,7 +161,6 @@ export const staffService = {
         commission?: number;
     }): Promise<{ success: boolean; message: string }> {
         try {
-            console.log('Updating staff via API:', id, updates);
             const organizationId = await getCurrentOrganizationId();
 
             const response = await fetch('/api/staff/update', {
@@ -182,7 +181,6 @@ export const staffService = {
                 };
             }
 
-            console.log('Staff updated successfully:', result);
             return {
                 success: true,
                 message: 'Staff member updated successfully',

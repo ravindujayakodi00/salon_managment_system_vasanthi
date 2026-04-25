@@ -71,8 +71,6 @@ export async function POST(request: NextRequest) {
         const textLkSenderId = process.env.TEXTLK_SENDER_ID || 'TextLKDemo';
 
         if (!textLkApiToken) {
-            console.log('TEXTLK_API_TOKEN not configured - SMS not sent');
-            console.log('Would have sent:', message);
             return NextResponse.json({
                 success: true,
                 message: 'Confirmation generated (SMS not configured)',
@@ -104,8 +102,6 @@ export async function POST(request: NextRequest) {
                 error: 'Failed to send confirmation SMS',
             });
         }
-
-        console.log('✅ Confirmation SMS sent to', formattedPhone);
 
         return NextResponse.json({
             success: true,

@@ -323,7 +323,6 @@ export const earningsService = {
         invoiceId: string
     ) {
         try {
-            console.log('📊 Starting earnings update for appointments:', appointmentIds);
             const organizationId = await getCurrentOrganizationId();
 
             // Get all appointments with stylist info
@@ -353,8 +352,6 @@ export const earningsService = {
                 return;
             }
 
-            console.log(`✅ Found ${appointments.length} appointment(s)`);
-
             const { data: invoiceRow } = await supabase
                 .from('invoices')
                 .select('organization_id')
@@ -382,7 +379,6 @@ export const earningsService = {
 
                 if (stylistData && stylistData.commission) {
                     commissionRate = stylistData.commission;
-                    console.log(`💰 Using stylist commission: ${commissionRate}%`);
                 } else {
                     // Fallback to commission_settings table (tenant-scoped)
                     const cq = supabase
@@ -397,7 +393,6 @@ export const earningsService = {
                         console.warn('⚠️ Error fetching commission settings, using default:', commissionError);
                     } else if (commissionSettings?.commission_percentage) {
                         commissionRate = commissionSettings.commission_percentage;
-                        console.log(`💰 Using global commission: ${commissionRate}%`);
                     }
                 }
 
@@ -420,15 +415,12 @@ export const earningsService = {
                 }
 
                 if (serviceRevenue === 0 && additionalFeesTotal === 0) {
-                    console.log(`ℹ️ No revenue for appointment ${appointment.id}, skipping`);
                     continue;
                 }
 
                 // Calculate commission on both service revenue and additional fees
                 const totalRevenue = serviceRevenue + additionalFeesTotal;
                 const commissionAmount = (totalRevenue * commissionRate) / 100;
-
-                console.log(`💰 Earnings for ${appointment.id}: Revenue=${totalRevenue} (Service=${serviceRevenue}, AddFees=${additionalFeesTotal}), Commission=${commissionAmount} (${commissionRate}%)`);
 
                 // Get or create earnings record for this date
                 const { data: existingEarning, error: earningFetchError } = await supabase
@@ -460,7 +452,6 @@ export const earningsService = {
                         console.error('❌ Error updating earning:', updateError);
                         throw updateError;
                     }
-                    console.log(`✅ Updated existing earning record for ${date}`);
                 } else {
                     // Create new record
                     const { error: insertError } = await supabase
@@ -479,11 +470,8 @@ export const earningsService = {
                         console.error('❌ Error inserting earning:', insertError);
                         throw insertError;
                     }
-                    console.log(`✅ Created new earning record for ${date}`);
                 }
             }
-
-            console.log('✅ Earnings update completed successfully');
         } catch (error: any) {
             console.error('❌ Error updating earnings for multiple appointments');
             console.error('  Error type:', typeof error);
@@ -508,8 +496,6 @@ export const earningsService = {
         invoiceDate: string // created_at from invoice
     ) {
         try {
-            console.log('💰 Updating earnings for walk-in services...');
-
             const organizationId = await getCurrentOrganizationId();
             const { data: invOrg } = await supabase
                 .from('invoices')
@@ -528,13 +514,11 @@ export const earningsService = {
             );
 
             if (walkInItems.length === 0) {
-                console.log('No walk-in items with stylistId found');
                 return;
             }
 
             // Extract date from timestamp
             const date = invoiceDate.split('T')[0];
-            console.log(`📅 Processing walk-in earnings for date: ${date}`);
 
             // Group items by stylist
             const itemsByStylist = new Map<string, any[]>();
@@ -545,12 +529,8 @@ export const earningsService = {
                 itemsByStylist.get(item.stylistId)!.push(item);
             });
 
-            console.log(`👨‍💼 Processing earnings for ${itemsByStylist.size} stylist(s)`);
-
             // Calculate and update earnings for each stylist
             for (const [stylistId, stylistItems] of itemsByStylist) {
-                console.log(`\n💵 Processing stylist ${stylistId}...`);
-
                 // Get stylist's commission rate (from staff table or default 40%)
                 const { data: stylist } = await supabase
                     .from('staff')
@@ -560,16 +540,12 @@ export const earningsService = {
                     .single();
 
                 const commissionRate = stylist?.commission || 40;
-                console.log(`  Commission rate: ${commissionRate}%`);
 
                 // Calculate revenue for this stylist's walk-in services
                 const serviceRevenue = stylistItems.reduce((sum: number, item: any) =>
                     sum + (item.price * item.quantity), 0
                 );
                 const commissionAmount = (serviceRevenue * commissionRate) / 100;
-
-                console.log(`  Service revenue: ${serviceRevenue}`);
-                console.log(`  Commission: ${commissionAmount}`);
 
                 // Get or create earnings record for this stylist and date
                 const { data: existingEarning } = await supabase
@@ -581,7 +557,6 @@ export const earningsService = {
 
                 if (existingEarning) {
                     // Update existing record
-                    console.log(`  Updating existing earnings record...`);
                     const { error: updateError } = await supabase
                         .from('staff_earnings')
                         .update({
@@ -597,10 +572,8 @@ export const earningsService = {
                         console.error('❌ Error updating earning:', updateError);
                         throw updateError;
                     }
-                    console.log(`  ✅ Updated earnings for ${stylist?.name || stylistId}`);
                 } else {
                     // Create new record
-                    console.log(`  Creating new earnings record...`);
                     const { error: insertError } = await supabase
                         .from('staff_earnings')
                         .insert({
@@ -617,11 +590,8 @@ export const earningsService = {
                         console.error('❌ Error inserting earning:', insertError);
                         throw insertError;
                     }
-                    console.log(`  ✅ Created earnings record for ${stylist?.name || stylistId}`);
                 }
             }
-
-            console.log('✅ Walk-in earnings update completed successfully');
         } catch (error: any) {
             console.error('❌ Error updating earnings for walk-in services');
             console.error('  Error:', error);

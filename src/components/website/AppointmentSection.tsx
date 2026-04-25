@@ -261,10 +261,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             if (data.success) {
                 setOtpSent(true);
                 setOtpCountdown(60); // 60 second cooldown
-                // For development, show OTP in console
-                if (data.debug_otp) {
-                    console.log('DEBUG OTP:', data.debug_otp);
-                }
             } else {
                 setOtpError(data.error || 'Failed to send OTP');
             }
@@ -488,7 +484,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         totalPrice,
                     }),
                 });
-                console.log('✅ Confirmation SMS sent');
             } catch (smsErr) {
                 console.error('Failed to send confirmation SMS:', smsErr);
                 // Don't fail the booking if SMS fails

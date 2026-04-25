@@ -218,9 +218,7 @@ export const appointmentsService = {
                     })
                 });
                 const result = await response.json();
-                if (result.success) {
-                    console.log('✅ Appointment notifications sent via API');
-                } else {
+                if (!result.success) {
                     console.error('❌ Notification API error:', result.error);
                 }
             } catch (notificationError) {
@@ -296,9 +294,7 @@ export const appointmentsService = {
             })
                 .then(async (response) => {
                     const result = await response.json();
-                    if (result.success) {
-                        console.log(`✅ Consolidated notification sent for ${appointmentIds.length} appointments`);
-                    } else {
+                    if (!result.success) {
                         console.error('❌ Batch notification error:', result.error);
                     }
                 })
@@ -338,7 +334,6 @@ export const appointmentsService = {
         const dateChanged = updatesAny.appointment_date && updatesAny.appointment_date !== oldAppointment?.appointment_date;
 
         if ((timeChanged || dateChanged) && data) {
-            console.log('📱 Appointment rescheduled - sending notifications via API');
             try {
                 const response = await fetch('/api/appointments/notify', {
                     method: 'POST',
@@ -351,9 +346,7 @@ export const appointmentsService = {
                     })
                 });
                 const result = await response.json();
-                if (result.success) {
-                    console.log('✅ Reschedule notifications sent via API');
-                } else {
+                if (!result.success) {
                     console.error('❌ Notification API error:', result.error);
                 }
             } catch (notificationError) {
@@ -455,8 +448,6 @@ export const appointmentsService = {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const today = `${year}-${month}-${day}`;
-
-        console.log('Fetching appointments for customer:', customerId, 'on date:', today);
 
         const organizationId = await getCurrentOrganizationId();
         // First get appointments

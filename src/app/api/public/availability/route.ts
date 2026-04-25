@@ -135,8 +135,6 @@ export async function GET(request: NextRequest) {
             console.error('❌ Error fetching appointments:', appointmentsError);
         }
 
-        console.log(`📅 Stylist availability: Found ${appointments?.length || 0} appointments for stylist ${stylistId} on ${date}`);
-
         // Generate time slots
         const workingHours = stylist.working_hours || { start: '09:00', end: '18:00' };
 

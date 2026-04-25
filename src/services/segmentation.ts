@@ -169,11 +169,8 @@ export const segmentationService = {
      */
     async categorizeAllCustomers(): Promise<void> {
         try {
-            console.log('🔄 Starting customer categorization...');
-
             // First, ensure default segments exist
             await this.initializeSegments();
-            console.log('✅ Segments initialized');
 
             const organizationId = await getCurrentOrganizationId();
             // Get all customers
@@ -183,8 +180,6 @@ export const segmentationService = {
                 .eq('organization_id', organizationId);
 
             if (error) throw error;
-
-            console.log(`📊 Found ${customers?.length || 0} customers to categorize`);
 
             // Process each customer
             let successCount = 0;
@@ -197,11 +192,8 @@ export const segmentationService = {
                 }
             }
 
-            console.log(`✅ Categorized ${successCount} customers`);
-
             // Manually refresh segment counts
             await this.refreshSegmentCounts();
-            console.log('✅ Segment counts refreshed');
 
         } catch (error) {
             console.error('Error categorizing all customers:', error);
@@ -223,8 +215,6 @@ export const segmentationService = {
 
             if (segError) throw segError;
 
-            console.log(`🔢 Refreshing counts for ${segments?.length || 0} segments...`);
-
             // Count customers for each segment
             for (const segment of segments || []) {
                 // Query customers that have this segment in their tags
@@ -240,7 +230,6 @@ export const segmentationService = {
                 }
 
                 const count = customers?.length || 0;
-                console.log(`  ${segment.name}: ${count} customers`);
 
                 // Update segment count
                 await supabase
@@ -249,8 +238,6 @@ export const segmentationService = {
                     .eq('id', segment.id)
                     .eq('organization_id', organizationId);
             }
-
-            console.log('✅ All segment counts updated');
         } catch (error) {
             console.error('Error refreshing segment counts:', error);
         }

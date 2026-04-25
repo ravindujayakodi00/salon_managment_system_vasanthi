@@ -483,8 +483,6 @@ export const schedulingService = {
         branchId?: string
     ): Promise<{ stylist: any; slots: TimeSlot[]; skillDetails: any[] }[]> {
         try {
-            console.log('🔍 getAvailableStylistsWithSlots called (via API):', { serviceId, date, serviceDuration, branchId });
-
             const params = new URLSearchParams({
                 service_id: serviceId,
                 date: date,

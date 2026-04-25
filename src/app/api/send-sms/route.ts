@@ -24,16 +24,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // DEVELOPMENT MODE: Log SMS to console instead of sending
+        // DEVELOPMENT MODE: Skip sending
         if (isDevelopment) {
-            console.log('\n📱 ============ SMS (DEVELOPMENT MODE) ============');
-            console.log('📞 To:', to);
-            console.log('💬 Message:', message);
-            console.log('='.repeat(55));
-            console.log('ℹ️  SMS was logged (not sent). Set SMS_MODE=production to send real SMS.');
-            console.log('ℹ️  For production: Configure TEXT_LK_API_KEY and TEXT_LK_SENDER_ID');
-            console.log('='.repeat(55) + '\n');
-
             return NextResponse.json({
                 success: true,
                 data: {
@@ -121,10 +113,6 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-
-        console.log('✅ SMS sent successfully to:', to);
-        console.log('📊 Cost:', result.data?.cost, 'LKR');
-        console.log('📨 SMS Count:', result.data?.sms_count);
 
         return NextResponse.json({
             success: true,

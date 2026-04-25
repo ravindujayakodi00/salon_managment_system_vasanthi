@@ -136,10 +136,6 @@ export async function createStaffAction(staffData: {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             const loginUrl = `${siteUrl}/admin/login`;
 
-            console.log('📧 Attempting to send welcome email to:', staffData.email);
-            console.log('🔑 RESEND_API_KEY configured:', !!process.env.RESEND_API_KEY);
-            console.log('📧 From email:', process.env.RESEND_FROM_EMAIL);
-
             const emailResult = await sendEmailFromServer(
                 staffData.email,
                 'Welcome to the Team - Your Account Details',
@@ -173,12 +169,9 @@ export async function createStaffAction(staffData: {
                 `
             );
 
-            console.log('📧 Email send result:', emailResult);
             emailSent = emailResult.success;
 
-            if (emailSent) {
-                console.log('✅ Welcome email sent successfully to:', staffData.email);
-            } else {
+            if (!emailSent) {
                 console.error('❌ Welcome email failed:', emailResult.error);
             }
         } catch (emailError) {

@@ -28,18 +28,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // DEVELOPMENT MODE: Log email to console instead of sending
+        // DEVELOPMENT MODE: Skip sending
         if (isDevelopment) {
-            console.log('\n📧 ============ EMAIL (DEVELOPMENT MODE) ============');
-            console.log('📬 To:', to);
-            console.log('📝 Subject:', subject);
-            console.log('💌 HTML Content:');
-            console.log(html);
-            console.log('='.repeat(55));
-            console.log('ℹ️  Email was logged (not sent). Set NODE_ENV=production to send real emails.');
-            console.log('ℹ️  For production: Verify your domain at https://resend.com/domains');
-            console.log('='.repeat(55) + '\n');
-
             return NextResponse.json({
                 success: true,
                 data: {
@@ -103,7 +93,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('✅ Email sent successfully to:', to);
         return NextResponse.json({ success: true, data });
     } catch (error: any) {
         console.error('Email API Error:', error);

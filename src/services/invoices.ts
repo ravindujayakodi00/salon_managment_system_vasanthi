@@ -50,14 +50,6 @@ export const invoicesService = {
         // Generate invoice number
         const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-        console.log('💳 Creating invoice:', {
-            invoiceNumber,
-            customer_id: invoice.customer_id,
-            total: invoice.total,
-            payment_method: invoice.payment_method,
-            payment_breakdown: paymentBreakdownToStore
-        });
-
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('invoices')
@@ -83,14 +75,6 @@ export const invoicesService = {
             console.error('❌ Error creating invoice:', error);
             throw error;
         }
-
-        console.log('✅ Invoice created successfully:', {
-            id: data.id,
-            invoice_number: data.invoice_number,
-            total: data.total,
-            created_at: data.created_at,
-            payment_breakdown: data.payment_breakdown
-        });
 
         // Fire-and-forget: create DB-backed in-app notifications for InvoicePaid.
         // Uses Authorization bearer so the server can resolve the authenticated staff identity safely.
@@ -149,7 +133,6 @@ export const invoicesService = {
         const walkInItems = invoice.items.filter((item: any) => item.type === 'walk-in-service' && item.stylistId);
         if (data && walkInItems.length > 0) {
             try {
-                console.log('💰 Processing walk-in earnings for invoice:', data.id);
                 await earningsService.updateEarningsForWalkIn(
                     data.id,
                     invoice.items,

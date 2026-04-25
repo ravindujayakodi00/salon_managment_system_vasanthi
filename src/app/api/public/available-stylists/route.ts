@@ -159,8 +159,6 @@ export async function GET(request: NextRequest) {
             console.error('❌ Error fetching appointments:', appointmentsError);
         }
 
-        console.log(`📅 Found ${allAppointments?.length || 0} appointments for ${stylistIds.length} stylists on ${date}`);
-
         // Get all service names for skill display
         const { data: allServices } = await supabase
             .from('services')
@@ -185,11 +183,6 @@ export async function GET(request: NextRequest) {
 
             // Get appointments for this stylist
             const appointments = allAppointments?.filter(a => a.stylist_id === stylist.id) || [];
-
-            if (appointments.length > 0) {
-                console.log(`👤 Stylist ${stylist.name} has ${appointments.length} appointments:`,
-                    appointments.map(a => `${a.start_time} (${a.duration}min)`).join(', '));
-            }
 
             // Generate time slots
             // Working hours can be either flat {start, end} or by day {Monday: {start, end}, ...}

@@ -226,8 +226,6 @@ function mapDbStaffToStylist(dbStaff: DbStaff, services: DbService[]): Stylist {
  * Get all active services
  */
 export async function fetchServices(category?: string, gender?: string): Promise<Service[]> {
-    console.log('📦 Fetching services from Supabase...');
-
     let query = supabase
         .from('services')
         .select('*')
@@ -252,7 +250,6 @@ export async function fetchServices(category?: string, gender?: string): Promise
     }
 
     const services = (data as DbService[]).map(mapDbServiceToService);
-    console.log(`✅ Loaded ${services.length} services`);
 
     return services;
 }
@@ -261,8 +258,6 @@ export async function fetchServices(category?: string, gender?: string): Promise
  * Get stylists who can perform a specific service
  */
 export async function fetchStylistsForService(serviceId: string, date?: string): Promise<Stylist[]> {
-    console.log('👥 Fetching stylists for service:', serviceId);
-
     // Get all active stylists for this organization
     const { data: staffData, error: staffError } = await supabase
         .from('staff')
@@ -317,12 +312,10 @@ export async function fetchStylistsForService(serviceId: string, date?: string):
         });
 
         const stylists = availableStaff.map(staff => mapDbStaffToStylist(staff, services));
-        console.log(`✅ Loaded ${stylists.length} stylists for service`);
         return stylists;
     }
 
     const stylists = qualifiedStaff.map(staff => mapDbStaffToStylist(staff, services));
-    console.log(`✅ Loaded ${stylists.length} stylists for service`);
 
     return stylists;
 }
@@ -335,8 +328,6 @@ export async function fetchTimeSlots(
     date: string,
     duration: number
 ): Promise<StylistAvailabilityResponse> {
-    console.log('🕐 Fetching time slots:', { stylistId, date, duration });
-
     // Get salon settings
     const settings = await getSalonSettings();
 
@@ -366,7 +357,6 @@ export async function fetchTimeSlots(
 
     // Check if stylist works on this day
     if (!stylist.working_days?.includes(dayName)) {
-        console.log(`⚠️ Stylist doesn't work on ${dayName}`);
         return {
             slots: [],
             unavailabilityReason: `${stylist.name} doesn't work on ${dayName}s`,
@@ -384,7 +374,6 @@ export async function fetchTimeSlots(
     if (unavailData && unavailData.length > 0) {
         const unavailRecord = unavailData[0] as DbStylistUnavailability;
         const reason = unavailRecord.reason || 'day off';
-        console.log(`⚠️ Stylist is unavailable on ${date}: ${reason}`);
         return {
             slots: [],
             unavailabilityReason: `${stylist.name} is on ${reason} on this date`,
@@ -429,9 +418,6 @@ export async function fetchTimeSlots(
         return { time: slotTime, available: true };
     });
 
-    const bookedCount = timeSlots.filter(s => !s.available).length;
-    console.log(`✅ Loaded ${timeSlots.length} slots (${bookedCount} unavailable)`);
-
     return {
         slots: timeSlots,
         stylistName: stylist.name,
@@ -448,8 +434,6 @@ export async function fetchConsolidatedAvailability(
     date: string,
     duration?: number
 ): Promise<ConsolidatedAvailabilityResponse> {
-    console.log('📅 Fetching consolidated availability...');
-
     // Get the service
     const { data: serviceData, error: serviceError } = await supabase
         .from('services')
@@ -469,7 +453,6 @@ export async function fetchConsolidatedAvailability(
     const stylists = await fetchStylistsForService(serviceId, date);
 
     if (stylists.length === 0) {
-        console.log('⚠️ No qualified stylists available');
         return { slots: [], service, totalStylists: 0, availableCount: 0 };
     }
 
@@ -506,7 +489,6 @@ export async function fetchConsolidatedAvailability(
     });
 
     const availableCount = consolidatedSlots.filter(s => s.available).length;
-    console.log(`✅ Consolidated availability: ${availableCount}/${consolidatedSlots.length} slots from ${stylists.length} stylists`);
 
     return { slots: consolidatedSlots, service, totalStylists: stylists.length, availableCount };
 }
@@ -519,8 +501,6 @@ export async function fetchAllStylistsWithAvailability(
     date: string,
     duration?: number
 ): Promise<StylistWithSlots[]> {
-    console.log('📅 Fetching all stylists with availability...');
-
     // Get the service for duration
     const { data: serviceData } = await supabase
         .from('services')
@@ -546,12 +526,6 @@ export async function fetchAllStylistsWithAvailability(
         })
     );
 
-    console.log(`✅ Loaded ${stylistsWithSlots.length} stylists with availability`);
-    stylistsWithSlots.forEach(item => {
-        const bookedCount = item.slots.filter((s: TimeSlot) => !s.available).length;
-        console.log(`   - ${item.stylist.name}: ${item.slots.length} slots (${bookedCount} booked)`);
-    });
-
     return stylistsWithSlots;
 }
 
@@ -572,8 +546,6 @@ export async function createBooking(
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
-    console.log('📝 Creating booking via API...');
-
     const orgSlug = process.env.NEXT_PUBLIC_ORGANIZATION_SLUG || 'vasanthi_salon';
 
     const res = await fetch('/api/public/book', {
@@ -593,7 +565,6 @@ export async function createBooking(
     }
 
     const d = json.data;
-    console.log('✅ Booking created:', d.appointmentId);
 
     return {
         appointmentId: d.appointmentId,
@@ -624,8 +595,6 @@ export async function createRandomBooking(
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
-    console.log('🎲 Creating random booking...');
-
     const client = authClient || supabase;
 
     // 1. Get service details
@@ -666,7 +635,6 @@ export async function createRandomBooking(
 
     // 4. Pick a random free stylist
     const selected = freeStylists[Math.floor(Math.random() * freeStylists.length)];
-    console.log(`🎲 Randomly selected stylist: ${selected.name} (from ${freeStylists.length} available)`);
 
     // 5. Get branch and organization_id from the selected stylist
     const { data: stylistRecord } = await supabase
@@ -756,8 +724,6 @@ export async function createRandomBooking(
     const startDisp = typeof newAppointment.start_time === 'string'
         ? newAppointment.start_time.slice(0, 5)
         : booking.appointment.time;
-
-    console.log(`✅ Random booking created: ${newAppointment.id} → ${selected.name}`);
 
     return {
         appointmentId: newAppointment.id,

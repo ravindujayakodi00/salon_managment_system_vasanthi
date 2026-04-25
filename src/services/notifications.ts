@@ -436,7 +436,6 @@ export const notificationsService = {
 
             // If only one appointment, use regular notification
             if (appointments.length === 1) {
-                console.log('Single appointment - using regular notification');
                 return { success: true, message: 'Use regular notification for single appointment' };
             }
 

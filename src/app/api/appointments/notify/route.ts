@@ -136,7 +136,6 @@ export async function POST(request: NextRequest) {
 
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
-                console.log(`✅ Consolidated SMS sent to customer (${appointments.length} appointments)`);
             }
 
             // Group appointments by stylist and send ONE SMS per stylist
@@ -169,7 +168,6 @@ export async function POST(request: NextRequest) {
 
                     const result = await textlk.sendSMS(stylist.phone, msg);
                     results.stylists.push({ name: stylist.name, result });
-                    console.log(`✅ Consolidated SMS sent to stylist ${stylist.name} (${stylistAppts.length} appointments)`);
                 }
             }
 
@@ -199,7 +197,6 @@ export async function POST(request: NextRequest) {
                     if (manager.phone) {
                         const result = await textlk.sendSMS(manager.phone, managerMsg);
                         results.managers.push({ name: manager.name, result });
-                        console.log(`✅ Consolidated SMS sent to manager: ${manager.name}`);
                     }
                 }
             }
@@ -228,7 +225,6 @@ export async function POST(request: NextRequest) {
                 const msg = `🔄 Appointment Rescheduled! Your ${serviceNames} appointment has been moved to ${shortDate} at ${appointment.start_time}. See you then! - SalonFlow`;
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
-                console.log('✅ Reschedule SMS sent to customer:', customer.phone);
             }
 
             // Stylist SMS  
@@ -236,7 +232,6 @@ export async function POST(request: NextRequest) {
                 const msg = `🔄 Appointment Updated! ${customer?.name || 'Customer'}'s ${serviceNames} rescheduled to ${shortDate} at ${appointment.start_time}. Duration: ${appointment.duration} mins.`;
                 const result = await textlk.sendSMS(stylist.phone, msg);
                 results.stylists.push({ name: stylist.name, result });
-                console.log('✅ Reschedule SMS sent to stylist:', stylist.phone);
             }
 
             // Manager SMS
@@ -254,7 +249,6 @@ export async function POST(request: NextRequest) {
                     if (manager.phone) {
                         const result = await textlk.sendSMS(manager.phone, managerMsg);
                         results.managers.push({ name: manager.name, result });
-                        console.log('✅ Reschedule SMS sent to manager:', manager.name);
                     }
                 }
             }

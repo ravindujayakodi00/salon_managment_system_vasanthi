@@ -23,11 +23,6 @@ export async function sendEmailFromServer(
             };
         }
 
-        console.log('📧 Sending email via Resend (server-side)');
-        console.log('  To:', to);
-        console.log('  From:', fromEmail);
-        console.log('  Subject:', subject);
-
         const resend = new Resend(apiKey);
 
         const data = await resend.emails.send({
@@ -36,8 +31,6 @@ export async function sendEmailFromServer(
             subject: subject,
             html: html,
         });
-
-        console.log('✅ Email sent successfully via Resend:', data);
 
         return {
             success: true,

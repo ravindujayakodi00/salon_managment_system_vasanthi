@@ -29,7 +29,6 @@ export default function EarningsPage() {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                console.log('Earnings page visible, refreshing data...');
                 fetchEarnings();
             }
         };
@@ -41,10 +40,6 @@ export default function EarningsPage() {
     const fetchEarnings = async () => {
         try {
             setLoading(true);
-            console.log('=== Fetching earnings ===');
-            console.log('Date range:', dateRange);
-            console.log('User role:', user?.role);
-            console.log('Is owner:', isOwner);
 
             if (isStaff && !isOwner) {
                 // Fetch individual staff earnings by resolving staff.id from profile id
@@ -72,7 +67,6 @@ export default function EarningsPage() {
                     dateRange.start,
                     dateRange.end
                 );
-                console.log('Staff earnings fetched:', staffData?.length, 'records');
                 setEarnings(staffData || []);
 
                 // Calculate summary
@@ -93,8 +87,6 @@ export default function EarningsPage() {
                     dateRange.start,
                     dateRange.end
                 );
-                console.log('Owner view - staff earnings fetched:', summaryData?.length, 'staff members');
-                console.log('Earnings data:', summaryData);
                 setEarnings(summaryData || []);
             }
         } catch (error) {

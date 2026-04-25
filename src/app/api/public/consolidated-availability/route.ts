@@ -178,8 +178,6 @@ export async function GET(request: NextRequest) {
             console.error('❌ Error fetching appointments:', appointmentError);
         }
 
-        console.log(`📅 Consolidated view: Found ${allAppointments?.length || 0} appointments for ${stylistIds.length} stylists on ${date}`);
-
         // Find the earliest start and latest end across all stylists
         let globalStartTime = 24 * 60; // Start with end of day
         let globalEndTime = 0; // Start with beginning of day
