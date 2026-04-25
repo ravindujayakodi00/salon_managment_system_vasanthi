@@ -488,7 +488,7 @@ export default function DashboardPage() {
                                 borderRadius: '0.5rem',
                                 color: '#fff'
                             }}
-                            formatter={(value?: number) => value ? `Rs ${value.toLocaleString()}` : 'N/A'}
+                            formatter={(value?: number | string) => value ? `Rs ${Number(value).toLocaleString()}` : 'N/A'}
                         />
                         <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 4 }} />
                     </LineChart>
@@ -580,7 +580,7 @@ export default function DashboardPage() {
                                         borderRadius: '0.5rem',
                                         color: '#fff'
                                     }}
-                                    formatter={(value?: number) => value ? `Rs ${value.toLocaleString()}` : 'N/A'}
+                                    formatter={(value?: number | string) => value ? `Rs ${Number(value).toLocaleString()}` : 'N/A'}
                                 />
                                 <Bar dataKey="revenue" fill="#10b981" radius={[0, 4, 4, 0]} />
                             </BarChart>
