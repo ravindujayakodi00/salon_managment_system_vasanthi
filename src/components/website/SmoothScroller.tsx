@@ -6,6 +6,11 @@ import { gsap, ScrollTrigger } from '@/utils/gsapConfig';
 
 export default function SmoothScroller() {
     useLayoutEffect(() => {
+        // Skip Lenis on mobile — native scroll is smooth enough and Lenis
+        // intercepts touch events causing horizontal drag on mobile browsers
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) return;
+
         const lenis = new Lenis({
             duration: 1.2,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
