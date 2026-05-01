@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { themeContent } from '@/themes';
 import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
@@ -11,19 +12,27 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { name: 'Home',         href: '/#home'         },
-  { name: 'Our Journey',  href: '/our-journey'   },
-  { name: 'Services',     href: '/#services'     },
-  { name: 'Testimonials', href: '/#testimonials' },
-  { name: 'FAQ',          href: '/faq'           },
-  { name: 'Contact',      href: '/#contact'      },
+  { name: 'Home',         href: '/#home',         anchor: '#home'         },
+  { name: 'Our Journey',  href: '/our-journey',   anchor: null            },
+  { name: 'Services',     href: '/#services',     anchor: '#services'     },
+  { name: 'Testimonials', href: '/#testimonials', anchor: '#testimonials' },
+  { name: 'FAQ',          href: '/faq',           anchor: null            },
+  { name: 'Contact',      href: '/#contact',      anchor: '#contact'      },
 ];
 
 export default function Navbar({ alwaysVisible = false }: NavbarProps) {
+  const pathname = usePathname();
+  const isHome = pathname === '/';
+
   const [isScrolled,       setIsScrolled]       = useState(false);
   const [isVisible,        setIsVisible]        = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // On the home page use the bare anchor (#services) so Lenis smooth-scrolls
+  // in place. On other pages use the absolute path (/#services) to navigate home.
+  const resolveHref = (link: typeof navLinks[0]) =>
+    isHome && link.anchor ? link.anchor : link.href;
 
   useEffect(() => {
     const onScroll = () => {
@@ -72,14 +81,14 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                       : 'text-[var(--t-text-2)] hover:text-[var(--t-text)]'
                   }`;
                   return (
-                    <Link key={link.name} href={link.href} className={cls}>{link.name}</Link>
+                    <Link key={link.name} href={resolveHref(link)} className={cls}>{link.name}</Link>
                   );
                 })}
               </div>
 
-              {/* Center: Logo */}
+              {/* Center: Logo — always goes to / */}
               <div className="flex justify-center">
-                <a href="#home">
+                <Link href="/">
                   <Image
                     src={logoLongLight}
                     alt={themeContent.salonName}
@@ -87,7 +96,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                     className="w-auto transition-all duration-300"
                     priority
                   />
-                </a>
+                </Link>
               </div>
 
               {/* Right links */}
@@ -99,7 +108,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                       : 'text-[var(--t-text-2)] hover:text-[var(--t-text)]'
                   }`;
                   return (
-                    <Link key={link.name} href={link.href} className={cls}>{link.name}</Link>
+                    <Link key={link.name} href={resolveHref(link)} className={cls}>{link.name}</Link>
                   );
                 })}
               </div>
@@ -124,8 +133,8 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                 )}
               </button>
 
-              {/* Logo centered */}
-              <a href="#home" className="absolute left-1/2 -translate-x-1/2">
+              {/* Logo centered — always goes to / */}
+              <Link href="/" className="absolute left-1/2 -translate-x-1/2">
                 <Image
                   src={logoLongLight}
                   alt={themeContent.salonName}
@@ -133,7 +142,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                   className="w-auto"
                   priority
                 />
-              </a>
+              </Link>
 
               {/* Spacer to balance hamburger */}
               <div className="w-7" />
@@ -155,7 +164,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
           {navLinks.map((link, i) => (
             <Link
               key={link.name}
-              href={link.href}
+              href={resolveHref(link)}
               className="t-display text-4xl font-light italic tracking-[0.06em] text-[var(--t-text)] hover:text-[var(--t-accent-2)] transition-colors duration-200"
               style={{ transitionDelay: `${i * 40}ms` }}
               onClick={() => setIsMobileMenuOpen(false)}

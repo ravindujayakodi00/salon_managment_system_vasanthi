@@ -6,6 +6,14 @@ import { supabase, DbService, DbStaff, DbStylistBreak, DbStylistUnavailability, 
 // Organization scope — all queries are filtered to this org
 const ORG_ID = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? '';
 
+if (!ORG_ID) {
+    console.error(
+        '❌ NEXT_PUBLIC_ORGANIZATION_ID is not set. ' +
+        'Services and stylists will not load. ' +
+        'Add this variable to your Vercel environment variables and redeploy.'
+    );
+}
+
 // ============================================
 // PUBLIC TYPES
 // ============================================
@@ -226,6 +234,8 @@ function mapDbStaffToStylist(dbStaff: DbStaff, services: DbService[]): Stylist {
  * Get all active services
  */
 export async function fetchServices(category?: string, gender?: string): Promise<Service[]> {
+    if (!ORG_ID) throw new Error('Organization ID is not configured. Check NEXT_PUBLIC_ORGANIZATION_ID environment variable.');
+
     let query = supabase
         .from('services')
         .select('*')

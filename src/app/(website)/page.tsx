@@ -14,11 +14,23 @@ import BookingCTA from '@/components/website/BookingCTA';
 import Preloader from '@/components/website/Preloader';
 
 export default function Home() {
+  // Always start with the same state on server and client to avoid hydration mismatch.
+  // useEffect (client-only) immediately skips the preloader on return visits.
   const [isLoading, setIsLoading]     = useState(true);
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
+    // If the preloader has already been shown this session, skip it immediately
+    if (sessionStorage.getItem('vgs_preloader_seen') === '1') {
+      setIsLoading(false);
+      setShowContent(true);
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
     if (!isLoading) {
+      sessionStorage.setItem('vgs_preloader_seen', '1');
       const timer = setTimeout(() => setShowContent(true), 100);
       return () => clearTimeout(timer);
     }

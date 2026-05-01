@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { gsap } from '@/utils/gsapConfig';
 import { themeContent } from '@/themes';
 
@@ -52,12 +53,13 @@ export default function ServicesSection() {
           </p>
         </div>
 
-        {/* Accordion list */}
+        {/* Service list */}
         <div className="border-t border-[var(--t-border)]">
           {services.items.map((service, i) => (
-            <div
+            <Link
               key={i}
-              className="service-row border-b border-[var(--t-border)] cursor-pointer"
+              href={`/services/${service.slug}`}
+              className="service-row block border-b border-[var(--t-border)]"
               style={{ opacity: 1 }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
@@ -107,15 +109,15 @@ export default function ServicesSection() {
                   {service.description}
                 </p>
               )}
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* Book CTA */}
         <div className="mt-8 lg:mt-12">
-          <a href="/booking" className="t-btn t-btn-accent">
+          <Link href="/booking" className="t-btn t-btn-accent">
             Reserve Your Session
-          </a>
+          </Link>
         </div>
       </div>
     </section>

@@ -52,21 +52,12 @@ export default function Footer() {
             <ul className="space-y-3">
               {footer.links.map(link => (
                 <li key={link.name}>
-                  {link.href.startsWith('/') ? (
-                    <Link
-                      href={link.href}
-                      className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
-                    >
-                      {link.name}
-                    </Link>
-                  ) : (
-                    <a
-                      href={link.href}
-                      className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
-                    >
-                      {link.name}
-                    </a>
-                  )}
+                  <Link
+                    href={link.href}
+                    className="text-white/50 hover:text-[var(--t-accent)] transition-colors duration-200 text-sm"
+                  >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>

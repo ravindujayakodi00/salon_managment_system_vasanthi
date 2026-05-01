@@ -8,7 +8,6 @@ const LEGACY_ADMIN_SEGMENTS = new Set([
     'dashboard',
     'appointments',
     'pos',
-    'services',
     'inventory',
     'staff',
     'customers',
