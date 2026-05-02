@@ -26,7 +26,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { type, appointmentId, appointmentIds, oldTime, oldDate, organizationId } = body;
+        const { type, appointmentId, appointmentIds, oldTime, oldDate, organizationId: bodyOrgId } = body;
 
         // Support both single and batch
         const idsToProcess = appointmentIds || (appointmentId ? [appointmentId] : []);
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
                 stylist:staff(*)
             `)
             .in('id', idsToProcess);
-        if (organizationId) {
-            aptQuery = aptQuery.eq('organization_id', organizationId);
+        if (bodyOrgId) {
+            aptQuery = aptQuery.eq('organization_id', bodyOrgId);
         }
         const { data: appointments, error: aptError } = await aptQuery;
 
