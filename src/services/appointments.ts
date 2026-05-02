@@ -174,6 +174,8 @@ export const appointmentsService = {
         duration: number;
         notes?: string;
     }) {
+        const organizationId = await getCurrentOrganizationId();
+
         // Validate appointment slot before creating
         const { validateAppointmentSlot } = await import('@/lib/appointment-validation');
 
@@ -182,14 +184,13 @@ export const appointmentsService = {
             customerId: appointment.customer_id,
             date: appointment.appointment_date,
             startTime: appointment.start_time,
-            duration: appointment.duration
+            duration: appointment.duration,
+            organizationId,
         });
 
         if (!validation.isValid) {
             throw new Error(validation.reason || 'Cannot book this time slot');
         }
-
-        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .insert({
@@ -214,7 +215,8 @@ export const appointmentsService = {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'new',
-                        appointmentId: data.id
+                        appointmentId: data.id,
+                        organizationId
                     })
                 });
                 const result = await response.json();
@@ -242,6 +244,9 @@ export const appointmentsService = {
         duration: number;
         notes?: string;
     }>) {
+        // All validations passed - proceed with creation
+        const organizationId = await getCurrentOrganizationId();
+
         // Validate ALL appointments before creating ANY
         const { validateMultipleAppointments } = await import('@/lib/appointment-validation');
 
@@ -252,15 +257,13 @@ export const appointmentsService = {
                 date: apt.appointment_date,
                 startTime: apt.start_time,
                 duration: apt.duration
-            }))
+            })),
+            organizationId
         );
 
         if (!batchValidation.allValid) {
             throw new Error(batchValidation.firstError || 'One or more appointments have scheduling conflicts');
         }
-
-        // All validations passed - proceed with creation
-        const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('appointments')
             .insert(
@@ -289,7 +292,8 @@ export const appointmentsService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'new',
-                    appointmentIds // Send all IDs at once
+                    appointmentIds, // Send all IDs at once
+                    organizationId
                 })
             })
                 .then(async (response) => {
@@ -342,7 +346,8 @@ export const appointmentsService = {
                         type: 'reschedule',
                         appointmentId: data.id,
                         oldTime: oldAppointment?.start_time,
-                        oldDate: oldAppointment?.appointment_date
+                        oldDate: oldAppointment?.appointment_date,
+                        organizationId
                     })
                 });
                 const result = await response.json();
@@ -409,7 +414,8 @@ export const appointmentsService = {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'cancel',
-                        appointmentId: appointment.id
+                        appointmentId: appointment.id,
+                        organizationId
                     })
                 });
             } catch (inAppError) {

@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
             const { data: unavailability } = await supabase
                 .from('stylist_unavailability')
                 .select('stylist_id')
+                .eq('organization_id', organizationId)
                 .in('stylist_id', stylistIds)
                 .eq('unavailable_date', appointment.date);
 
@@ -177,6 +178,7 @@ export async function POST(request: NextRequest) {
             const { data: allBreaks } = await supabase
                 .from('stylist_breaks')
                 .select('*')
+                .eq('organization_id', organizationId)
                 .in('stylist_id', availableStylistIds);
 
             // Get all appointments for these stylists on this date

@@ -61,8 +61,9 @@ export async function isStylistAvailable(params: {
     startTime: string;
     duration: number;
     excludeAppointmentId?: string;
+    organizationId?: string;
 }): Promise<{ available: boolean; conflictingAppointment?: any }> {
-    const { stylistId, date, startTime, duration, excludeAppointmentId } = params;
+    const { stylistId, date, startTime, duration, excludeAppointmentId, organizationId } = params;
 
     // Get all appointments for this stylist on this date
     let query = supabase
@@ -71,6 +72,10 @@ export async function isStylistAvailable(params: {
         .eq('stylist_id', stylistId)
         .eq('appointment_date', date)
         .in('status', ['Pending', 'InProgress']); // Only check active appointments
+
+    if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+    }
 
     if (excludeAppointmentId) {
         query = query.neq('id', excludeAppointmentId);
@@ -114,8 +119,9 @@ export async function hasCustomerStylistConflict(params: {
     startTime: string;
     duration: number;
     excludeAppointmentId?: string;
+    organizationId?: string;
 }): Promise<{ hasConflict: boolean; conflictingAppointment?: any }> {
-    const { customerId, stylistId, date, startTime, duration, excludeAppointmentId } = params;
+    const { customerId, stylistId, date, startTime, duration, excludeAppointmentId, organizationId } = params;
 
     // Get all appointments for this customer with this stylist on this date
     let query = supabase
@@ -125,6 +131,10 @@ export async function hasCustomerStylistConflict(params: {
         .eq('stylist_id', stylistId)
         .eq('appointment_date', date)
         .in('status', ['Pending', 'InProgress']);
+
+    if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+    }
 
     if (excludeAppointmentId) {
         query = query.neq('id', excludeAppointmentId);
@@ -168,8 +178,9 @@ export async function validateAppointmentSlot(params: {
     startTime: string;
     duration: number;
     excludeAppointmentId?: string;
+    organizationId?: string;
 }): Promise<ValidationResult> {
-    const { stylistId, customerId, date, startTime, duration, excludeAppointmentId } = params;
+    const { stylistId, customerId, date, startTime, duration, excludeAppointmentId, organizationId } = params;
 
     // Check 1: Is stylist available?
     const stylistCheck = await isStylistAvailable({
@@ -177,7 +188,8 @@ export async function validateAppointmentSlot(params: {
         date,
         startTime,
         duration,
-        excludeAppointmentId
+        excludeAppointmentId,
+        organizationId,
     });
 
     if (!stylistCheck.available) {
@@ -196,7 +208,8 @@ export async function validateAppointmentSlot(params: {
         date,
         startTime,
         duration,
-        excludeAppointmentId
+        excludeAppointmentId,
+        organizationId,
     });
 
     if (customerCheck.hasConflict) {
@@ -225,7 +238,8 @@ export async function validateMultipleAppointments(
         date: string;
         startTime: string;
         duration: number;
-    }>
+    }>,
+    organizationId?: string
 ): Promise<{
     allValid: boolean;
     validations: ValidationResult[];
@@ -234,7 +248,7 @@ export async function validateMultipleAppointments(
     const validations: ValidationResult[] = [];
 
     for (const apt of appointments) {
-        const result = await validateAppointmentSlot(apt);
+        const result = await validateAppointmentSlot({ ...apt, organizationId });
         validations.push(result);
 
         if (!result.isValid) {

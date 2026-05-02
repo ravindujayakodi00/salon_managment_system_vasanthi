@@ -224,11 +224,12 @@ export async function deleteStaffAction(id: string) {
 
         const adminClient = getAdminClient();
 
-        // Get profile_id first
+        // Get profile_id first (scoped to caller's org for safety)
         const { data: staff } = await adminClient
             .from('staff')
             .select('profile_id')
             .eq('id', id)
+            .eq('organization_id', callerProfile.organization_id)
             .single();
 
         if (!staff) throw new Error('Staff member not found');

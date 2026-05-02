@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
             .from('stylist_unavailability')
             .select('*')
             .eq('stylist_id', stylistId)
+            .eq('organization_id', organizationId)
             .eq('unavailable_date', date);
 
         if (unavailability && unavailability.length > 0) {
@@ -118,7 +119,8 @@ export async function GET(request: NextRequest) {
         const { data: breaks } = await supabase
             .from('stylist_breaks')
             .select('*')
-            .eq('stylist_id', stylistId);
+            .eq('stylist_id', stylistId)
+            .eq('organization_id', organizationId);
 
         // Get existing appointments
         const { data: appointments, error: appointmentsError } = await supabase

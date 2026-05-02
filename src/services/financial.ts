@@ -115,6 +115,7 @@ export const financialService = {
         const { data: earnings, error: earningsError } = await supabase
             .from('staff_earnings')
             .select('staff_id, commission_amount')
+            .eq('organization_id', organizationId)
             .in('staff_id', staffIds)
             .gte('date', startDate)
             .lte('date', endDate);
@@ -131,6 +132,7 @@ export const financialService = {
         const { data: salarySettings, error: salaryError } = await supabase
             .from('salary_settings')
             .select('staff_id, amount, salary_type, effective_from, is_active')
+            .eq('organization_id', organizationId)
             .in('staff_id', staffIds)
             .eq('is_active', true);
 
@@ -146,6 +148,7 @@ export const financialService = {
         const { data: advances, error: advancesError } = await supabase
             .from('staff_salary_advances')
             .select('id, staff_id, amount, description, created_at')
+            .eq('organization_id', organizationId)
             .in('staff_id', staffIds)
             .gte('created_at', startTs)
             .lte('created_at', endTs)
@@ -240,6 +243,7 @@ export const financialService = {
                 amount,
                 description: description || null,
                 created_by: createdByUserId,
+                organization_id: organizationId,
             })
             .select()
             .single();

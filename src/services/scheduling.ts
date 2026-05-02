@@ -215,6 +215,7 @@ export const schedulingService = {
                 .from('stylist_breaks')
                 .select('start_time, end_time')
                 .eq('stylist_id', stylistId)
+                .eq('organization_id', staffRow.organization_id)
                 .or(`day_of_week.eq.${dayOfWeek},day_of_week.is.null`)
                 .eq('is_recurring', true);
 
@@ -227,6 +228,7 @@ export const schedulingService = {
                 .from('stylist_availability')
                 .select('start_time, end_time, type, reason')
                 .eq('stylist_id', stylistId)
+                .eq('organization_id', staffRow.organization_id)
                 .or(`start_time.lte.${dayEnd},end_time.gte.${dayStart}`);
 
 
@@ -385,6 +387,7 @@ export const schedulingService = {
                 .from('stylist_breaks')
                 .select('*')
                 .eq('stylist_id', stylistId)
+                .eq('organization_id', organizationId)
                 .order('day_of_week')
                 .order('start_time');
 
@@ -417,7 +420,7 @@ export const schedulingService = {
 
             const { error } = await supabase
                 .from('stylist_breaks')
-                .upsert(breakData);
+                .upsert({ ...breakData, organization_id: organizationId });
 
             if (error) throw error;
 
@@ -439,6 +442,7 @@ export const schedulingService = {
                 .from('stylist_breaks')
                 .select('stylist_id')
                 .eq('id', breakId)
+                .eq('organization_id', organizationId)
                 .maybeSingle();
             if (!row) {
                 return { success: false, message: 'Break not found' };
@@ -456,7 +460,8 @@ export const schedulingService = {
             const { error } = await supabase
                 .from('stylist_breaks')
                 .delete()
-                .eq('id', breakId);
+                .eq('id', breakId)
+                .eq('organization_id', organizationId);
 
             if (error) throw error;
 

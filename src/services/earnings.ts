@@ -81,6 +81,7 @@ export const earningsService = {
                 .select('*')
                 .eq('staff_id', stylistId)
                 .eq('date', date)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (existingEarning) {
@@ -95,7 +96,8 @@ export const earningsService = {
                         appointments_count: existingEarning.appointments_count + 1,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', existingEarning.id);
+                    .eq('id', existingEarning.id)
+                    .eq('organization_id', organizationId);
             } else {
                 // Create new record
 
@@ -108,7 +110,8 @@ export const earningsService = {
                         commission_amount: commissionAmount,
                         salary_amount: 0,
                         total_earnings: commissionAmount,
-                        appointments_count: 1
+                        appointments_count: 1,
+                        organization_id: organizationId,
                     });
             }
         } catch (error) {
@@ -155,6 +158,7 @@ export const earningsService = {
                 .select('*')
                 .eq('staff_id', staffId)
                 .eq('date', date)
+                .eq('organization_id', organizationId)
                 .single();
 
             if (existingEarning) {
@@ -165,7 +169,8 @@ export const earningsService = {
                         total_earnings: existingEarning.commission_amount + salaryAmount,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', existingEarning.id);
+                    .eq('id', existingEarning.id)
+                    .eq('organization_id', organizationId);
             } else {
                 await supabase
                     .from('staff_earnings')
@@ -176,7 +181,8 @@ export const earningsService = {
                         commission_amount: 0,
                         salary_amount: salaryAmount,
                         total_earnings: salaryAmount,
-                        appointments_count: 0
+                        appointments_count: 0,
+                        organization_id: organizationId,
                     });
             }
         } catch (error) {
@@ -203,6 +209,7 @@ export const earningsService = {
                 .from('staff_earnings')
                 .select('*')
                 .eq('staff_id', staffId)
+                .eq('organization_id', organizationId)
                 .gte('date', startDate)
                 .lte('date', endDate)
                 .order('date', { ascending: false });
@@ -428,6 +435,7 @@ export const earningsService = {
                     .select('*')
                     .eq('staff_id', stylistId)
                     .eq('date', date)
+                    .eq('organization_id', organizationId)
                     .single();
 
                 if (earningFetchError && earningFetchError.code !== 'PGRST116') {
@@ -446,7 +454,8 @@ export const earningsService = {
                             appointments_count: existingEarning.appointments_count + 1,
                             updated_at: new Date().toISOString()
                         })
-                        .eq('id', existingEarning.id);
+                        .eq('id', existingEarning.id)
+                        .eq('organization_id', organizationId);
 
                     if (updateError) {
                         console.error('❌ Error updating earning:', updateError);
@@ -463,7 +472,8 @@ export const earningsService = {
                             commission_amount: commissionAmount,
                             salary_amount: 0,
                             total_earnings: commissionAmount,
-                            appointments_count: 1
+                            appointments_count: 1,
+                            organization_id: organizationId,
                         });
 
                     if (insertError) {
@@ -553,6 +563,7 @@ export const earningsService = {
                     .select('*')
                     .eq('staff_id', stylistId)
                     .eq('date', date)
+                    .eq('organization_id', organizationId)
                     .single();
 
                 if (existingEarning) {
@@ -566,7 +577,8 @@ export const earningsService = {
                             // Don't increment appointments_count for walk-ins
                             updated_at: new Date().toISOString()
                         })
-                        .eq('id', existingEarning.id);
+                        .eq('id', existingEarning.id)
+                        .eq('organization_id', organizationId);
 
                     if (updateError) {
                         console.error('❌ Error updating earning:', updateError);
@@ -583,7 +595,8 @@ export const earningsService = {
                             commission_amount: commissionAmount,
                             salary_amount: 0,
                             total_earnings: commissionAmount,
-                            appointments_count: 0 // 0 for walk-ins
+                            appointments_count: 0, // 0 for walk-ins
+                            organization_id: organizationId,
                         });
 
                     if (insertError) {

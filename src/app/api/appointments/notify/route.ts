@@ -26,7 +26,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { type, appointmentId, appointmentIds, oldTime, oldDate } = body;
+        const { type, appointmentId, appointmentIds, oldTime, oldDate, organizationId } = body;
 
         // Support both single and batch
         const idsToProcess = appointmentIds || (appointmentId ? [appointmentId] : []);
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-
-        // Get all appointment details
-        const { data: appointments, error: aptError } = await supabase
+        // Get all appointment details — always filter by organization_id when provided
+        // to prevent cross-tenant data access (service role bypasses RLS)
+        let aptQuery = supabase
             .from('appointments')
             .select(`
                 *,
@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
                 stylist:staff(*)
             `)
             .in('id', idsToProcess);
+        if (organizationId) {
+            aptQuery = aptQuery.eq('organization_id', organizationId);
+        }
+        const { data: appointments, error: aptError } = await aptQuery;
 
         if (aptError || !appointments || appointments.length === 0) {
             return NextResponse.json(

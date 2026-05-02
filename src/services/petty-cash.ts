@@ -20,12 +20,18 @@ export const pettyCashService = {
     /**
      * Get current petty cash balance
      */
-    async getCurrentBalance(): Promise<number> {
+    async getCurrentBalance(branchId?: string | null): Promise<number> {
         const organizationId = await getCurrentOrganizationId();
-        const { data, error } = await supabase
+        let query = supabase
             .from('petty_cash_transactions')
             .select('balance_after')
-            .eq('organization_id', organizationId)
+            .eq('organization_id', organizationId);
+
+        if (branchId) {
+            query = query.eq('branch_id', branchId);
+        }
+
+        const { data, error } = await query
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -74,7 +80,7 @@ export const pettyCashService = {
         organizationId: string
     ) {
         // Get current balance
-        const currentBalance = await this.getCurrentBalance();
+        const currentBalance = await this.getCurrentBalance(branchId);
         const newBalance = currentBalance + amount;
 
         const { data, error } = await supabase
@@ -106,7 +112,7 @@ export const pettyCashService = {
         organizationId: string
     ) {
         // Get current balance
-        const currentBalance = await this.getCurrentBalance();
+        const currentBalance = await this.getCurrentBalance(branchId);
 
         // Check if sufficient balance
         if (currentBalance < amount) {

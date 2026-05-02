@@ -65,6 +65,7 @@ export const availabilityService = {
             .from('stylist_availability')
             .select('*')
             .eq('stylist_id', stylistId)
+            .eq('organization_id', organizationId)
             .gte('start_time', startDate)
             .lte('end_time', endDate);
 
@@ -89,7 +90,7 @@ export const availabilityService = {
 
         const { data, error } = await supabase
             .from('stylist_availability')
-            .insert(record)
+            .insert({ ...record, organization_id: organizationId })
             .select()
             .single();
 
@@ -106,6 +107,7 @@ export const availabilityService = {
             .from('stylist_availability')
             .select('stylist_id')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .maybeSingle();
         if (!row || !(await assertStylistInOrganization(row.stylist_id, organizationId))) {
             throw new Error('Availability record not found');
@@ -114,7 +116,8 @@ export const availabilityService = {
         const { error } = await supabase
             .from('stylist_availability')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
     },
@@ -165,6 +168,7 @@ export const availabilityService = {
             .from('stylist_availability')
             .select('id, start_time, end_time')
             .eq('stylist_id', stylistId)
+            .eq('organization_id', organizationId)
             .eq('type', 'holiday')
             .lte('start_time', yearEnd)
             .gte('end_time', yearStart);

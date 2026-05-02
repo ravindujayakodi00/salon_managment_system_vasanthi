@@ -112,6 +112,7 @@ export const settingsService = {
                 .from('salary_settings')
                 .select('*')
                 .eq('staff_id', staffId)
+                .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .single();
 
@@ -151,6 +152,7 @@ export const settingsService = {
                     })
                     .eq('id', existing.id)
                     .eq('staff_id', staffId)
+                    .eq('organization_id', organizationId)
                     .select()
                     .single();
 
@@ -165,7 +167,8 @@ export const settingsService = {
                         salary_type: salaryType,
                         amount,
                         effective_from: new Date().toISOString().split('T')[0],
-                        is_active: true
+                        is_active: true,
+                        organization_id: organizationId,
                     })
                     .select()
                     .single();

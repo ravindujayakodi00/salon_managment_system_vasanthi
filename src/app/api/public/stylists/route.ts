@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
             const { data: unavailability } = await supabase
                 .from('stylist_unavailability')
                 .select('stylist_id')
+                .eq('organization_id', organizationId)
                 .in('stylist_id', stylistIds)
                 .eq('unavailable_date', date);
 

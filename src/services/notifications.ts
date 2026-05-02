@@ -89,9 +89,10 @@ export const notificationsService = {
         template: Omit<NotificationTemplate, 'id' | 'organization_id'> & { organization_id: string }
     ) {
         try {
+            const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('notification_templates')
-                .insert(template)
+                .insert({ ...template, organization_id: organizationId })
                 .select()
                 .single();
 
