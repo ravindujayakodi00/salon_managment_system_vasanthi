@@ -262,6 +262,7 @@ export default function ReportsPage() {
 }
 
 function SystemReports() {
+    const { showToast } = useToast();
     const [downloading, setDownloading] = useState<string | null>(null);
     const [exportingExcel, setExportingExcel] = useState<string | null>(null);
 
