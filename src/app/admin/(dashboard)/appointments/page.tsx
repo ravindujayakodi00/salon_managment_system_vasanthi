@@ -16,6 +16,7 @@ import { appointmentsService } from '@/services/appointments';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 import { staffService } from '@/services/staff';
+import { useToast } from '@/context/ToastContext';
 
 const statusColors: Record<AppointmentStatus, string> = {
     Pending: 'bg-warning-100 text-warning-700 border-warning-200 dark:bg-warning-900/30 dark:text-warning-400',
@@ -27,6 +28,7 @@ const statusColors: Record<AppointmentStatus, string> = {
 export default function AppointmentsPage() {
     const { user } = useAuth();
     const { effectiveBranchId } = useWorkspace();
+    const { showToast } = useToast();
     const [view, setView] = useState<'list' | 'calendar'>('calendar');
     const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -143,7 +145,7 @@ export default function AppointmentsPage() {
             setSelectedAppointment(null);
             fetchAppointments();
         } catch (error: any) {
-            alert(error.message || 'Failed to delete appointment');
+            showToast(error.message || 'Failed to delete appointment', 'error');
         } finally {
             setDeleteLoading(false);
         }
@@ -158,7 +160,7 @@ export default function AppointmentsPage() {
             setSelectedAppointment({ ...selectedAppointment, status });
             fetchAppointments();
         } catch (error: any) {
-            alert(error.message || 'Failed to update status');
+            showToast(error.message || 'Failed to update status', 'error');
             throw error;
         }
     };

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Bell, Plus, Edit2, Trash2, Eye, Save, X } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
 import { notificationsService } from '@/services/notifications';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +18,7 @@ export default function NotificationsPage() {
     const [templates, setTemplates] = useState<any[]>([]);
     const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const [myNotifications, setMyNotifications] = useState<any[]>([]);
@@ -91,9 +93,14 @@ export default function NotificationsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this template?')) return;
+    const handleDelete = (id: string) => {
+        setPendingDeleteId(id);
+    };
 
+    const doDelete = async () => {
+        if (!pendingDeleteId) return;
+        const id = pendingDeleteId;
+        setPendingDeleteId(null);
         try {
             setLoading(true);
             await notificationsService.deleteTemplate(id);
@@ -171,6 +178,15 @@ export default function NotificationsPage() {
     }, []);
 
     return (
+        <>
+        <ConfirmationDialog
+            isOpen={!!pendingDeleteId}
+            title="Delete Template"
+            message="Are you sure you want to delete this template?"
+            confirmText="Delete"
+            onConfirm={doDelete}
+            onClose={() => setPendingDeleteId(null)}
+        />
         <div className="space-y-6">
             {/* My Notifications */}
             <div className="card p-6 surface-panel">
@@ -498,5 +514,6 @@ export default function NotificationsPage() {
                 </>
             )}
         </div>
+        </>
     );
 }

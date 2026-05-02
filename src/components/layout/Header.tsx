@@ -7,7 +7,7 @@ import { useWorkspace } from '@/lib/workspace';
 import { useTheme } from '@/lib/theme';
 import { useRouter } from 'next/navigation';
 import { Menu, X, Bell, LogOut, User, Sun, Moon } from 'lucide-react';
-import Button from '@/components/shared/Button';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { supabase } from '@/lib/supabase';
 import { branchPickerLabel } from '@/lib/branch-display';
 import { adminPaths } from '@/lib/admin-paths';
@@ -18,6 +18,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
     const { user, logout } = useAuth();
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const { displayName } = useBranding();
     const { branches, branchScope, setBranchScope } = useWorkspace();
     const showBranchPicker = user && user.role === 'Owner' && branches.length > 0;
@@ -111,14 +112,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }, [user?.id]);
 
     const handleLogout = () => {
-        const ok = window.confirm('Are you sure you want to sign out?');
-        if (!ok) return;
         setShowUserMenu(false);
+        setShowLogoutConfirm(true);
+    };
+
+    const doLogout = () => {
         logout();
         router.push(adminPaths.login);
     };
 
     return (
+        <>
         <header className="bg-white/95 dark:bg-primary-950/55 backdrop-blur-sm border-b border-primary-200/70 dark:border-primary-800/50 px-4 lg:px-6 py-4 sticky top-0 z-40 transition-colors shadow-[var(--brand-shadow-xs)]">
             <div className="flex items-center justify-between">
                 {/* Mobile Menu Button & Logo */}
@@ -288,5 +292,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </div>
             </div>
         </header>
+
+        <ConfirmationDialog
+            isOpen={showLogoutConfirm}
+            onClose={() => setShowLogoutConfirm(false)}
+            onConfirm={doLogout}
+            title="Sign Out?"
+            message="Are you sure you want to sign out of your account?"
+            confirmText="Sign Out"
+            cancelText="Cancel"
+            variant="warning"
+        />
+        </>
     );
 }

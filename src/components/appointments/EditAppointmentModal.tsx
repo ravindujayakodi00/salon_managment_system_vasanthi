@@ -6,6 +6,7 @@ import { Calendar, Clock, User, Scissors, CheckCircle } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
+import { useToast } from '@/context/ToastContext';
 import { appointmentsService } from '@/services/appointments';
 import { servicesService } from '@/services/services';
 import { staffService } from '@/services/staff';
@@ -19,6 +20,7 @@ interface EditAppointmentModalProps {
 }
 
 export default function EditAppointmentModal({ isOpen, onClose, appointment, onSuccess }: EditAppointmentModalProps) {
+    const { showToast } = useToast();
     const [step, setStep] = useState<'selection' | 'review'>('selection');
     const [formData, setFormData] = useState({
         date: '',
@@ -112,7 +114,7 @@ export default function EditAppointmentModal({ isOpen, onClose, appointment, onS
             onSuccess?.();
         } catch (error: any) {
             console.error('Error updating appointment:', error);
-            alert(error.message || 'Failed to update appointment');
+            showToast(error.message || 'Failed to update appointment', 'error');
         } finally {
             setLoading(false);
         }

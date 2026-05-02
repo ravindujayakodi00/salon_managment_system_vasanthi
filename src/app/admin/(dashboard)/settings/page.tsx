@@ -10,6 +10,7 @@ import BrandingSettings from './BrandingSettings';
 import { loyaltyService, LoyaltySettings as LoyaltySettingsType } from '@/services/loyalty';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
 import { settingsService } from '@/services/settings';
 import { authService } from '@/services/auth';
@@ -280,6 +281,7 @@ interface StaffPasswordSectionProps {
 
 // Staff Password Management Section Component
 function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
     const [selectedStaff, setSelectedStaff] = useState('');
@@ -289,13 +291,15 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
 
     useEffect(() => {
         fetchStaff();
-    }, []);
+    }, [user?.organizationId]);
 
     const fetchStaff = async () => {
+        if (!user?.organizationId) return;
         try {
             const { data } = await supabase
                 .from('staff')
                 .select('id, name, email, role')
+                .eq('organization_id', user.organizationId)
                 .eq('is_active', true)
                 .order('name');
             setStaff(data || []);
@@ -323,30 +327,24 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
         try {
             setLoading(true);
 
-            // Get staff profile_id
             const staffMember = staff.find(s => s.id === selectedStaff);
-            if (!staffMember) {
-                throw new Error('Staff member not found');
-            }
+            if (!staffMember) throw new Error('Staff member not found');
 
-            // Get profile to find auth user id
-            const { data: staffData } = await supabase
-                .from('staff')
-                .select('profile_id')
-                .eq('id', selectedStaff)
-                .single();
+            // Get the current session token to authenticate the server-side request
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) throw new Error('Not authenticated');
 
-            if (!staffData?.profile_id) {
-                throw new Error('Staff profile not found');
-            }
+            const res = await fetch('/api/staff/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ staffId: selectedStaff, newPassword }),
+            });
 
-            // Update password using Supabase Admin API
-            const { error } = await supabase.auth.admin.updateUserById(
-                staffData.profile_id,
-                { password: newPassword }
-            );
-
-            if (error) throw error;
+            const result = await res.json();
+            if (!result.success) throw new Error(result.error);
 
             showMessage('success', `Password updated for ${staffMember.name}`);
             setSelectedStaff('');
@@ -648,6 +646,7 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
     const [loading, setLoading] = useState(false);
     const [leaves, setLeaves] = useState<AvailabilityRecord[]>([]);
     const [staffId, setStaffId] = useState<string | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [holidayQuota, setHolidayQuota] = useState<number | null>(null);
     const [holidayDaysUsedThisYear, setHolidayDaysUsedThisYear] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -780,16 +779,22 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to remove this unavailable time?')) return;
+    const handleDelete = (id: string) => {
+        setPendingDeleteId(id);
+    };
+
+    const doDelete = async () => {
+        if (!pendingDeleteId) return;
         try {
-            await availabilityService.deleteAvailability(id);
+            await availabilityService.deleteAvailability(pendingDeleteId);
             showMessage('success', 'Removed successfully');
             fetchLeaves();
             await loadHolidayQuota();
         } catch (error) {
             console.error('Error deleting leave:', error);
             showMessage('error', 'Failed to delete');
+        } finally {
+            setPendingDeleteId(null);
         }
     };
 
@@ -802,6 +807,7 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
     }
 
     return (
+        <>
         <div className="space-y-6">
             {holidayQuota != null && holidayDaysUsedThisYear != null && (
                 <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-blue-900 dark:text-blue-100">
@@ -958,6 +964,18 @@ function AvailabilitySettings({ user, showMessage }: AvailabilitySettingsProps) 
                 )}
             </div>
         </div>
+
+        <ConfirmationDialog
+            isOpen={!!pendingDeleteId}
+            onClose={() => setPendingDeleteId(null)}
+            onConfirm={doDelete}
+            title="Remove Unavailable Time?"
+            message="Are you sure you want to remove this unavailable time? This action cannot be undone."
+            confirmText="Remove"
+            cancelText="Cancel"
+            variant="danger"
+        />
+        </>
     );
 }
 

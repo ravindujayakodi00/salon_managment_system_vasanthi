@@ -9,6 +9,7 @@ import {
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 import { campaignService } from '@/services/campaigns';
 import { segmentationService } from '@/services/segmentation';
 import { notificationsService } from '@/services/notifications';
@@ -18,6 +19,7 @@ const STEPS = ['Details', 'Audience', 'Schedule', 'Review'];
 
 export default function NewCampaignPage() {
     const router = useRouter();
+    const { showToast } = useToast();
     const { hasRole, user } = useAuth();
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -116,7 +118,7 @@ export default function NewCampaignPage() {
             router.push('/admin/campaigns');
         } catch (error) {
             console.error('Error creating campaign:', error);
-            alert('Failed to create campaign');
+            showToast('Failed to create campaign', 'error');
         } finally {
             setLoading(false);
         }

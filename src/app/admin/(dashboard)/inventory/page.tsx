@@ -10,6 +10,7 @@ import { inventoryService } from '@/services/inventory';
 import type { InventoryProduct, InventoryCategory } from '@/lib/types';
 import Input from '@/components/shared/Input';
 import Button from '@/components/shared/Button';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import ProductFormModal from '@/components/inventory/ProductFormModal';
 
 export default function InventoryPage() {
@@ -20,6 +21,7 @@ export default function InventoryPage() {
     const [selectedCategory, setSelectedCategory] = useState<InventoryCategory | 'All'>('All');
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<InventoryProduct | null>(null);
+    const [pendingDeleteProduct, setPendingDeleteProduct] = useState<InventoryProduct | null>(null);
 
     const categories: Array<InventoryCategory | 'All'> = ['All', 'Hair Care', 'Skin Care', 'Tools', 'Supplies', 'Other'];
 
@@ -41,6 +43,14 @@ export default function InventoryPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const doDelete = async () => {
+        if (!pendingDeleteProduct) return;
+        const product = pendingDeleteProduct;
+        setPendingDeleteProduct(null);
+        await inventoryService.deleteProduct(product.id);
+        loadProducts();
     };
 
     const handleSearch = async (query: string) => {
@@ -73,6 +83,15 @@ export default function InventoryPage() {
     const lowStockCount = lowStockProducts.length;
 
     return (
+        <>
+        <ConfirmationDialog
+            isOpen={!!pendingDeleteProduct}
+            title="Delete Product"
+            message={`Are you sure you want to delete "${pendingDeleteProduct?.name}"?`}
+            confirmText="Delete"
+            onConfirm={doDelete}
+            onClose={() => setPendingDeleteProduct(null)}
+        />
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -264,12 +283,7 @@ export default function InventoryPage() {
                                                         <Edit2 className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={async () => {
-                                                            if (confirm(`Delete ${product.name}?`)) {
-                                                                await inventoryService.deleteProduct(product.id);
-                                                                loadProducts();
-                                                            }
-                                                        }}
+                                                        onClick={() => setPendingDeleteProduct(product)}
                                                         className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                         title="Delete product"
                                                     >
@@ -297,5 +311,6 @@ export default function InventoryPage() {
                 onSuccess={loadProducts}
             />
         </div>
+        </>
     );
 }

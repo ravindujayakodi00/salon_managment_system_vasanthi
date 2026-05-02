@@ -41,18 +41,18 @@ export default function ServiceSlotMapper({
                             <Clock className="w-3 h-3" />
                             <span>{service.duration} mins</span>
                         </div>
-                        {service.gender && (
+                        {service.gender ? (
                             <span className="px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700">
                                 {service.gender}
                             </span>
-                        )}
+                        ) : null}
                     </div>
                 </div>
-                {selectedTime && (
+                {selectedTime ? (
                     <div className="flex items-center gap-1 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-xs font-medium text-emerald-700 dark:text-emerald-300">
                         ✓ Booked
                     </div>
-                )}
+                ) : null}
             </div>
 
             {/* Stylist & Time Selection */}

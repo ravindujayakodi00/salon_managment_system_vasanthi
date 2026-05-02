@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { analyticsService, AnalyticsSummary, DailyStats } from '@/services/analytics';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabase';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import { RotateCcw } from 'lucide-react';
@@ -16,6 +17,7 @@ import { exportSalesReportToExcel } from '@/lib/excel-export';
 
 export default function ReportsPage() {
     const { hasRole } = useAuth();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
@@ -323,7 +325,7 @@ function SystemReports() {
             }
         } catch (error: any) {
             console.error('Error generating report:', error);
-            alert(`Failed to generate report: ${error.message}`);
+            showToast(`Failed to generate report: ${error.message}`, 'error');
         } finally {
             setDownloading(null);
         }
@@ -375,10 +377,10 @@ function SystemReports() {
                                         const now = new Date();
                                         const data = await reportsService.getSalesReportData(now.getMonth() + 1, now.getFullYear());
                                         exportSalesReportToExcel(data);
-                                        alert('Excel file downloaded successfully!');
+                                        showToast('Excel file downloaded successfully!', 'success');
                                     } catch (error) {
                                         console.error('Error exporting to Excel:', error);
-                                        alert('Failed to export to Excel');
+                                        showToast('Failed to export to Excel', 'error');
                                     } finally {
                                         setExportingExcel(null);
                                     }

@@ -239,12 +239,12 @@ export default function AvailableStylistsView({
                     <div className="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/30 rounded border border-yellow-300 dark:border-yellow-700" />
                     <span className="text-gray-700 dark:text-gray-300">Break</span>
                 </div>
-                {occupiedSlots.length > 0 && (
+                {occupiedSlots.length > 0 ? (
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-orange-100 dark:bg-orange-900/30 rounded border border-orange-300 dark:border-orange-700 ring-2 ring-orange-400" />
                         <span className="text-gray-700 dark:text-gray-300">Other Service</span>
                     </div>
-                )}
+                ) : null}
             </div>
 
             {/* Slots for selected stylist */}
@@ -283,11 +283,11 @@ export default function AvailableStylistsView({
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                                 {stylist.id === 'NO_PREFERENCE' ? 'Any Professional' : stylist.name}
-                                                {stylist.id === 'NO_PREFERENCE' && (
+                                                {stylist.id === 'NO_PREFERENCE' ? (
                                                     <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                                                         Fastest
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </h4>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {skillDetails.slice(0, 4).map((skill) => (
@@ -299,16 +299,16 @@ export default function AvailableStylistsView({
                                                         {skill.name}
                                                     </span>
                                                 ))}
-                                                {skillDetails.length > 4 && (
+                                                {skillDetails.length > 4 ? (
                                                     <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5">
                                                         +{skillDetails.length - 4} more
                                                     </span>
-                                                )}
-                                                {skillDetails.length === 0 && stylist.id !== 'NO_PREFERENCE' && (
+                                                ) : null}
+                                                {skillDetails.length === 0 && stylist.id !== 'NO_PREFERENCE' ? (
                                                     <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5">
                                                         No skill metadata
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>
@@ -344,7 +344,7 @@ export default function AvailableStylistsView({
             )}
 
             {/* Selection Summary */}
-            {selectedStylist && selectedTime && (
+            {selectedStylist && selectedTime ? (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -365,7 +365,7 @@ export default function AvailableStylistsView({
                     </div>
                     <ChevronRight className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </motion.div>
-            )}
+            ) : null}
         </div>
     );
 }

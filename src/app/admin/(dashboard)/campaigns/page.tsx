@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Send, Calendar, Users, DollarSign, Eye, Ban, Trash2 } from 'lucide-react';
 import Button from '@/components/shared/Button';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 import { campaignService } from '@/services/campaigns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,8 +23,11 @@ const statusColors = {
 export default function CampaignsPage() {
     const router = useRouter();
     const { hasRole } = useAuth();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchCampaigns();
@@ -40,25 +45,37 @@ export default function CampaignsPage() {
         }
     };
 
-    const handleCancel = async (id: string) => {
-        if (!confirm('Cancel this campaign?')) return;
+    const handleCancel = (id: string) => {
+        setPendingCancelId(id);
+    };
 
+    const doCancel = async () => {
+        if (!pendingCancelId) return;
+        const id = pendingCancelId;
+        setPendingCancelId(null);
         try {
             await campaignService.cancelCampaign(id);
             await fetchCampaigns();
         } catch (error) {
             console.error('Error cancelling campaign:', error);
+            showToast('Failed to cancel campaign', 'error');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this campaign? This cannot be undone.')) return;
+    const handleDelete = (id: string) => {
+        setPendingDeleteId(id);
+    };
 
+    const doDelete = async () => {
+        if (!pendingDeleteId) return;
+        const id = pendingDeleteId;
+        setPendingDeleteId(null);
         try {
             await campaignService.deleteCampaign(id);
             await fetchCampaigns();
         } catch (error) {
             console.error('Error deleting campaign:', error);
+            showToast('Failed to delete campaign', 'error');
         }
     };
 
@@ -86,6 +103,23 @@ export default function CampaignsPage() {
     };
 
     return (
+        <>
+        <ConfirmationDialog
+            isOpen={!!pendingCancelId}
+            title="Cancel Campaign"
+            message="Are you sure you want to cancel this campaign?"
+            confirmText="Cancel Campaign"
+            onConfirm={doCancel}
+            onClose={() => setPendingCancelId(null)}
+        />
+        <ConfirmationDialog
+            isOpen={!!pendingDeleteId}
+            title="Delete Campaign"
+            message="Delete this campaign? This cannot be undone."
+            confirmText="Delete"
+            onConfirm={doDelete}
+            onClose={() => setPendingDeleteId(null)}
+        />
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -251,5 +285,6 @@ export default function CampaignsPage() {
                 )}
             </div>
         </div>
+        </>
     );
 }

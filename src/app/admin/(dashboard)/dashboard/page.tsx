@@ -9,6 +9,7 @@ import { availabilityService } from '@/services/availability';
 import { staffService } from '@/services/staff';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
+import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { getLocalDateString } from '@/lib/utils';
 import { adminHref } from '@/lib/admin-paths';
@@ -40,6 +41,7 @@ const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
 
 export default function DashboardPage() {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const { effectiveBranchId } = useWorkspace();
     const [stats, setStats] = useState<DashboardStats>({
         todayRevenue: 0,
@@ -353,7 +355,7 @@ export default function DashboardPage() {
 
     const handleEmergencyToggle = async () => {
         if (!staffId) {
-            alert("Could not find your staff profile. Please contact admin.");
+            showToast('Could not find your staff profile. Please contact admin.', 'error');
             return;
         }
 
@@ -374,7 +376,7 @@ export default function DashboardPage() {
             } else {
                 errorMessage += 'Please try again.';
             }
-            alert(errorMessage);
+            showToast(errorMessage, 'error');
         } finally {
             setTogglingEmergency(false);
         }

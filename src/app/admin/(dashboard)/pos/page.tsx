@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingCart, Plus, Tag, Trash2, Printer, RotateCcw, Calendar, Clock, User, CheckCircle, ChevronDown, ChevronUp, CreditCard, Banknote, Landmark, X } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import SplitPaymentModal from '@/components/pos/SplitPaymentModal';
 import WalkInServicesPanel from '@/components/pos/WalkInServicesPanel';
@@ -34,6 +35,7 @@ export default function POSPage() {
     const { user } = useAuth();
     const { effectiveBranchId } = useWorkspace();
     const { showToast } = useToast();
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [cart, setCart] = useState<any[]>([]);
     const [discount, setDiscount] = useState(0);
     const [discountInput, setDiscountInput] = useState(''); // Uncontrolled input for manual discount
@@ -212,10 +214,12 @@ export default function POSPage() {
     };
 
     const fetchStaff = async () => {
+        if (!user?.organizationId) return;
         try {
             const { data, error } = await supabase
                 .from('staff')
                 .select('id, name, role')
+                .eq('organization_id', user.organizationId)
                 .eq('is_active', true)
                 .eq('role', 'Stylist')
                 .order('name');
@@ -480,13 +484,15 @@ export default function POSPage() {
     };
 
     const clearCart = () => {
-        if (confirm('Are you sure you want to clear the bill?')) {
-            setCart([]);
-            setDiscount(0);
-            setPromoCode('');
-            setSelectedCoupon(null);
-            showToast('Bill cleared', 'info');
-        }
+        setShowClearConfirm(true);
+    };
+
+    const doClearCart = () => {
+        setCart([]);
+        setDiscount(0);
+        setPromoCode('');
+        setSelectedCoupon(null);
+        showToast('Bill cleared', 'info');
     };
 
     const handleSelectCoupon = async (coupon: any) => {
@@ -541,15 +547,32 @@ export default function POSPage() {
 
         setProcessingPayment(true);
         try {
-            // Branch is required for POS writes.
-            // For Owner, this is driven by header scope:
-            // - If user selected "All locations", effectiveBranchId is undefined => block checkout.
-            if (!effectiveBranchId) {
-                showToast('Select a branch location before checkout.', 'warning');
+            // Determine branch ID:
+            // - Appointment items: use branch_id from the appointment record (no header selection needed)
+            // - Walk-in / product / manual only: require header branch selection
+            const appointmentItemIds = [...new Set(
+                cart.filter((item: any) => item.appointmentId).map((item: any) => item.appointmentId)
+            )];
+
+            let branchId: string | undefined;
+            if (appointmentItemIds.length > 0) {
+                const firstApt = customerAppointments.find((a: any) => a.id === appointmentItemIds[0]);
+                branchId = firstApt?.branch_id ?? effectiveBranchId;
+            } else {
+                // Walk-in / product / manual only — require header branch selection
+                if (!effectiveBranchId) {
+                    showToast('Please select a branch location in the top bar before checkout.', 'warning');
+                    setProcessingPayment(false);
+                    return;
+                }
+                branchId = effectiveBranchId;
+            }
+
+            if (!branchId) {
+                showToast('Could not determine branch. Please select a branch location.', 'warning');
                 setProcessingPayment(false);
                 return;
             }
-            const branchId = effectiveBranchId;
 
             const loyaltyCardQty = cart
                 .filter((i: { loyaltyCardPurchase?: boolean }) => i.loyaltyCardPurchase)
@@ -576,12 +599,8 @@ export default function POSPage() {
                 }
             }
 
-            // Get unique appointment IDs from cart
-            const appointmentIds = [...new Set(
-                cart
-                    .filter(item => item.appointmentId)
-                    .map(item => item.appointmentId)
-            )];
+            // appointmentItemIds already derived above for branch resolution
+            const appointmentIds = appointmentItemIds;
 
             const invoice = await invoicesService.createInvoice({
                 customer_id: selectedCustomer.id,
@@ -835,6 +854,7 @@ export default function POSPage() {
     const { appointmentGroups, extraItems } = getGroupedCart();
 
     return (
+        <>
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1610,5 +1630,17 @@ export default function POSPage() {
                 initialPhone={pendingPhone}
             />
         </div >
+
+        <ConfirmationDialog
+            isOpen={showClearConfirm}
+            onClose={() => setShowClearConfirm(false)}
+            onConfirm={doClearCart}
+            title="Clear Bill?"
+            message="Are you sure you want to clear the entire bill? All items will be removed."
+            confirmText="Clear Bill"
+            cancelText="Cancel"
+            variant="danger"
+        />
+        </>
     );
 }

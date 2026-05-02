@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, Calendar, Clock, User, Scissors, CheckCircle, Search, Phone, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
@@ -10,8 +10,9 @@ import PhoneInput from '@/components/shared/PhoneInput';
 import { appointmentsService } from '@/services/appointments';
 import { customersService } from '@/services/customers';
 import { servicesService } from '@/services/services';
+import { branchesService } from '@/services/branches';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { useToast } from '@/context/ToastContext';
 import MultiServiceSelector from './MultiServiceSelector';
 import ServiceSlotMapper from './ServiceSlotMapper';
 import { Service } from '@/lib/types';
@@ -31,6 +32,7 @@ interface ServiceBooking {
 
 export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: CreateAppointmentModalProps) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [step, setStep] = useState<'customer' | 'slots' | 'review'>('customer');
 
     // Customer & Service Selection (Step 1)
@@ -51,6 +53,8 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
 
     const [loading, setLoading] = useState(false);
     const [services, setServices] = useState<Service[]>([]);
+    const [branches, setBranches] = useState<{ id: string; name: string; address?: string }[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string>('');
 
     // Customer lookup state
     const [customerLookupStatus, setCustomerLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
@@ -109,10 +113,17 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
 
     const fetchServices = async () => {
         try {
-            const data = await servicesService.getServices();
-            setServices(data || []);
+            const [servicesData, branchesData] = await Promise.all([
+                servicesService.getServices(),
+                branchesService.getBranches(user?.organizationId),
+            ]);
+            setServices(servicesData || []);
+            setBranches(branchesData || []);
+            // Pre-select the user's assigned branch or the first available branch
+            const defaultBranchId = user?.branchId || branchesData?.[0]?.id;
+            if (defaultBranchId) setSelectedBranchId(defaultBranchId);
         } catch (error) {
-            console.error('Error fetching services:', error);
+            console.error('Error fetching services/branches:', error);
         }
     };
 
@@ -129,6 +140,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
         });
         setSelectedServiceIds([]);
         setServiceBookings([]);
+        setSelectedBranchId(user?.branchId || '');
         setCustomerLookupStatus('idle');
         setExistingCustomer(null);
         setIsCustomerLocked(false);
@@ -164,7 +176,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
 
     const handleSubmit = async () => {
         if (!user) {
-            alert('You must be logged in');
+            showToast('You must be logged in', 'error');
             return;
         }
 
@@ -183,20 +195,12 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                 });
             }
 
-            // Get branch ID
-            let branchId = user.branchId;
+            // Use the branch selected in the form
+            const branchId = selectedBranchId;
             if (!branchId) {
-                const { data: branches } = await supabase
-                    .from('branches')
-                    .select('id')
-                    .limit(1)
-                    .single();
-
-                if (branches) {
-                    branchId = branches.id;
-                } else {
-                    throw new Error('No branch found. Please contact support.');
-                }
+                showToast('Please select a branch before creating an appointment.', 'error');
+                setLoading(false);
+                return;
             }
 
             // Create appointments array
@@ -223,7 +227,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
             onSuccess?.();
         } catch (error: any) {
             console.error('Error creating appointments:', JSON.stringify(error, null, 2));
-            alert(error.message || 'Failed to create appointments');
+            showToast(error.message || 'Failed to create appointments', 'error');
         } finally {
             setLoading(false);
         }
@@ -292,7 +296,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
             </div>
 
             {/* Step 1: Customer & Services */}
-            {step === 'customer' && (
+            {step === 'customer' ? (
                 <form onSubmit={(e) => { e.preventDefault(); handleCustomerStepNext(); }} className="space-y-3">
                     {/* Phone Number with auto lookup */}
                     <div className="space-y-2">
@@ -318,15 +322,15 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                 }}
                                 required
                             />
-                            {customerLookupStatus === 'searching' && (
+                            {customerLookupStatus === 'searching' ? (
                                 <div className="absolute right-3 top-9 flex items-center gap-2 text-gray-500 dark:text-gray-400">
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     <span className="text-xs">Searching...</span>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
-                        {customerLookupStatus === 'found' && existingCustomer && (
+                        {customerLookupStatus === 'found' && existingCustomer ? (
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -354,9 +358,9 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                     Edit
                                 </Button>
                             </motion.div>
-                        )}
+                        ) : null}
 
-                        {customerLookupStatus === 'not_found' && (
+                        {customerLookupStatus === 'not_found' ? (
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -367,7 +371,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                     New customer! Please fill in their details below.
                                 </p>
                             </motion.div>
-                        )}
+                        ) : null}
                     </div>
 
                     {/* Customer Details */}
@@ -424,14 +428,40 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         </div>
                     </div>
 
+                    {/* Branch Selector */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                            Branch *
+                        </label>
+                        {branches.length === 0 ? (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Loading branches...</p>
+                        ) : branches.length === 1 ? (
+                            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300">
+                                {branches[0].name}
+                            </div>
+                        ) : (
+                            <select
+                                value={selectedBranchId}
+                                onChange={(e) => setSelectedBranchId(e.target.value)}
+                                required
+                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base"
+                            >
+                                <option value="">Select a branch...</option>
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
+
                     {/* Multi-Service Selector */}
-                    {formData.date && (
+                    {formData.date ? (
                         <MultiServiceSelector
                             services={services}
                             selectedServiceIds={selectedServiceIds}
                             onSelectionChange={setSelectedServiceIds}
                         />
-                    )}
+                    ) : null}
 
                     {/* Notes */}
                     <div>
@@ -455,16 +485,16 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         <Button
                             type="submit"
                             variant="primary"
-                            disabled={!formData.date || selectedServiceIds.length === 0}
+                            disabled={!formData.date || selectedServiceIds.length === 0 || !selectedBranchId}
                         >
                             Next: Select Time Slots
                         </Button>
                     </div>
                 </form>
-            )}
+            ) : null}
 
             {/* Step 2: Time Slot Selection */}
-            {step === 'slots' && (
+            {step === 'slots' ? (
                 <div className="space-y-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
                         <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -521,19 +551,19 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         </Button>
                     </div>
                 </div>
-            )}
+            ) : null}
 
             {/* Step 3: Review */}
-            {step === 'review' && (
+            {step === 'review' ? (
                 <div className="space-y-6">
                     {/* Customer Info */}
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                         <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Customer Details</h4>
                         <p className="text-base font-semibold text-gray-900 dark:text-white">{formData.customerName}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-300">{formData.customerPhone}</p>
-                        {formData.customerEmail && (
+                        {formData.customerEmail ? (
                             <p className="text-sm text-gray-600 dark:text-gray-300">{formData.customerEmail}</p>
-                        )}
+                        ) : null}
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                             <strong>Date:</strong> {formatDate(formData.date)}
                         </p>
@@ -597,12 +627,12 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         </div>
                     </div>
 
-                    {formData.notes && (
+                    {formData.notes ? (
                         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                             <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</h4>
                             <p className="text-sm text-gray-700 dark:text-gray-300">{formData.notes}</p>
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Actions */}
                     <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -626,7 +656,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         </Button>
                     </div>
                 </div>
-            )}
+            ) : null}
         </Modal>
     );
 }

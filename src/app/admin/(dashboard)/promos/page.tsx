@@ -6,6 +6,7 @@ import { Plus, Search, Edit, Copy, Trash2, RefreshCw } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import PromoCodeModal from '@/components/promos/PromoCodeModal';
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { promosService, PromoCode } from '@/services/promos';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
@@ -18,6 +19,7 @@ export default function PromosPage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [promoToEdit, setPromoToEdit] = useState<PromoCode | null>(null);
+    const [pendingDeletePromo, setPendingDeletePromo] = useState<PromoCode | null>(null);
 
     // Fetch promo codes on mount
     useEffect(() => {
@@ -53,11 +55,14 @@ export default function PromosPage() {
         }
     };
 
-    const handleDelete = async (promo: PromoCode) => {
-        if (!confirm(`Are you sure you want to delete promo code "${promo.code}"? This action cannot be undone.`)) {
-            return;
-        }
+    const handleDelete = (promo: PromoCode) => {
+        setPendingDeletePromo(promo);
+    };
 
+    const doDelete = async () => {
+        if (!pendingDeletePromo) return;
+        const promo = pendingDeletePromo;
+        setPendingDeletePromo(null);
         try {
             await promosService.deletePromoCode(promo.id);
             showToast('Promo code deleted successfully', 'success');
@@ -106,6 +111,15 @@ export default function PromosPage() {
     };
 
     return (
+        <>
+        <ConfirmationDialog
+            isOpen={!!pendingDeletePromo}
+            title="Delete Promo Code"
+            message={`Are you sure you want to delete promo code "${pendingDeletePromo?.code}"? This action cannot be undone.`}
+            confirmText="Delete"
+            onConfirm={doDelete}
+            onClose={() => setPendingDeletePromo(null)}
+        />
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -291,5 +305,6 @@ export default function PromosPage() {
                 promoToEdit={promoToEdit}
             />
         </div>
+        </>
     );
 }

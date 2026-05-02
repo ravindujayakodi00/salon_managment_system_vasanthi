@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Send SMS via text.lk
-        const textLkApiToken = process.env.TEXTLK_API_TOKEN;
-        const textLkSenderId = process.env.TEXTLK_SENDER_ID || 'TextLKDemo';
+        const textLkApiToken = process.env.TEXT_LK_API_KEY;
+        const textLkSenderId = process.env.TEXT_LK_SENDER_ID || 'TextLKDemo';
 
         if (!textLkApiToken) {
             console.error('TEXTLK_API_TOKEN not configured');
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
                 recipient: formattedPhone,
                 sender_id: textLkSenderId,
                 type: 'plain',
-                message: `Your SalonFlow booking verification code is: ${otp}. Valid for 5 minutes.`,
+                message: `Your Vasanthi Gulasekharam Salon booking verification code is: ${otp}. Valid for 5 minutes.`,
             }),
         });
 

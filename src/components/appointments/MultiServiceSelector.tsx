@@ -45,7 +45,7 @@ export default function MultiServiceSelector({
 
     const toggleService = (serviceId: string) => {
         if (selectedServiceIds.includes(serviceId)) {
-            onSelectionChange(selectedServiceIds.filter(id => id !== serviceId));
+            onSelectionChange(selectedServiceIds.filter(sid => sid !== serviceId));
         } else {
             onSelectionChange([...selectedServiceIds, serviceId]);
         }
@@ -72,11 +72,11 @@ export default function MultiServiceSelector({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Select Services ({selectedServiceIds.length} selected)
                 </label>
-                {selectedServiceIds.length > 0 && (
+                {selectedServiceIds.length > 0 ? (
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                         Total: Rs {totalPrice.toLocaleString()} • {totalDuration} mins
                     </div>
-                )}
+                ) : null}
             </div>
 
             {/* Search Filter */}
@@ -109,14 +109,14 @@ export default function MultiServiceSelector({
                                 }`}
                         >
                             <span>{category}</span>
-                            {count > 0 && (
+                            {count > 0 ? (
                                 <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${selectedCategoryFilter === category
                                         ? 'bg-white/20 text-white'
                                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                     }`}>
                                     {count}
                                 </span>
-                            )}
+                            ) : null}
                         </button>
                     );
                 })}
@@ -142,11 +142,11 @@ export default function MultiServiceSelector({
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
                                         ({categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'})
                                     </span>
-                                    {selectedInCategory > 0 && (
+                                    {selectedInCategory > 0 ? (
                                         <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
                                             {selectedInCategory} selected
                                         </span>
-                                    )}
+                                    ) : null}
                                 </div>
                                 {isCollapsed ? (
                                     <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -157,7 +157,7 @@ export default function MultiServiceSelector({
 
                             {/* Category Services */}
                             <AnimatePresence>
-                                {!isCollapsed && (
+                                {!isCollapsed ? (
                                     <motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
@@ -189,11 +189,11 @@ export default function MultiServiceSelector({
                                                                         }`}>
                                                                         {service.name}
                                                                     </span>
-                                                                    {service.gender && (
+                                                                    {service.gender ? (
                                                                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                                                                             {service.gender}
                                                                         </span>
-                                                                    )}
+                                                                    ) : null}
                                                                 </div>
                                                                 <div className="flex items-center gap-3 mt-1">
                                                                     <span className="text-xs text-gray-600 dark:text-gray-400">
@@ -203,19 +203,19 @@ export default function MultiServiceSelector({
                                                                         {service.duration} mins
                                                                     </span>
                                                                 </div>
-                                                                {service.description && (
+                                                                {service.description ? (
                                                                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 line-clamp-1">
                                                                         {service.description}
                                                                     </p>
-                                                                )}
+                                                                ) : null}
                                                             </div>
                                                             <div className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center ${isSelected
                                                                 ? 'bg-primary-500 border-primary-500'
                                                                 : 'border-gray-300 dark:border-gray-600'
                                                                 }`}>
-                                                                {isSelected && (
+                                                                {isSelected ? (
                                                                     <Check className="w-3 h-3 text-white" />
-                                                                )}
+                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     </motion.button>
@@ -223,24 +223,24 @@ export default function MultiServiceSelector({
                                             })}
                                         </div>
                                     </motion.div>
-                                )}
+                                ) : null}
                             </AnimatePresence>
                         </div>
                     );
                 })}
             </div>
 
-            {filteredServices.length === 0 && (
+            {filteredServices.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                    No services found{searchQuery && ` matching "${searchQuery}"`}
+                    No services found{searchQuery ? ` matching "${searchQuery}"` : ''}
                 </p>
-            )}
+            ) : null}
 
-            {selectedServiceIds.length === 0 && filteredServices.length > 0 && (
+            {selectedServiceIds.length === 0 && filteredServices.length > 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                     Please select at least one service to continue
                 </p>
-            )}
+            ) : null}
         </div>
     );
 }
