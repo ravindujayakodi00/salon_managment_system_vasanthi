@@ -620,16 +620,18 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     </div>
                 )}
 
-                <div className="w-full overflow-hidden">
+                <div>
                     <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
-                    <input
-                        type="date"
-                        value={configuring.date}
-                        onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
-                        min={getMinDate()}
-                        disabled={branches.length > 1 && !selectedBranchId}
-                        className="w-full max-w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    />
+                    <div className="flex">
+                        <input
+                            type="date"
+                            value={configuring.date}
+                            onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
+                            min={getMinDate()}
+                            disabled={branches.length > 1 && !selectedBranchId}
+                            className="flex-1 min-w-0 p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        />
+                    </div>
                 </div>
 
                 {branches.length > 1 && !selectedBranchId && (
