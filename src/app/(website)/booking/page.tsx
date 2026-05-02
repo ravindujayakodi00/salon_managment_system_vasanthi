@@ -19,7 +19,7 @@ export default function BookingPage() {
     }, []);
 
     return (
-        <main className={`bg-[var(--t-bg)] ${isMobile ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+        <main className={`bg-[var(--t-bg)] overflow-x-hidden ${isMobile ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
             {/* Subtle background texture */}
             <div className="fixed inset-0 -z-10 pointer-events-none">
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at top left, rgba(205,155,119,0.06) 0%, transparent 60%), radial-gradient(ellipse at bottom right, rgba(185,165,148,0.04) 0%, transparent 60%)' }} />
