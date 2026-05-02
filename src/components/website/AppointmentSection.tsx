@@ -3,17 +3,22 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
-import { gsap, ScrollTrigger } from '@/utils/gsapConfig';
 import { useWebsiteAuth } from '@/context/WebsiteAuthContext';
 import {
     fetchServices,
+    fetchBranches,
     fetchConsolidatedAvailability,
     createRandomBooking,
     formatTime,
-    getMinDate,
     type Service,
+    type Branch,
     type ConsolidatedSlot,
 } from '@/lib/website/api';
+
+// Timezone-safe min date (uses local date, not UTC)
+function getMinDate(): string {
+    return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
+}
 
 interface BookingData {
     id: string;
@@ -23,6 +28,8 @@ interface BookingData {
     serviceDuration: number;
     date: string;
     time: string;
+    branchId?: string;
+    branchName?: string;
 }
 
 interface CustomerData {
@@ -60,11 +67,11 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     const { setSession, isAuthenticated, getAuthenticatedClient } = useWebsiteAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const sectionRef = useRef<HTMLElement | null>(null);
-    const [isMounted, setIsMounted] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
 
     // API Data States
     const [services, setServices] = useState<Service[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string>('');
     const [consolidatedSlots, setConsolidatedSlots] = useState<ConsolidatedSlot[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -215,8 +222,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     const canProceed = () => {
         switch (currentStep) {
             case 1: {
-                // Check if a service is fully configured (for service selection step)
-                return configuring.service && configuring.date && configuring.time;
+                // Can proceed if cart already has items (added via modal), OR a service is fully configured
+                if (cart.length > 0) return true;
+                const branchOk = branches.length <= 1 || !!selectedBranchId;
+                return !!(branchOk && configuring.service && configuring.date && configuring.time);
             }
             case 2: {
                 // Review step - check if there are appointments in the list
@@ -229,7 +238,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 const emailErr = validateEmail(customer.email);
                 return !nameErr && !phoneErr && !emailErr;
             }
-            case 4: return otpVerified;
+            case 4: return otpVerified || isAuthenticated;
             default: return true;
         }
     };
@@ -241,6 +250,14 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             return () => clearTimeout(timer);
         }
     }, [otpCountdown]);
+
+    // Auto-advance past Step 4 if already authenticated (re-booking session active)
+    useEffect(() => {
+        if (currentStep === 4 && isAuthenticated && !otpVerified) {
+            setOtpVerified(true);
+            goNext();
+        }
+    }, [currentStep, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Send OTP function
     const sendOtp = async () => {
@@ -307,13 +324,19 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         }
     };
 
-    // Mount effects
+    // Fetch branches on mount
     useEffect(() => {
-        setIsMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        async function loadBranches() {
+            try {
+                const data = await fetchBranches();
+                setBranches(data);
+                // Auto-select if there is only one branch
+                if (data.length === 1) setSelectedBranchId(data[0].id);
+            } catch (err) {
+                console.error('Error loading branches:', err);
+            }
+        }
+        loadBranches();
     }, []);
 
     // Fetch services on mount
@@ -334,9 +357,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         loadServices();
     }, []);
 
-    // Fetch consolidated availability when date is selected
+    // Fetch consolidated availability when date or branch is selected
     useEffect(() => {
-        if (!configuring.date || !configuring.service) {
+        // If multiple branches exist, wait until one is selected
+        if (!configuring.date || !configuring.service || (branches.length > 1 && !selectedBranchId)) {
             setConsolidatedSlots([]);
             return;
         }
@@ -347,7 +371,8 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 const data = await fetchConsolidatedAvailability(
                     configuring.service!.id,
                     configuring.date,
-                    configuring.service!.duration
+                    configuring.service!.duration,
+                    selectedBranchId || undefined
                 );
                 setConsolidatedSlots(data.slots);
                 setError(null);
@@ -359,43 +384,9 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             }
         }
         loadAvailability();
-    }, [configuring.service, configuring.date]);
+    }, [configuring.service, configuring.date, selectedBranchId, branches.length]);
 
-    // ScrollTrigger for pinning
-    useEffect(() => {
-        if (!isMounted || !sectionRef.current) return;
-
-        let ctx: gsap.Context | null = null;
-
-        const timer = setTimeout(() => {
-            const section = sectionRef.current;
-            if (!section) return;
-
-            ctx = gsap.context(() => {
-                ScrollTrigger.create({
-                    trigger: section,
-                    start: 'top top',
-                    end: `+=${steps.length * 500}`,
-                    pin: true,
-                    pinSpacing: true,
-                    anticipatePin: 1,
-                    invalidateOnRefresh: true,
-                    scrub: isMobile ? 1 : false,
-                    onUpdate: isMobile ? (self) => {
-                        const progress = self.progress;
-                        const stepIndex = Math.floor(progress * steps.length);
-                        const newStep = Math.min(Math.max(stepIndex + 1, 1), steps.length);
-                        setCurrentStep(prev => prev !== newStep ? newStep : prev);
-                    } : undefined,
-                });
-            }, section);
-        }, 300);
-
-        return () => {
-            clearTimeout(timer);
-            if (ctx) ctx.revert();
-        };
-    }, [isMounted, isMobile]);
+    // ScrollTrigger removed — steps advance via buttons only
 
     // Open modal to configure a service
     const openServiceModal = (service: Service) => {
@@ -404,6 +395,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             date: '',
             time: '',
         });
+        // Reset branch selection unless auto-selected (single branch)
+        if (branches.length !== 1) {
+            setSelectedBranchId('');
+        }
         setShowModal(true);
     };
 
@@ -411,6 +406,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     const addToAppointments = () => {
         if (!configuring.service || !configuring.date || !configuring.time) return;
 
+        const selectedBranch = branches.find(b => b.id === selectedBranchId);
         const newBooking: BookingData = {
             id: generateId(),
             service: configuring.service.id,
@@ -419,6 +415,8 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             serviceDuration: configuring.service.duration,
             date: configuring.date,
             time: configuring.time,
+            branchId: selectedBranchId || undefined,
+            branchName: selectedBranch?.name,
         };
 
         setCart(prev => [...prev, newBooking]);
@@ -462,6 +460,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         date: booking.date,
                         time: booking.time,
                         notes: customer.notes || undefined,
+                        branch_id: booking.branchId || selectedBranchId || undefined,
                     }
                 }, authClient);
 
@@ -557,15 +556,74 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     );
 
     // Render modal content for configuring a service (date & time only — stylist allocated randomly)
+    // Escape key to close modal
+    useEffect(() => {
+        if (!showModal) return;
+        // iOS-safe scroll lock: position:fixed preserves scroll position
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.overflow = 'hidden';
+
+        const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false); };
+        document.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, scrollY);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [showModal]);
+
     const renderModalContent = () => {
         if (!configuring.service) return null;
 
         return (
-            <div className="space-y-4">
+            // flex-1 min-h-0: fills remaining card height after the header; flex-col: stacks scroll body + footer
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                {/* Scrollable body */}
+                <div className="overflow-y-auto flex-1 min-h-0 space-y-4 p-6 overscroll-contain">
                 <div className="text-center mb-4">
-                    <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Date & Time</p>
+                    <p className="t-script text-[var(--t-accent-2)] mb-1" style={{ fontSize: '1rem' }}>Select Branch, Date & Time</p>
                     <p className="text-[var(--t-text-2)] text-sm">{configuring.service.name}</p>
                 </div>
+
+                {/* Branch Selector inside modal */}
+                {branches.length > 1 && (
+                    <div>
+                        <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Branch *</label>
+                        <div className="flex flex-col gap-2">
+                            {branches.map(branch => (
+                                <button
+                                    key={branch.id}
+                                    onClick={() => {
+                                        setSelectedBranchId(branch.id);
+                                        setConfiguring(prev => ({ ...prev, time: '' }));
+                                    }}
+                                    className={`px-4 py-2.5 text-xs font-medium border transition-all text-left ${selectedBranchId === branch.id
+                                        ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-white'
+                                        : 'bg-[var(--t-bg-2)] border-[var(--t-border)] text-[var(--t-text-2)] hover:border-[var(--t-accent-2)]'
+                                        }`}
+                                >
+                                    <span className="font-semibold block">{branch.name}</span>
+                                    {branch.address && <span className="opacity-70 block text-[10px] mt-0.5">{branch.address}</span>}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {branches.length === 1 && (
+                    <div className="px-3 py-2 bg-[var(--t-bg-2)] border border-[var(--t-border)] flex items-center gap-2">
+                        <span className="text-[var(--t-text-3)] text-[0.6rem] tracking-[0.3em] uppercase">Branch</span>
+                        <span className="text-[var(--t-text)] text-xs font-medium">{branches[0].name}</span>
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
@@ -574,9 +632,16 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         value={configuring.date}
                         onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
                         min={getMinDate()}
-                        className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all"
+                        disabled={branches.length > 1 && !selectedBranchId}
+                        className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     />
                 </div>
+
+                {branches.length > 1 && !selectedBranchId && (
+                    <div className="bg-amber-50 border border-amber-200 p-3 text-center">
+                        <p className="text-amber-700 text-xs">Please select a branch above to see available times.</p>
+                    </div>
+                )}
 
                 {configuring.date && loading && (
                     <div className="text-center py-4">
@@ -611,7 +676,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                 <span>Booked</span>
                             </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
+                        <div className="grid grid-cols-4 gap-2">
                             {consolidatedSlots.map(slot => {
                                 const cartBlocked = isSlotBlockedByCart(
                                     slot.time,
@@ -644,17 +709,20 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     </div>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                </div>{/* end scrollable body */}
+
+                {/* Sticky footer — always visible at bottom of modal */}
+                <div className="flex-shrink-0 flex gap-3 p-4 border-t border-[var(--t-border)] bg-[var(--t-bg-3)]">
                     <button
                         onClick={() => setShowModal(false)}
-                        className="flex-1 px-4 py-2 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] text-sm transition-all"
+                        className="flex-1 px-4 py-2.5 border border-[var(--t-border-2)] text-[var(--t-text-2)] hover:border-[var(--t-text)] hover:text-[var(--t-text)] text-sm transition-all"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={addToAppointments}
                         disabled={!configuring.time}
-                        className={`flex-1 px-4 py-2 font-medium text-sm tracking-wider uppercase transition-all ${configuring.time
+                        className={`flex-1 px-4 py-2.5 font-medium text-sm tracking-wider uppercase transition-all ${configuring.time
                             ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]'
                             : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'
                             }`}
@@ -677,6 +745,22 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                             <h3 className="t-display font-light text-[var(--t-text)]" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 2rem)' }}>Choose Your Service</h3>
                             <p className="text-[var(--t-text-2)] text-sm mt-1">Select a service to begin</p>
                         </div>
+
+                        {/* Mini cart summary when returning to add more */}
+                        {cart.length > 0 && (
+                            <div className="bg-[var(--t-bg-2)] border border-[var(--t-border)] p-3 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[var(--t-text-3)] text-[0.6rem] tracking-[0.3em] uppercase mb-0.5">Already in cart</p>
+                                    <p className="text-[var(--t-text)] text-xs font-medium">{cart.length} appointment{cart.length > 1 ? 's' : ''} · Rs {totalPrice}</p>
+                                </div>
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    className="px-3 py-1.5 text-xs font-medium tracking-wider uppercase bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C] transition-all flex-shrink-0"
+                                >
+                                    View Cart →
+                                </button>
+                            </div>
+                        )}
 
                         {/* Category Filter */}
                         <div className="flex flex-wrap gap-2 mb-4">
@@ -742,6 +826,11 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                         <p className="text-xs text-[var(--t-text-2)] mt-0.5">
                                             {configuring.date} at {formatTime(configuring.time)} · Stylist auto-assigned
                                         </p>
+                                        {selectedBranchId && branches.length > 1 && (
+                                            <p className="text-xs text-[var(--t-text-3)] mt-0.5">
+                                                {branches.find(b => b.id === selectedBranchId)?.name}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="text-right">
                                         <span className="text-[var(--t-accent-2)] font-semibold">Rs {configuring.service.price}</span>
@@ -785,7 +874,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                                     <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
                                                     <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
                                                     <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · Stylist auto-assigned</p>
-                                                    <p className="text-xs text-[var(--t-text-3)] mt-0.5">{item.serviceDuration} mins</p>
+                                                    <p className="text-xs text-[var(--t-text-3)] mt-0.5">{item.serviceDuration} mins{item.branchName ? ` · ${item.branchName}` : ''}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <span className="text-[var(--t-accent-2)] font-semibold text-sm">Rs {item.servicePrice}</span>
@@ -892,16 +981,20 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                 </svg>
                                 Back
                             </button>
-                            <button
-                                onClick={() => { if (validateCustomerForm()) goNext(); }}
-                                disabled={!canProceed()}
-                                className={`flex items-center gap-2 px-6 py-2.5 font-medium text-sm tracking-wider uppercase transition-all ${canProceed() ? 'bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C]' : 'bg-[var(--t-border)] text-[var(--t-text-3)] cursor-not-allowed'}`}
-                            >
-                                Continue
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="square" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
+                            <div className="flex flex-col items-end gap-1">
+                                <button
+                                    onClick={() => { if (validateCustomerForm()) goNext(); }}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C] font-medium text-sm tracking-wider uppercase transition-all"
+                                >
+                                    Continue
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="square" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                {showErrors && (fieldErrors.name || fieldErrors.phone || fieldErrors.email) && (
+                                    <p className="text-red-500 text-xs">Please fix the errors above</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
@@ -916,6 +1009,22 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         </div>
 
                         <div className="max-w-md mx-auto space-y-5">
+                            {/* Edit phone number link */}
+                            <div className="text-center">
+                                <button
+                                    onClick={() => {
+                                        goBack();
+                                        setOtpSent(false);
+                                        setOtpValue('');
+                                        setOtpVerified(false);
+                                        setOtpError(null);
+                                    }}
+                                    className="text-[var(--t-text-3)] hover:text-[var(--t-accent-2)] text-xs transition-colors underline underline-offset-2"
+                                >
+                                    ← Edit phone number
+                                </button>
+                            </div>
+
                             {!otpSent ? (
                                 <div className="text-center pt-4">
                                     <button
@@ -987,11 +1096,40 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                             )}
                         </div>
 
-                        <NavButtons showNext={false} />
+                        {/* Show Continue when already verified (e.g. user came back) */}
+                        {otpVerified ? (
+                            <div className="flex items-center justify-between gap-4 mt-6">
+                                <NavButtons showBack={true} showNext={false} />
+                                <button
+                                    onClick={goNext}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C] font-medium text-sm tracking-wider uppercase transition-all"
+                                >
+                                    Continue
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="square" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ) : (
+                            <NavButtons showNext={false} />
+                        )}
                     </div>
                 );
 
             case 5: // Confirmation
+                if (cart.length === 0) {
+                    return (
+                        <div className="space-y-6 text-center py-12">
+                            <p className="text-[var(--t-text-2)] text-sm">Your cart is empty.</p>
+                            <button
+                                onClick={() => setCurrentStep(1)}
+                                className="px-6 py-2.5 bg-[var(--t-accent)] text-white hover:bg-[#8F7B6C] font-medium text-sm tracking-wider uppercase transition-all"
+                            >
+                                ← Choose a Service
+                            </button>
+                        </div>
+                    );
+                }
                 return (
                     <div className="space-y-6">
                         <div className="mb-6">
@@ -1019,7 +1157,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                                 <p className="t-label text-[var(--t-accent-2)] text-[0.6rem] tracking-[0.3em] mb-1">Appointment {index + 1}</p>
                                                 <h4 className="font-medium text-[var(--t-text)] text-sm">{item.serviceName}</h4>
                                                 <p className="text-xs text-[var(--t-text-2)] mt-0.5">{item.date} at {formatTime(item.time)} · Stylist auto-assigned</p>
-                                                <p className="text-xs text-[var(--t-text-3)]">{item.serviceDuration} mins</p>
+                                                <p className="text-xs text-[var(--t-text-3)]">{item.serviceDuration} mins{item.branchName ? ` · ${item.branchName}` : ''}</p>
                                             </div>
                                             <div className="text-right">
                                                 <span className="text-[var(--t-accent-2)] font-semibold text-sm">Rs {item.servicePrice}</span>
@@ -1105,10 +1243,10 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             <section
                 ref={sectionRef}
                 id="appointment"
-                className={`h-[100dvh] w-full bg-[var(--t-bg)] relative z-10 overflow-hidden ${isStandalone ? 'pt-16' : ''}`}
+                className={`${isStandalone ? 'min-h-[100dvh] pt-16' : 'h-[100dvh]'} w-full bg-[var(--t-bg)] relative z-10 overflow-hidden`}
             >
-                {/* Desktop Layout */}
-                <div className={`h-full flex ${isMobile ? 'hidden' : ''}`}>
+                {/* Desktop Layout — hidden on mobile via Tailwind */}
+                <div className="h-full hidden lg:flex">
                     {/* Left Sidebar */}
                     <div className="w-72 bg-[var(--t-bg-2)] border-r border-[var(--t-border)] p-6 flex flex-col">
                         <div className="mb-6">
@@ -1116,14 +1254,14 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         </div>
                         <p className="t-script text-[var(--t-accent-2)] mb-5" style={{ fontSize: '1rem' }}>Reserve Your Appointment</p>
 
-                        <div className="flex-1">
+                        <div className="flex-1 overflow-y-auto">
                             {steps.map((s) => (
                                 <div
                                     key={s.id}
-                                    className={`flex items-center gap-4 p-3 mb-1 border transition-all cursor-pointer ${currentStep === s.id
+                                    className={`flex items-center gap-4 p-3 mb-1 border transition-all ${currentStep === s.id
                                         ? 'bg-[var(--t-accent)] border-[var(--t-accent)] text-[var(--t-text)]'
                                         : currentStep > s.id
-                                            ? 'bg-[var(--t-bg-3)] border-[var(--t-border)] text-[var(--t-text-2)]'
+                                            ? 'bg-[var(--t-bg-3)] border-[var(--t-border)] text-[var(--t-text-2)] cursor-pointer hover:bg-[var(--t-bg)] hover:border-[var(--t-accent-2)]'
                                             : 'bg-transparent border-transparent text-[var(--t-text-3)]'
                                         }`}
                                     onClick={() => currentStep > s.id && setCurrentStep(s.id)}
@@ -1155,23 +1293,23 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     </div>
 
                     {/* Main Content */}
-                    <div className="flex-1 p-8 overflow-y-auto">
+                    <div className="flex-1 min-h-0 p-8 overflow-y-auto">
                         <div className="w-full max-w-4xl mx-auto pb-8">
                             {renderStepContent()}
                         </div>
                     </div>
                 </div>
 
-                {/* Mobile Layout */}
-                <div className={`h-full flex flex-col ${isMobile ? '' : 'hidden'}`}>
+                {/* Mobile Layout — shown only on mobile via Tailwind */}
+                <div className="h-full flex flex-col lg:hidden">
                     {/* Mobile Header */}
                     <div className="flex-shrink-0 bg-[var(--t-bg-2)] border-b border-[var(--t-border)] px-4 py-3">
                         <div className="flex items-center justify-between mb-2">
                             <Image src={logoLongLight} alt="VG Salon" height={30} className="w-auto" />
                             <div className="flex items-center gap-2">
                                 {cart.length > 0 && (
-                                    <span className="bg-[var(--t-accent)] text-[var(--t-text)] text-[0.6rem] px-2 py-1 font-medium tracking-wider uppercase">
-                                        {cart.length} in cart
+                                    <span className="bg-[var(--t-accent)] text-[var(--t-text)] text-xs px-3 py-1 font-medium tracking-wider uppercase">
+                                        {cart.length} in cart · Rs {totalPrice}
                                     </span>
                                 )}
                                 <span className="t-label text-[var(--t-text-3)] text-[0.6rem]">Step {currentStep}/{steps.length}</span>
@@ -1187,20 +1325,28 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         </div>
                     </div>
 
-                    {/* Mobile Content */}
-                    <div className="flex-1 overflow-hidden p-4 flex flex-col">
-                        <div className="flex-1 overflow-y-auto">
-                            {renderStepContent()}
-                        </div>
+                    {/* Mobile Content — min-h-0 ensures flex-1 can shrink and scroll properly */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                        {renderStepContent()}
                     </div>
                 </div>
             </section>
 
             {/* Service Configuration Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--t-bg-3)] p-6 max-w-md w-full border border-[var(--t-border-2)] max-h-[80vh] overflow-y-auto shadow-xl">
-                        <div className="flex justify-between items-center mb-5">
+                <div
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onWheel={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        className="bg-[var(--t-bg-3)] max-w-md w-full border border-[var(--t-border-2)] shadow-xl flex flex-col"
+                        style={{ maxHeight: '90dvh' }}
+                    >
+                        {/* Modal header — always visible */}
+                        <div className="flex-shrink-0 flex justify-between items-center px-6 py-4 border-b border-[var(--t-border)]">
                             <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: '1.1rem' }}>Configure Service</p>
                             <button
                                 onClick={() => setShowModal(false)}

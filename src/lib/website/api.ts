@@ -63,6 +63,13 @@ export interface ConsolidatedAvailabilityResponse {
     availableCount: number;
 }
 
+export interface Branch {
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+}
+
 export interface StylistAvailabilityResponse {
     slots: TimeSlot[];
     unavailabilityReason?: string;
@@ -231,6 +238,23 @@ function mapDbStaffToStylist(dbStaff: DbStaff, services: DbService[]): Stylist {
 // ============================================
 
 /**
+ * Get all active branches for this organization
+ */
+export async function fetchBranches(): Promise<Branch[]> {
+    if (!ORG_ID) throw new Error('Organization ID is not configured.');
+
+    const { data, error } = await supabase
+        .from('branches')
+        .select('id, name, address, phone')
+        .eq('organization_id', ORG_ID)
+        .eq('is_active', true)
+        .order('name');
+
+    if (error) throw new Error(`Failed to fetch branches: ${error.message}`);
+    return (data || []) as Branch[];
+}
+
+/**
  * Get all active services
  */
 export async function fetchServices(category?: string, gender?: string): Promise<Service[]> {
@@ -267,15 +291,21 @@ export async function fetchServices(category?: string, gender?: string): Promise
 /**
  * Get stylists who can perform a specific service
  */
-export async function fetchStylistsForService(serviceId: string, date?: string): Promise<Stylist[]> {
+export async function fetchStylistsForService(serviceId: string, date?: string, branchId?: string): Promise<Stylist[]> {
     // Get all active stylists for this organization
-    const { data: staffData, error: staffError } = await supabase
+    let staffQuery = supabase
         .from('staff')
         .select('*')
         .eq('is_active', true)
         .eq('role', 'Stylist')
         .eq('organization_id', ORG_ID)
         .not('is_emergency_unavailable', 'is', true);
+
+    if (branchId) {
+        staffQuery = staffQuery.eq('branch_id', branchId);
+    }
+
+    const { data: staffData, error: staffError } = await staffQuery;
 
     if (staffError) {
         console.error('❌ Error fetching stylists:', staffError);
@@ -442,7 +472,8 @@ export async function fetchTimeSlots(
 export async function fetchConsolidatedAvailability(
     serviceId: string,
     date: string,
-    duration?: number
+    duration?: number,
+    branchId?: string
 ): Promise<ConsolidatedAvailabilityResponse> {
     // Get the service
     const { data: serviceData, error: serviceError } = await supabase
@@ -459,8 +490,8 @@ export async function fetchConsolidatedAvailability(
     const service = mapDbServiceToService(serviceData as DbService);
     const serviceDuration = duration || service.duration;
 
-    // Get all qualified stylists for this service
-    const stylists = await fetchStylistsForService(serviceId, date);
+    // Get all qualified stylists for this service (optionally filtered by branch)
+    const stylists = await fetchStylistsForService(serviceId, date, branchId);
 
     if (stylists.length === 0) {
         return { slots: [], service, totalStylists: 0, availableCount: 0 };
@@ -594,7 +625,7 @@ export async function createBooking(
 export async function createRandomBooking(
     booking: {
         customer: BookingRequest['customer'];
-        appointment: Omit<BookingRequest['appointment'], 'stylist_id'>;
+        appointment: Omit<BookingRequest['appointment'], 'stylist_id'> & { branch_id?: string };
     },
     authClient?: any
 ): Promise<{
@@ -621,8 +652,8 @@ export async function createRandomBooking(
 
     const service = serviceData as DbService;
 
-    // 2. Get all qualified stylists available on this date
-    const stylists = await fetchStylistsForService(booking.appointment.service_id, booking.appointment.date);
+    // 2. Get all qualified stylists available on this date, filtered by branch if provided
+    const stylists = await fetchStylistsForService(booking.appointment.service_id, booking.appointment.date, booking.appointment.branch_id);
 
     if (stylists.length === 0) {
         throw new Error('No stylists available for this service on this date');
@@ -653,12 +684,14 @@ export async function createRandomBooking(
         .eq('id', selected.id)
         .single();
 
-    const organizationId = stylistRecord?.organization_id;
-    let branchId = stylistRecord?.branch_id;
+    const organizationId = stylistRecord?.organization_id || ORG_ID;
+    // Prefer the branch explicitly chosen by the customer, then stylist's branch, then org's first branch
+    let branchId = booking.appointment.branch_id || stylistRecord?.branch_id;
     if (!branchId) {
         const { data: branchData } = await supabase
             .from('branches')
             .select('id')
+            .eq('organization_id', organizationId)
             .eq('is_active', true)
             .limit(1)
             .single();

@@ -14,27 +14,30 @@ import BookingCTA from '@/components/website/BookingCTA';
 import Preloader from '@/components/website/Preloader';
 
 export default function Home() {
-  // Always start with the same state on server and client to avoid hydration mismatch.
-  // useEffect (client-only) immediately skips the preloader on return visits.
-  const [isLoading, setIsLoading]     = useState(true);
+  // Start false on both server and client to avoid hydration mismatch.
+  // useEffect (client-only) decides whether to show the preloader after mount.
+  const [isLoading, setIsLoading]     = useState(false);
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    // If the preloader has already been shown this session, skip it immediately
+    // Return visit: skip preloader, show content immediately
     if (sessionStorage.getItem('vgs_preloader_seen') === '1') {
-      setIsLoading(false);
       setShowContent(true);
       return;
     }
+    // First visit: show preloader
+    setIsLoading(true);
   }, []);
 
+  // When preloader finishes (isLoading goes false after being true), show content
+  const [preloaderRan, setPreloaderRan] = useState(false);
   useEffect(() => {
-    if (!isLoading) {
-      sessionStorage.setItem('vgs_preloader_seen', '1');
-      const timer = setTimeout(() => setShowContent(true), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
+    if (isLoading) { setPreloaderRan(true); return; }
+    if (!preloaderRan) return; // isLoading was never true, return visit handled above
+    sessionStorage.setItem('vgs_preloader_seen', '1');
+    const timer = setTimeout(() => setShowContent(true), 100);
+    return () => clearTimeout(timer);
+  }, [isLoading, preloaderRan]);
 
   return (
     <>
