@@ -559,22 +559,17 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
     // Escape key to close modal
     useEffect(() => {
         if (!showModal) return;
-        // iOS-safe scroll lock: position:fixed preserves scroll position
+        // Scroll lock: overflow:hidden on html+body works on all modern browsers
+        // and does NOT break native date picker positioning (unlike position:fixed on body)
         const scrollY = window.scrollY;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
+        document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
 
         const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false); };
         document.addEventListener('keydown', onKeyDown);
 
         return () => {
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.left = '';
-            document.body.style.right = '';
+            document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
             window.scrollTo(0, scrollY);
             document.removeEventListener('keydown', onKeyDown);
@@ -625,7 +620,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     </div>
                 )}
 
-                <div>
+                <div className="w-full overflow-hidden">
                     <label className="block text-[var(--t-text-2)] mb-2 text-xs uppercase tracking-widest">Date</label>
                     <input
                         type="date"
@@ -633,7 +628,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         onChange={(e) => setConfiguring(prev => ({ ...prev, date: e.target.value, time: '' }))}
                         min={getMinDate()}
                         disabled={branches.length > 1 && !selectedBranchId}
-                        className="w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full max-w-full p-3 bg-[var(--t-bg-2)] border border-[var(--t-border)] text-[var(--t-text)] focus:border-[var(--t-accent-2)] focus:outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     />
                 </div>
 
@@ -1243,7 +1238,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             <section
                 ref={sectionRef}
                 id="appointment"
-                className={`${isStandalone ? 'min-h-[100dvh] pt-16' : 'h-[100dvh]'} w-full bg-[var(--t-bg)] relative z-10 overflow-hidden`}
+                className={`${isStandalone ? 'min-h-[100dvh] pt-16' : 'h-[100dvh]'} w-full bg-[var(--t-bg)] relative z-10 overflow-hidden overflow-x-hidden`}
             >
                 {/* Desktop Layout — hidden on mobile via Tailwind */}
                 <div className="h-full hidden lg:flex">
@@ -1301,7 +1296,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 </div>
 
                 {/* Mobile Layout — shown only on mobile via Tailwind */}
-                <div className="h-full flex flex-col lg:hidden">
+                <div className="h-full flex flex-col lg:hidden overflow-x-hidden">
                     {/* Mobile Header */}
                     <div className="flex-shrink-0 bg-[var(--t-bg-2)] border-b border-[var(--t-border)] px-4 py-3">
                         <div className="flex items-center justify-between mb-2">
@@ -1326,7 +1321,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     </div>
 
                     {/* Mobile Content — min-h-0 ensures flex-1 can shrink and scroll properly */}
-                    <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4">
                         {renderStepContent()}
                     </div>
                 </div>
