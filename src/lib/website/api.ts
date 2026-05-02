@@ -338,6 +338,7 @@ export async function fetchStylistsForService(serviceId: string, date?: string, 
         const { data: unavailabilityData } = await supabase
             .from('stylist_unavailability')
             .select('stylist_id')
+            .eq('organization_id', ORG_ID)
             .eq('unavailable_date', date);
 
         const unavailableIds = new Set((unavailabilityData || []).map(u => u.stylist_id));
@@ -409,6 +410,7 @@ export async function fetchTimeSlots(
         .from('stylist_unavailability')
         .select('*')
         .eq('stylist_id', stylistId)
+        .eq('organization_id', ORG_ID)
         .eq('unavailable_date', date);
 
     if (unavailData && unavailData.length > 0) {
@@ -425,7 +427,8 @@ export async function fetchTimeSlots(
     const { data: breaksData } = await supabase
         .from('stylist_breaks')
         .select('*')
-        .eq('stylist_id', stylistId);
+        .eq('stylist_id', stylistId)
+        .eq('organization_id', ORG_ID);
 
     const breaks = (breaksData || []) as DbStylistBreak[];
 
@@ -547,6 +550,7 @@ export async function fetchAllStylistsWithAvailability(
         .from('services')
         .select('*')
         .eq('id', serviceId)
+        .eq('organization_id', ORG_ID)
         .single();
 
     const serviceDuration = duration || (serviceData as DbService)?.duration || 30;
