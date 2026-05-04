@@ -102,7 +102,7 @@ export default function AppointmentsPage() {
             if (effectiveBranchId) {
                 filters.branchId = effectiveBranchId;
             }
-            const data = await appointmentsService.getAppointments(filters);
+            const { data } = await appointmentsService.getAppointments(filters);
             setAppointments(data || []);
         } catch (err: any) {
             console.error('Error fetching appointments:', err);

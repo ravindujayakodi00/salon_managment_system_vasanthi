@@ -13,6 +13,8 @@ export const appointmentsService = {
         status?: AppointmentStatus;
         stylistId?: string;
         branchId?: string;
+        page?: number;
+        limit?: number;
     }) {
         // Get current user
         const { data: { user } } = await supabase.auth.getUser();
@@ -43,13 +45,18 @@ export const appointmentsService = {
         }
 
         const organizationId = await getCurrentOrganizationId();
+        const pageNum = filters?.page ?? 0;
+        const pageSize = filters?.limit ?? 500;
+        const from = pageNum * pageSize;
+        const to = from + pageSize - 1;
+
         let query = supabase
             .from('appointments')
             .select(`
                 *,
                 customer:customers(*),
                 stylist:staff(*)
-            `)
+            `, { count: 'exact' })
             .eq('organization_id', organizationId)
             .order('appointment_date', { ascending: true })
             .order('start_time', { ascending: true });
@@ -70,7 +77,9 @@ export const appointmentsService = {
             query = query.eq('branch_id', filters.branchId);
         }
 
-        const { data, error } = await query;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
@@ -115,10 +124,10 @@ export const appointmentsService = {
                     service_name: null
                 };
             });
-            return appointmentsWithServices;
+            return { data: appointmentsWithServices, count };
         }
 
-        return data;
+        return { data: data || [], count };
     },
 
     /**

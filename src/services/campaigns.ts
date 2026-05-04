@@ -35,7 +35,8 @@ export const campaignService = {
                 .from('campaigns')
                 .select('*')
                 .eq('organization_id', organizationId)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(500);
 
             if (error) {
                 console.error('Supabase error fetching campaigns:', {
@@ -172,7 +173,8 @@ export const campaignService = {
                 .select('id, name, email, phone, segment_tags')
                 .eq('organization_id', organizationId)
                 .overlaps('segment_tags', segments)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .limit(10000);
 
             if (error) throw error;
 

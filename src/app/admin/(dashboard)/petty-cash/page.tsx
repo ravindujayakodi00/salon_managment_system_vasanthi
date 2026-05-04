@@ -37,7 +37,7 @@ export default function PettyCashPage() {
             setLoading(true);
             const [currentBalance, { data: txns }] = await Promise.all([
                 pettyCashService.getCurrentBalance(),
-                pettyCashService.getTransactions(0, 50)
+                pettyCashService.getTransactions(0, 200)
             ]);
             setBalance(currentBalance);
             setTransactions(txns);

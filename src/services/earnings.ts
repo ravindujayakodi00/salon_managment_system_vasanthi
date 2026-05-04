@@ -212,7 +212,8 @@ export const earningsService = {
                 .eq('organization_id', organizationId)
                 .gte('date', startDate)
                 .lte('date', endDate)
-                .order('date', { ascending: false });
+                .order('date', { ascending: false })
+                .limit(10000);
 
             if (error) throw error;
             return data as StaffEarning[];
@@ -245,7 +246,8 @@ export const earningsService = {
                 .in('staff_id', staffIds)
                 .gte('date', startDate)
                 .lte('date', endDate)
-                .order('date', { ascending: false });
+                .order('date', { ascending: false })
+                .limit(10000);
 
             if (error) throw error;
             return data;

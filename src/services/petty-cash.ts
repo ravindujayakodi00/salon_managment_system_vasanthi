@@ -47,7 +47,7 @@ export const pettyCashService = {
     /**
      * Get all petty cash transactions with pagination
      */
-    async getTransactions(page = 0, limit = 50) {
+    async getTransactions(page = 0, limit = 100) {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();
@@ -204,7 +204,7 @@ export const pettyCashService = {
             .eq('organization_id', organizationId)
             .ilike('description', `%${searchQuery}%`)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(200);
 
         if (error) throw error;
         return data as PettyCashTransaction[];

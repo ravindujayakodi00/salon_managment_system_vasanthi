@@ -49,7 +49,8 @@ export const segmentationService = {
                 .select('*')
                 .eq('organization_id', organizationId)
                 .contains('segment_tags', [segmentName])
-                .order('name');
+                .order('name')
+                .limit(10000);
 
             if (error) throw error;
             return data || [];

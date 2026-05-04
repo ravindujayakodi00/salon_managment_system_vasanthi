@@ -32,7 +32,7 @@ export const staffService = {
             query = query.eq('branch_id', branchId);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(500);
 
         if (error) throw error;
         return data;
@@ -55,7 +55,7 @@ export const staffService = {
             query = query.eq('branch_id', branchId);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(500);
 
         if (error) throw error;
 

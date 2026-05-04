@@ -200,7 +200,8 @@ export const loyaltyService = {
             .from('loyalty_cards')
             .select('*')
             .eq('organization_id', organizationId)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(5000);
 
         if (error) throw error;
 
@@ -608,7 +609,7 @@ export const loyaltyService = {
         });
     },
 
-    async getTransactionHistory(customerId: string, limit = 20): Promise<any[]> {
+    async getTransactionHistory(customerId: string, limit = 100): Promise<any[]> {
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('loyalty_transactions')

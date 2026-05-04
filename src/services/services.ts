@@ -16,7 +16,7 @@ export const servicesService = {
             query = query.eq('is_active', true);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(1000);
 
         if (error) throw error;
         return data;
@@ -30,7 +30,8 @@ export const servicesService = {
             .eq('organization_id', organizationId)
             .eq('category', category)
             .eq('is_active', true)
-            .order('name');
+            .order('name')
+            .limit(1000);
 
         if (error) throw error;
         return data;

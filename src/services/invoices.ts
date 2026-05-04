@@ -181,14 +181,20 @@ export const invoicesService = {
         startDate?: string;
         endDate?: string;
         limit?: number;
+        page?: number;
     }) {
         const organizationId = await getCurrentOrganizationId();
+        const pageSize = filters?.limit ?? 500;
+        const pageNum = filters?.page ?? 0;
+        const from = pageNum * pageSize;
+        const to = from + pageSize - 1;
+
         let query = supabase
             .from('invoices')
             .select(`
                 *,
                 customer:customers(*)
-            `)
+            `, { count: 'exact' })
             .eq('organization_id', organizationId)
             .order('created_at', { ascending: false });
 
@@ -204,14 +210,12 @@ export const invoicesService = {
             query = query.lte('created_at', filters.endDate);
         }
 
-        if (filters?.limit) {
-            query = query.limit(filters.limit);
-        }
+        query = query.range(from, to);
 
-        const { data, error } = await query;
+        const { data, error, count } = await query;
 
         if (error) throw error;
-        return data;
+        return { data, count };
     },
 
     /**

@@ -13,11 +13,16 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { customersService } from '@/services/customers';
 import { useToast } from '@/context/ToastContext';
 
+const PAGE_SIZE = 200;
+
 export default function CustomersPage() {
     const { showToast } = useToast();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalCount, setTotalCount] = useState<number | null>(null);
 
     // Modal states
     const [showAddModal, setShowAddModal] = useState(false);
@@ -27,43 +32,53 @@ export default function CustomersPage() {
     const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
-        fetchCustomers();
+        setCurrentPage(0);
+        setCustomers([]);
+        fetchCustomers(0, true);
     }, [searchQuery]);
 
-    const fetchCustomers = async () => {
+    const mapCustomer = (c: any): Customer => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        gender: c.gender,
+        totalVisits: c.total_visits || 0,
+        totalSpent: c.total_spent || 0,
+        lastVisit: c.last_visit,
+        createdAt: c.created_at,
+        preferences: c.preferences
+    });
+
+    const fetchCustomers = async (page: number, reset = false) => {
         try {
-            setLoading(true);
-            let result;
+            if (page === 0) setLoading(true); else setLoadingMore(true);
+            let result: any[];
             if (searchQuery) {
-                const data = await customersService.searchCustomers(searchQuery);
-                result = data;
+                result = await customersService.searchCustomers(searchQuery);
+                setTotalCount(result.length);
             } else {
-                const response = await customersService.getCustomers();
-                result = response.data;
+                const response = await customersService.getCustomers(page, PAGE_SIZE);
+                result = response.data || [];
+                setTotalCount(response.count ?? null);
             }
-
-            // Map Supabase snake_case to camelCase
-            const mappedCustomers = (result || []).map((c: any) => ({
-                id: c.id,
-                name: c.name,
-                phone: c.phone,
-                email: c.email,
-                gender: c.gender,
-                totalVisits: c.total_visits || 0,
-                totalSpent: c.total_spent || 0,
-                lastVisit: c.last_visit,
-                createdAt: c.created_at,
-                preferences: c.preferences
-            }));
-
-            setCustomers(mappedCustomers);
+            const mapped = result.map(mapCustomer);
+            setCustomers(prev => (reset || page === 0) ? mapped : [...prev, ...mapped]);
+            setCurrentPage(page);
         } catch (error) {
             console.error('Error fetching customers:', error);
             showToast('Failed to load customers', 'error');
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
+
+    const handleLoadMore = () => {
+        fetchCustomers(currentPage + 1);
+    };
+
+    const hasMore = !searchQuery && totalCount !== null && customers.length < totalCount;
 
     const handleAdd = () => {
         setSelectedCustomer(null);
@@ -94,7 +109,7 @@ export default function CustomersPage() {
             showToast('Customer deleted successfully', 'success');
             setShowDeleteDialog(false);
             setSelectedCustomer(null);
-            fetchCustomers();
+            fetchCustomers(0, true);
         } catch (error: any) {
             console.error('Error deleting customer:', error);
             showToast(error.message || 'Failed to delete customer', 'error');
@@ -104,7 +119,7 @@ export default function CustomersPage() {
     };
 
     const handleModalSuccess = () => {
-        fetchCustomers();
+        fetchCustomers(0, true);
         setShowAddModal(false);
         setSelectedCustomer(null);
     };
@@ -141,7 +156,7 @@ export default function CustomersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 <div className="card p-6 surface-panel">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Customers</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{customers.length}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalCount ?? customers.length}</p>
                 </div>
                 <div className="card p-6 surface-panel">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">This Month</p>
@@ -250,6 +265,19 @@ export default function CustomersPage() {
                     </motion.div>
                 ))}
             </div>
+
+            {/* Load More */}
+            {hasMore && (
+                <div className="flex justify-center pt-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleLoadMore}
+                        loading={loadingMore}
+                    >
+                        {loadingMore ? 'Loading...' : `Load More (${customers.length} of ${totalCount})`}
+                    </Button>
+                </div>
+            )}
 
             {/* Add/Edit Modal */}
             <AddCustomerModal

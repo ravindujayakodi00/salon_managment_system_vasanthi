@@ -118,7 +118,8 @@ export const financialService = {
             .eq('organization_id', organizationId)
             .in('staff_id', staffIds)
             .gte('date', startDate)
-            .lte('date', endDate);
+            .lte('date', endDate)
+            .limit(10000);
 
         if (earningsError) throw earningsError;
 
@@ -152,7 +153,8 @@ export const financialService = {
             .in('staff_id', staffIds)
             .gte('created_at', startTs)
             .lte('created_at', endTs)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(10000);
 
         if (advancesError) throw advancesError;
 

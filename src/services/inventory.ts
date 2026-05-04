@@ -18,7 +18,7 @@ export const inventoryService = {
             query = query.eq('is_active', true);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(2000);
         if (error) throw error;
         return data as InventoryProduct[];
     },
@@ -34,7 +34,8 @@ export const inventoryService = {
             .eq('organization_id', organizationId)
             .eq('category', category)
             .eq('is_active', true)
-            .order('name');
+            .order('name')
+            .limit(2000);
 
         if (error) throw error;
         return data as InventoryProduct[];
@@ -50,7 +51,8 @@ export const inventoryService = {
             .select('*')
             .eq('organization_id', organizationId)
             .eq('is_active', true)
-            .order('current_stock', { ascending: true });
+            .order('current_stock', { ascending: true })
+            .limit(2000);
 
         if (error) {
             console.error('Error fetching low stock products:', error);
@@ -285,7 +287,7 @@ export const inventoryService = {
             .eq('inventory_id', inventoryId)
             .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(200);
 
         if (error) throw error;
         return data as InventoryTransaction[];
@@ -303,7 +305,7 @@ export const inventoryService = {
             .eq('is_active', true)
             .or(`name.ilike.%${query}%,sku.ilike.%${query}%,description.ilike.%${query}%`)
             .order('name')
-            .limit(20);
+            .limit(200);
 
         if (error) throw error;
         return data as InventoryProduct[];

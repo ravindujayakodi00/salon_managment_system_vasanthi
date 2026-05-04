@@ -67,7 +67,7 @@ export const customersService = {
 
             const { data, error } = await query
                 .order('name')
-                .limit(10);
+                .limit(200);
 
             if (error) {
                 console.error('Customer search error:', error);
@@ -90,7 +90,7 @@ export const customersService = {
     /**
      * Get all customers with pagination
      */
-    async getCustomers(page = 0, limit = 50) {
+    async getCustomers(page = 0, limit = 200) {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();

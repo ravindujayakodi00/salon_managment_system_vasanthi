@@ -175,7 +175,8 @@ export const reportsService = {
             .select('*')
             .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
-            .lte('created_at', `${endDate}T23:59:59`);
+            .lte('created_at', `${endDate}T23:59:59`)
+            .limit(50000);
 
         if (error) throw error;
 
@@ -243,7 +244,8 @@ export const reportsService = {
             .from('customers')
             .select('*')
             .eq('organization_id', organizationId)
-            .order('total_spent', { ascending: false });
+            .order('total_spent', { ascending: false })
+            .limit(50000);
 
         if (error) throw error;
 
@@ -325,14 +327,16 @@ export const reportsService = {
                     .eq('stylist_id', staffMember.id)
                     .eq('status', 'Completed')
                     .gte('appointment_date', startDate!)
-                    .lte('appointment_date', endDate!);
+                    .lte('appointment_date', endDate!)
+                    .limit(10000);
 
                 const { data: earnings } = await supabase
                     .from('staff_earnings')
                     .select('service_revenue, commission_amount')
                     .eq('staff_id', staffMember.id)
                     .gte('date', startDate!)
-                    .lte('date', endDate!);
+                    .lte('date', endDate!)
+                    .limit(10000);
 
                 const totalRevenue = earnings?.reduce((sum, e) => sum + (e.service_revenue || 0), 0) || 0;
                 const totalCommission = earnings?.reduce((sum, e) => sum + (e.commission_amount || 0), 0) || 0;
@@ -364,7 +368,8 @@ export const reportsService = {
             .select('*')
             .eq('organization_id', organizationId)
             .eq('is_active', true)
-            .order('name');
+            .order('name')
+            .limit(2000);
 
         if (error) throw error;
 

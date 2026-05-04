@@ -44,7 +44,7 @@ export const promosService = {
             query = query.eq('is_active', filters.isActive);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(500);
 
         if (error) throw error;
         return data || [];
