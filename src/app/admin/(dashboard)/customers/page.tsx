@@ -272,7 +272,7 @@ export default function CustomersPage() {
                     <Button
                         variant="outline"
                         onClick={handleLoadMore}
-                        loading={loadingMore}
+                        isLoading={loadingMore}
                     >
                         {loadingMore ? 'Loading...' : `Load More (${customers.length} of ${totalCount})`}
                     </Button>
