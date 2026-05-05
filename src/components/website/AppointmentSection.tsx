@@ -50,10 +50,12 @@ const steps = [
 
 const serviceCategories = [
     { id: 'all', name: 'All', icon: '✨' },
+    { id: 'Sugaring', name: 'Sugaring', icon: '🌿' },
     { id: 'Hair', name: 'Hair', icon: '✂️' },
-    { id: 'Spa', name: 'Skin & Spa', icon: '💆' },
     { id: 'Nails', name: 'Nails', icon: '💅' },
-    { id: 'Bridal', name: 'Bridal', icon: '👰' },
+    { id: 'Facials', name: 'Facials', icon: '💆' },
+    { id: 'Spa', name: 'Spa', icon: '🧖' },
+    { id: 'Other', name: 'Other', icon: '✦' },
 ];
 
 

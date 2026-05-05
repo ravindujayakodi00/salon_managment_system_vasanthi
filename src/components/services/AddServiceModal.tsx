@@ -33,7 +33,7 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, serviceToE
         category: 'Hair',
         price: '',
         duration: '30',
-        gender: 'Unisex',
+        gender: 'Female' as 'Male' | 'Female' | 'Unisex',
         description: '',
         is_active: true
     });
@@ -45,7 +45,7 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, serviceToE
                 category: serviceToEdit.category,
                 price: serviceToEdit.price.toString(),
                 duration: serviceToEdit.duration.toString(),
-                gender: serviceToEdit.gender || 'Unisex',
+                gender: 'Female' as 'Male' | 'Female' | 'Unisex',
                 description: serviceToEdit.description || '',
                 is_active: serviceToEdit.isActive !== undefined ? serviceToEdit.isActive : true
             });
@@ -95,17 +95,17 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, serviceToE
             isOpen={isOpen}
             onClose={onClose}
             title={serviceToEdit ? 'Edit Service' : 'Add New Service'}
+            size="lg"
         >
             <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                    label="Service Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    placeholder="e.g. Haircut"
-                />
-
                 <div className="grid grid-cols-2 gap-4">
+                    <Input
+                        label="Service Name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                        placeholder="e.g. Haircut"
+                    />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Category
@@ -115,27 +115,12 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, serviceToE
                             onChange={(e) => setFormData({ ...formData, category: e.target.value as ServiceCategory })}
                             className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
+                            <option value="Sugaring">Sugaring</option>
                             <option value="Hair">Hair</option>
-                            <option value="Beard">Beard</option>
-                            <option value="Facial">Facial</option>
-                            <option value="Bridal">Bridal</option>
-                            <option value="Kids">Kids</option>
+                            <option value="Nails">Nails</option>
+                            <option value="Facials">Facials</option>
                             <option value="Spa">Spa</option>
                             <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Gender
-                        </label>
-                        <select
-                            value={formData.gender}
-                            onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Male' | 'Female' | 'Unisex' })}
-                            className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="Unisex">Unisex</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
                         </select>
                     </div>
                 </div>

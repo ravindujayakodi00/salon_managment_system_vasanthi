@@ -76,11 +76,11 @@ export default function QuickCustomerForm({
             name: formData.name.trim(),
             phone: formData.phone.trim(),
             email: formData.email.trim() || undefined,
-            gender: formData.gender || undefined
+            gender: 'Female'
         });
 
         // Reset form
-        setFormData({ name: '', phone: '', email: '', gender: '' });
+        setFormData({ name: '', phone: '', email: '', gender: 'Female' });
     };
 
     if (!isOpen) return null;
@@ -173,22 +173,6 @@ export default function QuickCustomerForm({
                         />
                     </div>
 
-                    {/* Gender - Optional */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Gender <span className="text-gray-400 text-xs">(Optional)</span>
-                        </label>
-                        <select
-                            value={formData.gender}
-                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"
-                        >
-                            <option value="">Select gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
 
                     {/* Buttons */}
                     <div className="flex gap-3 pt-4">

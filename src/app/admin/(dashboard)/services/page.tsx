@@ -26,7 +26,7 @@ export default function ServicesPage() {
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const categories = ['All', 'Hair', 'Beard', 'Facial', 'Bridal', 'Kids', 'Spa', 'Other'];
+    const categories = ['All', 'Sugaring', 'Hair', 'Nails', 'Facials', 'Spa', 'Other'];
 
     useEffect(() => {
         fetchServices();

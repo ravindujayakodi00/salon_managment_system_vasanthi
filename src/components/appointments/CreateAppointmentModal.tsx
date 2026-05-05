@@ -408,50 +408,31 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                             min={new Date().toISOString().split('T')[0]}
                             required
                         />
+                        {/* Branch Selector */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Gender
+                                Branch *
                             </label>
-                            <select
-                                value={formData.customerGender}
-                                onChange={(e) => setFormData({ ...formData, customerGender: e.target.value as 'Male' | 'Female' | 'Other' })}
-                                className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base ${isCustomerLocked
-                                    ? 'border-emerald-500 dark:border-emerald-600 cursor-not-allowed'
-                                    : 'border-gray-300 dark:border-gray-600'
-                                    }`}
-                                disabled={isCustomerLocked}
-                            >
-                                <option value="Female">Female</option>
-                                <option value="Male">Male</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            {branches.length === 0 ? (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Loading branches...</p>
+                            ) : branches.length === 1 ? (
+                                <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300">
+                                    {branches[0].name}
+                                </div>
+                            ) : (
+                                <select
+                                    value={selectedBranchId}
+                                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                                    required
+                                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base"
+                                >
+                                    <option value="">Select a branch...</option>
+                                    {branches.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
-                    </div>
-
-                    {/* Branch Selector */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            Branch *
-                        </label>
-                        {branches.length === 0 ? (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Loading branches...</p>
-                        ) : branches.length === 1 ? (
-                            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300">
-                                {branches[0].name}
-                            </div>
-                        ) : (
-                            <select
-                                value={selectedBranchId}
-                                onChange={(e) => setSelectedBranchId(e.target.value)}
-                                required
-                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base"
-                            >
-                                <option value="">Select a branch...</option>
-                                {branches.map(b => (
-                                    <option key={b.id} value={b.id}>{b.name}</option>
-                                ))}
-                            </select>
-                        )}
                     </div>
 
                     {/* Multi-Service Selector */}
@@ -523,7 +504,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                     onSelect={(stylistId, time, stylistName) => {
                                         updateServiceBooking(booking.serviceId, stylistId, time, stylistName);
                                     }}
-                                    branchId={user?.branchId}
+                                    branchId={selectedBranchId || user?.branchId}
                                     occupiedSlots={occupiedSlots}
                                 />
                             );

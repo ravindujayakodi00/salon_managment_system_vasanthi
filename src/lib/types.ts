@@ -53,11 +53,10 @@ export interface Customer {
 
 // Service Types
 export type ServiceCategory =
+    | 'Sugaring'
     | 'Hair'
-    | 'Beard'
-    | 'Facial'
-    | 'Bridal'
-    | 'Kids'
+    | 'Nails'
+    | 'Facials'
     | 'Spa'
     | 'Other';
 
