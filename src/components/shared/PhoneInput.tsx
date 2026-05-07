@@ -1,27 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface CountryCode {
-    code: string;
-    country: string;
-    flag: string;
-}
-
-const countryCodes: CountryCode[] = [
-    { code: '+94', country: 'Sri Lanka', flag: '🇱🇰' },
-    { code: '+91', country: 'India', flag: '🇮🇳' },
-    { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
-    { code: '+44', country: 'United Kingdom', flag: '🇬🇧' },
-    { code: '+971', country: 'UAE', flag: '🇦🇪' },
-    { code: '+65', country: 'Singapore', flag: '🇸🇬' },
-    { code: '+61', country: 'Australia', flag: '🇦🇺' },
-    { code: '+49', country: 'Germany', flag: '🇩🇪' },
-    { code: '+33', country: 'France', flag: '🇫🇷' },
-    { code: '+81', country: 'Japan', flag: '🇯🇵' },
-];
 
 interface PhoneInputProps {
     value: string;
@@ -34,56 +14,47 @@ interface PhoneInputProps {
     className?: string;
 }
 
+// Parse a stored phone value back to the 9-digit local part
+function extractLocalDigits(value: string): string {
+    if (!value) return '';
+    // Strip +94 prefix
+    if (value.startsWith('+94')) {
+        return value.substring(3);
+    }
+    // Strip leading 0 (old format)
+    if (value.startsWith('0')) {
+        return value.substring(1);
+    }
+    return value;
+}
+
 export default function PhoneInput({
     value,
     onChange,
     label,
-    placeholder = '7X XXX XXXX',
+    placeholder = '701234567',
     required = false,
     disabled = false,
     error,
     className,
 }: PhoneInputProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedCode, setSelectedCode] = useState<CountryCode>(countryCodes[0]); // Sri Lanka default
-    const [phoneNumber, setPhoneNumber] = useState('');
+    const [localDigits, setLocalDigits] = useState(() => extractLocalDigits(value));
 
-    // Parse value on mount/change to extract country code and number
+    // Sync when value changes externally (e.g. edit modal pre-fill)
     useEffect(() => {
-        if (value) {
-            // Check if value starts with any known country code
-            const matchedCode = countryCodes.find(c => value.startsWith(c.code));
-            if (matchedCode) {
-                setSelectedCode(matchedCode);
-                setPhoneNumber(value.substring(matchedCode.code.length).trim());
-            } else if (value.startsWith('+')) {
-                // Unknown country code, keep as is
-                setPhoneNumber(value);
-            } else {
-                // No country code, assume just the number
-                setPhoneNumber(value);
-            }
-        }
-    }, []);
+        setLocalDigits(extractLocalDigits(value));
+    }, [value]);
 
-    const handleCodeChange = (code: CountryCode) => {
-        setSelectedCode(code);
-        setIsOpen(false);
-        // Update the full value
-        const fullNumber = phoneNumber ? `${code.code}${phoneNumber.replace(/^0+/, '')}` : '';
-        onChange(fullNumber);
-    };
-
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let num = e.target.value.replace(/[^\d]/g, ''); // Only digits
-        // Remove leading zero if present (as we're adding country code)
-        if (num.startsWith('0')) {
-            num = num.substring(1);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Keep only digits, strip leading zero
+        let digits = e.target.value.replace(/\D/g, '');
+        if (digits.startsWith('0')) {
+            digits = digits.substring(1);
         }
-        setPhoneNumber(num);
-        // Construct full number with country code
-        const fullNumber = num ? `${selectedCode.code}${num}` : '';
-        onChange(fullNumber);
+        // Limit to 9 digits
+        digits = digits.slice(0, 9);
+        setLocalDigits(digits);
+        onChange(digits ? `+94${digits}` : '');
     };
 
     return (
@@ -95,55 +66,27 @@ export default function PhoneInput({
                 </label>
             )}
             <div className="flex">
-                {/* Country Code Dropdown */}
-                <div className="relative">
-                    <button
-                        type="button"
-                        onClick={() => !disabled && setIsOpen(!isOpen)}
-                        disabled={disabled}
-                        className={cn(
-                            'flex items-center gap-1 px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-xl text-sm font-medium transition-colors',
-                            'hover:bg-gray-200 dark:hover:bg-gray-600',
-                            disabled && 'opacity-50 cursor-not-allowed',
-                            error && 'border-danger-500'
-                        )}
-                    >
-                        <span className="text-lg">{selectedCode.flag}</span>
-                        <span className="text-gray-700 dark:text-gray-300">{selectedCode.code}</span>
-                        <ChevronDown className="h-3 w-3 text-gray-500" />
-                    </button>
-
-                    {isOpen && (
-                        <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                            <div className="absolute z-50 top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                {countryCodes.map((country) => (
-                                    <button
-                                        key={country.code}
-                                        type="button"
-                                        onClick={() => handleCodeChange(country)}
-                                        className={cn(
-                                            'w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-                                            selectedCode.code === country.code && 'bg-primary-50 dark:bg-primary-900/20'
-                                        )}
-                                    >
-                                        <span className="text-lg">{country.flag}</span>
-                                        <span className="text-gray-900 dark:text-white font-medium">{country.code}</span>
-                                        <span className="text-gray-500 text-xs">{country.country}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </>
+                {/* Fixed +94 prefix */}
+                <div
+                    className={cn(
+                        'flex items-center px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-xl text-sm font-medium select-none',
+                        error && 'border-danger-500',
+                        disabled && 'opacity-50'
                     )}
+                >
+                    <span className="text-lg mr-1">🇱🇰</span>
+                    <span className="text-gray-700 dark:text-gray-300">+94</span>
                 </div>
 
-                {/* Phone Number Input */}
+                {/* 9-digit number input */}
                 <input
                     type="tel"
-                    value={phoneNumber}
-                    onChange={handlePhoneChange}
+                    value={localDigits}
+                    onChange={handleChange}
                     placeholder={placeholder}
                     disabled={disabled}
+                    maxLength={9}
+                    inputMode="numeric"
                     className={cn(
                         'flex-1 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-r-xl',
                         'focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors',
@@ -163,16 +106,12 @@ export default function PhoneInput({
 // Helper to format phone for display (e.g., +94 77 123 4567)
 export function formatPhoneDisplay(phone: string): string {
     if (!phone) return '';
-
-    // Find matching country code
-    const matchedCode = countryCodes.find(c => phone.startsWith(c.code));
-    if (matchedCode) {
-        const number = phone.substring(matchedCode.code.length);
-        // Format as: +94 77 123 4567
+    if (phone.startsWith('+94')) {
+        const number = phone.substring(3);
         if (number.length >= 9) {
-            return `${matchedCode.code} ${number.slice(0, 2)} ${number.slice(2, 5)} ${number.slice(5)}`;
+            return `+94 ${number.slice(0, 2)} ${number.slice(2, 5)} ${number.slice(5)}`;
         }
-        return `${matchedCode.code} ${number}`;
+        return `+94 ${number}`;
     }
     return phone;
 }

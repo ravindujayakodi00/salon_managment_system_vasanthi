@@ -186,15 +186,9 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
     const validatePhone = (phone: string): string | undefined => {
         if (!phone.trim()) return 'Phone is required';
-        // Remove all non-digits for validation
-        const digits = phone.replace(/\D/g, '');
-        // Sri Lanka: 10 digits starting with 0 or 9 digits without 0, or with country code
-        if (digits.length < 9 || digits.length > 12) {
-            return 'Enter a valid phone number';
-        }
-        // Check if it's a valid Sri Lanka number pattern
-        if (!digits.match(/^(94|0)?[0-9]{9}$/)) {
-            return 'Enter a valid Sri Lanka phone number';
+        // Must be +94 followed by exactly 9 digits
+        if (!phone.match(/^\+94[0-9]{9}$/)) {
+            return 'Enter a valid Sri Lanka phone number (9 digits)';
         }
         return undefined;
     };
@@ -934,14 +928,28 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
                             <div>
                                 <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Phone *</label>
-                                <input
-                                    type="tel"
-                                    value={customer.phone}
-                                    onChange={(e) => { setCustomer(prev => ({ ...prev, phone: e.target.value })); if (showErrors) setFieldErrors(prev => ({ ...prev, phone: validatePhone(e.target.value) })); }}
-                                    onBlur={() => { if (customer.phone) { setFieldErrors(prev => ({ ...prev, phone: validatePhone(customer.phone) })); setShowErrors(true); } }}
-                                    placeholder="+94 77 123 4567"
-                                    className={`w-full p-3.5 bg-[var(--t-bg-2)] border text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:outline-none transition-all text-sm ${showErrors && fieldErrors.phone ? 'border-red-400 focus:border-red-500' : 'border-[var(--t-border)] focus:border-[var(--t-accent-2)]'}`}
-                                />
+                                <div className={`flex border ${showErrors && fieldErrors.phone ? 'border-red-400' : 'border-[var(--t-border)]'} bg-[var(--t-bg-2)]`}>
+                                    <span className="flex items-center px-3 text-sm text-[var(--t-text-2)] bg-[var(--t-bg-3,var(--t-bg-2))] border-r border-[var(--t-border)] select-none whitespace-nowrap">
+                                        🇱🇰 +94
+                                    </span>
+                                    <input
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={9}
+                                        value={customer.phone.startsWith('+94') ? customer.phone.substring(3) : customer.phone.startsWith('0') ? customer.phone.substring(1) : customer.phone}
+                                        onChange={(e) => {
+                                            let digits = e.target.value.replace(/\D/g, '');
+                                            if (digits.startsWith('0')) digits = digits.substring(1);
+                                            digits = digits.slice(0, 9);
+                                            const full = digits ? `+94${digits}` : '';
+                                            setCustomer(prev => ({ ...prev, phone: full }));
+                                            if (showErrors) setFieldErrors(prev => ({ ...prev, phone: validatePhone(full) }));
+                                        }}
+                                        onBlur={() => { if (customer.phone) { setFieldErrors(prev => ({ ...prev, phone: validatePhone(customer.phone) })); setShowErrors(true); } }}
+                                        placeholder="701234567"
+                                        className={`flex-1 p-3.5 bg-transparent text-[var(--t-text)] placeholder-[var(--t-text-3)] focus:outline-none transition-all text-sm`}
+                                    />
+                                </div>
                                 {showErrors && fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
                             </div>
 
