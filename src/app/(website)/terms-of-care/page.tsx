@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Navbar from '@/components/website/Navbar';
 import Footer from '@/components/website/Footer';
+import { SALON_NAME } from '@/config/salon';
 
 export const metadata: Metadata = {
-  title: 'Terms of Care — Vasanthi Gulasekharam Salon',
-  description: 'Our commitment to maintaining a serene, private, and professional environment for every guest at Vasanthi Gulasekharam Salon.',
+  title: `Terms of Care — ${SALON_NAME}`,
+  description: `Our commitment to maintaining a serene, private, and professional environment for every guest at ${SALON_NAME}.`,
 };
 
 const sections = [

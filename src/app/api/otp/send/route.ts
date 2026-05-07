@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { SALON_NAME } from '@/config/salon';
 
 // Generate 6-digit OTP
 function generateOTP(): string {
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
                 recipient: formattedPhone,
                 sender_id: textLkSenderId,
                 type: 'plain',
-                message: `Your Vasanthi Gulasekharam Salon booking verification code is: ${otp}. Valid for 5 minutes.`,
+                message: `Your ${SALON_NAME} booking verification code is: ${otp}. Valid for 5 minutes.`,
             }),
         });
 

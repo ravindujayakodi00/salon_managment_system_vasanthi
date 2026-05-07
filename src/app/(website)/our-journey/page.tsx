@@ -3,10 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Navbar from '@/components/website/Navbar';
 import Footer from '@/components/website/Footer';
+import { SALON_NAME, SALON_OWNER_NAME, SALON_OWNER_FIRST } from '@/config/salon';
 
 export const metadata: Metadata = {
-  title: 'Our Journey — Vasanthi Gulasekharam Salon',
-  description: 'Learn about the journey of Vasanthi Gulasekharam — a decade of expertise, world-class education, and a dedicated 1:1 beauty experience.',
+  title: `Our Journey — ${SALON_NAME}`,
+  description: `Learn about the journey of ${SALON_OWNER_NAME} — a decade of expertise, world-class education, and a dedicated 1:1 beauty experience.`,
 };
 
 export default function OurJourneyPage() {
@@ -34,7 +35,7 @@ export default function OurJourneyPage() {
                   </em>
                 </h1>
                 <p className="t-display font-light italic text-white/60 leading-relaxed max-w-md" style={{ fontSize: 'clamp(1rem, 1.8vw, 1.3rem)' }}>
-                  The Journey of Vasanthi Gulasekharam
+                  The Journey of {SALON_OWNER_NAME}
                 </p>
               </div>
 
@@ -42,7 +43,7 @@ export default function OurJourneyPage() {
               <div className="relative h-[320px] lg:h-[520px] w-full">
                 <Image
                   src="/gallery/salon-image-horizontal.jpg"
-                  alt="Vasanthi Gulasekharam Salon"
+                  alt={SALON_NAME}
                   fill
                   className="object-cover object-center"
                   priority
@@ -87,13 +88,13 @@ export default function OurJourneyPage() {
                     True beauty is never a standard solution; it is a personal dialogue between the artist and the client.
                   </p>
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
-                    With over a decade of experience in the beauty industry, Vasanthi Gulasekharam is a skilled and passionate professional dedicated to the art of transformation. Her journey is built on a foundation of world-class education, having honed her skills at prestigious institutions including the <strong className="text-[var(--t-text)] font-medium">Ramani Fernando Academy</strong> and <strong className="text-[var(--t-text)] font-medium">Roots Academy Bambalapitiya</strong>.
+                    With over a decade of experience in the beauty industry, {SALON_OWNER_NAME} is a skilled and passionate professional dedicated to the art of transformation. Her journey is built on a foundation of world-class education, having honed her skills at prestigious institutions including the <strong className="text-[var(--t-text)] font-medium">Ramani Fernando Academy</strong> and <strong className="text-[var(--t-text)] font-medium">Roots Academy Bambalapitiya</strong>.
                   </p>
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
-                    Holding Diplomas in both Hairdressing and Advanced Beauty Therapy, along with NVQ Level 4 certifications in both disciplines and an NVQ Level 3 in Nail Technology, Vasanthi&apos;s mastery is backed by rigorous technical excellence.
+                    Holding Diplomas in both Hairdressing and Advanced Beauty Therapy, along with NVQ Level 4 certifications in both disciplines and an NVQ Level 3 in Nail Technology, {SALON_OWNER_FIRST}&apos;s mastery is backed by rigorous technical excellence.
                   </p>
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
-                    For the past seven years, Vasanthi has successfully managed her own beauty business, bringing a wealth of practical knowledge and a keen eye for detail to every interaction.
+                    For the past seven years, {SALON_OWNER_FIRST} has successfully managed her own beauty business, bringing a wealth of practical knowledge and a keen eye for detail to every interaction.
                   </p>
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
                     By moving away from the hurried pace of mass-market salons, she has created a <strong className="text-[var(--t-text)] font-medium">Private Space for Beauty</strong> — a dedicated 1:1 boutique where the noise of the outside world fades away, leaving room for focused, uninterrupted sessions.
@@ -120,7 +121,7 @@ export default function OurJourneyPage() {
                 </h2>
                 <div className="space-y-5">
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
-                    At Vasanthi Gulasekharam Salons, you are not just an appointment; you are our main guest. We provide undivided attention, ensuring that every snip, every shade, and every skin treatment is curated specifically for your features, your lifestyle, and your vision.
+                    At {SALON_NAME}, you are not just an appointment; you are our main guest. We provide undivided attention, ensuring that every snip, every shade, and every skin treatment is curated specifically for your features, your lifestyle, and your vision.
                   </p>
                   <p className="t-body text-[var(--t-text-2)] text-sm leading-relaxed">
                     We believe that every client deserves a personalized experience. From our clinical standards of hygiene to the personalized nature of our consultations, every element of our salon is designed for the discerning individual who seeks excellence in a space that feels like home and for those who seek more than just a salon visit.
@@ -174,7 +175,7 @@ export default function OurJourneyPage() {
                   className="t-display font-light text-[var(--t-text)] mb-10"
                   style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)' }}
                 >
-                  Vasanthi&apos;s Professional Credentials
+                  {SALON_OWNER_FIRST}&apos;s Professional Credentials
                 </h2>
                 <div className="relative h-[300px] lg:h-[380px] w-full">
                   <Image
@@ -197,7 +198,7 @@ export default function OurJourneyPage() {
                     { title: 'Diploma in Advanced Beauty Therapy', detail: 'Roots Academy Bambalapitiya' },
                     { title: 'NVQ Level 4', detail: 'Hairdressing & Beauty Therapy' },
                     { title: 'NVQ Level 3', detail: 'Nail Technology' },
-                    { title: 'Founder & Lead Artist', detail: 'Vasanthi Gulasekharam Salon — 7+ Years of Business Excellence' },
+                    { title: 'Founder & Lead Artist', detail: `${SALON_NAME} — 7+ Years of Business Excellence` },
                   ].map((c, i) => (
                     <li key={i} className="flex items-start gap-5 border-b border-[var(--t-border)] py-5">
                       <span className="t-label text-[var(--t-text-3)] w-6 shrink-0 pt-1">{String(i + 1).padStart(2, '0')}</span>

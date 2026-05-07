@@ -96,9 +96,6 @@ export default function Footer() {
           <p className="t-label text-white/25 text-[0.58rem] tracking-[0.25em]">
             © {new Date().getFullYear()} {salonName}. All rights reserved.
           </p>
-          <p className="t-label text-white/25 text-[0.58rem] tracking-[0.25em]">
-            Powered by SalonFlow
-          </p>
         </div>
       </div>
     </footer>

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
+import { SALON_NAME } from '@/config/salon';
 
 
 interface NotificationTemplate {
@@ -346,7 +347,7 @@ export const notificationsService = {
             const message = this.replaceVariables(template.message, variables);
             const subject = template.subject
                 ? this.replaceVariables(template.subject, variables)
-                : 'Notification from SalonFlow';
+                : `Notification from ${SALON_NAME}`;
 
             const results: any = {
                 email: null,

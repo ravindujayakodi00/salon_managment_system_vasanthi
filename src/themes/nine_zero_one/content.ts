@@ -1,5 +1,7 @@
-// Vasanthi Salon — Content & Copy
+// Salon Content & Copy
 // Based on: @vasanthi.gulasekharam_salon on Instagram
+
+import { SALON_NAME } from '@/config/salon';
 
 export interface ServiceItem {
   number: string;
@@ -14,7 +16,7 @@ export interface ServiceItem {
 }
 
 export const content = {
-  salonName: 'Vasanthi Gulasekharam Salon',
+  salonName: SALON_NAME,
   tagline:   'Professional Care. Personal Attention',
 
   hero: {

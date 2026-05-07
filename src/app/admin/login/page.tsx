@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Scissors, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import Input from '@/components/shared/Input';
 import Button from '@/components/shared/Button';
 import { adminPaths } from '@/lib/admin-paths';
+import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -93,12 +95,11 @@ export default function LoginPage() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.1, type: 'spring' }}
-                        className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-white rounded-2xl shadow-lg mb-4"
+                        className="inline-flex items-center justify-center mb-4"
                     >
-                        <Scissors className="h-8 w-8 text-primary-600" />
+                        <Image src={logoLongLight} alt="Salon Logo" height={80} className="w-auto" priority />
                     </motion.div>
-                    <h1 className="text-4xl font-bold text-primary-900 dark:text-white mb-2">SalonFlow</h1>
-                    <p className="text-primary-600 dark:text-primary-100">Manage your salon with ease</p>
+                    <p className="text-primary-600 dark:text-primary-100">Professional Care. Personal Attention</p>
                 </div>
 
                 {/* Login Card */}

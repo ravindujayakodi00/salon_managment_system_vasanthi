@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/website/Navbar';
 import Footer from '@/components/website/Footer';
 import { content, type ServiceItem } from '@/themes/nine_zero_one/content';
+import { SALON_OWNER_FIRST } from '@/config/salon';
 
 // Build all static paths at build time
 export function generateStaticParams() {
@@ -65,7 +66,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   {s.title}
                   <br />
                   <em className="t-script font-normal text-[var(--t-accent)]" style={{ fontSize: 'clamp(2.6rem, 5.5vw, 4.6rem)' }}>
-                    at Vasanthi&apos;s
+                    at {SALON_OWNER_FIRST}&apos;s
                   </em>
                 </h1>
                 <p className="t-body text-white/60 text-sm leading-relaxed max-w-sm">

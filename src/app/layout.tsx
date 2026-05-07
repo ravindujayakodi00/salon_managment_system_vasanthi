@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "../lib/theme";
 import "./globals.css";
+import { SALON_NAME } from "@/config/salon";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SalonFlow - Salon Management System",
-  description: "Modern salon management SaaS application for managing appointments, billing, staff, and customers",
+  title: `${SALON_NAME} - Management System`,
+  description: `Salon management system for ${SALON_NAME}`,
 };
 
 import { ToastProvider } from '@/context/ToastContext';

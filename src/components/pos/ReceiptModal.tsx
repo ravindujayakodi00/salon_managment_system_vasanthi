@@ -5,6 +5,7 @@ import Modal from '@/components/shared/Modal';
 import Button from '@/components/shared/Button';
 import { Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { SALON_NAME } from '@/config/salon';
 
 interface ReceiptModalProps {
     isOpen: boolean;
@@ -33,7 +34,7 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
             <div className="space-y-6">
                 <div ref={receiptRef} className="p-4 bg-white text-black" id="receipt-content">
                     <div className="text-center mb-6">
-                        <h2 className="text-xl font-bold">SalonFlow</h2>
+                        <h2 className="text-xl font-bold">{SALON_NAME}</h2>
                         <p className="text-sm text-gray-500">Luxury Salon & Spa</p>
                         <p className="text-sm text-gray-500">123 Main Street, City</p>
                         <p className="text-sm text-gray-500">Tel: +94 123 456 789</p>

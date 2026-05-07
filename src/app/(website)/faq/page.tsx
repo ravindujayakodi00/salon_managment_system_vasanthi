@@ -4,10 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/website/Navbar';
 import Footer from '@/components/website/Footer';
+import { SALON_SHORT_NAME, SALON_OWNER_FIRST } from '@/config/salon';
 
 const faqs = [
   {
-    question: 'What makes the Vasanthi Gulasekharam experience different?',
+    question: `What makes the ${SALON_SHORT_NAME} experience different?`,
     answer: 'Unlike high-traffic salons, we offer a dedicated 1:1 experience. From the moment you enter our boutique, you are the only focus of us.',
   },
   {
@@ -24,7 +25,7 @@ const faqs = [
   },
   {
     question: 'Do you offer professional makeup services?',
-    answer: 'Yes. Vasanthi specializes in editorial, party, and occasion makeup that emphasizes your natural features. Like all our services, makeup sessions are conducted 1:1 in our private studio to ensure your look is perfected under the best light and with undivided attention.',
+    answer: `Yes. ${SALON_OWNER_FIRST} specializes in editorial, party, and occasion makeup that emphasizes your natural features. Like all our services, makeup sessions are conducted 1:1 in our private studio to ensure your look is perfected under the best light and with undivided attention.`,
   },
   {
     question: 'What is Sugaring, and how is it different from waxing?',

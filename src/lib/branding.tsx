@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useAuth } from '@/lib/auth';
 import { applyOrganizationPalettes } from '@/lib/color-palette';
+import { SALON_NAME } from '@/config/salon';
 
 /** Fixed dashboard palette (matches `globals.css` / DB column defaults). */
 const DEFAULT_PRIMARY = '#4B5945';
@@ -51,7 +52,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
             (org?.display_name && org.display_name.trim()) ||
             user?.organizationName ||
             org?.name ||
-            'SalonFlow';
+            SALON_NAME;
         const tagline =
             (org?.tagline && org.tagline.trim()) || 'Salon Management';
 

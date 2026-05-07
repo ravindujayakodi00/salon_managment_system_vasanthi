@@ -2,6 +2,8 @@
  * Email template generators for the salon management system
  */
 
+import { SALON_NAME } from '@/config/salon';
+
 interface ReceiptEmailData {
     customer: {
         name: string;
@@ -45,7 +47,7 @@ export function generateReceiptEmail(data: ReceiptEmailData): string {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt - SalonFlow</title>
+    <title>Receipt - ${SALON_NAME}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -55,7 +57,7 @@ export function generateReceiptEmail(data: ReceiptEmailData): string {
                     <!-- Header -->
                     <tr>
                         <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">✂️ SalonFlow</h1>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">✂️ ${SALON_NAME}</h1>
                             <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 14px;">Thank you for your visit!</p>
                         </td>
                     </tr>
@@ -146,7 +148,7 @@ export function generateReceiptEmail(data: ReceiptEmailData): string {
                     <!-- Footer -->
                     <tr>
                         <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; text-align: center;">
-                            <p style="margin: 0 0 10px; color: #1f2937; font-size: 16px; font-weight: 600;">Thank you for choosing SalonFlow!</p>
+                            <p style="margin: 0 0 10px; color: #1f2937; font-size: 16px; font-weight: 600;">Thank you for choosing ${SALON_NAME}!</p>
                             <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">We appreciate your business and look forward to serving you again.</p>
                             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                                 <p style="margin: 0; color: #9ca3af; font-size: 12px;">This is an automated receipt. Please do not reply to this email.</p>
