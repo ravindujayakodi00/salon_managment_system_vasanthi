@@ -165,18 +165,20 @@ export const reportsService = {
     /**
      * Get monthly sales report data for PDF
      */
-    async getSalesReportData(month: number, year: number) {
+    async getSalesReportData(month: number, year: number, branchId?: string) {
         const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
         const organizationId = await getCurrentOrganizationId();
 
-        const { data: invoices, error } = await supabase
+        let q = supabase
             .from('invoices')
             .select('*')
             .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`)
             .limit(50000);
+        if (branchId) q = q.eq('branch_id', branchId);
+        const { data: invoices, error } = await q;
 
         if (error) throw error;
 
@@ -301,7 +303,7 @@ export const reportsService = {
     /**
      * Get staff performance report data for PDF
      */
-    async getStaffPerformanceReportData(startDate?: string, endDate?: string) {
+    async getStaffPerformanceReportData(startDate?: string, endDate?: string, branchId?: string) {
         if (!startDate || !endDate) {
             const now = new Date();
             startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -309,18 +311,20 @@ export const reportsService = {
         }
 
         const organizationId = await getCurrentOrganizationId();
-        const { data: staff, error: staffError } = await supabase
+        let staffQuery = supabase
             .from('staff')
             .select('*')
             .eq('organization_id', organizationId)
             .eq('is_active', true)
             .order('name');
+        if (branchId) staffQuery = staffQuery.eq('branch_id', branchId);
+        const { data: staff, error: staffError } = await staffQuery;
 
         if (staffError) throw staffError;
 
         const performanceData = await Promise.all(
             (staff || []).map(async (staffMember) => {
-                const { data: appointments } = await supabase
+                let apptQuery = supabase
                     .from('appointments')
                     .select('id')
                     .eq('organization_id', organizationId)
@@ -329,10 +333,13 @@ export const reportsService = {
                     .gte('appointment_date', startDate!)
                     .lte('appointment_date', endDate!)
                     .limit(10000);
+                if (branchId) apptQuery = apptQuery.eq('branch_id', branchId);
+                const { data: appointments } = await apptQuery;
 
                 const { data: earnings } = await supabase
                     .from('staff_earnings')
                     .select('service_revenue, commission_amount')
+                    .eq('organization_id', organizationId)
                     .eq('staff_id', staffMember.id)
                     .gte('date', startDate!)
                     .lte('date', endDate!)

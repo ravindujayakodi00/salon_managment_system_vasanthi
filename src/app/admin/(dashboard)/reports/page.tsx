@@ -14,10 +14,12 @@ import { supabase } from '@/lib/supabase';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import { RotateCcw } from 'lucide-react';
 import { exportSalesReportToExcel } from '@/lib/excel-export';
+import { useWorkspace } from '@/lib/workspace';
 
 export default function ReportsPage() {
-    const { hasRole } = useAuth();
+    const { hasRole, user } = useAuth();
     const { showToast } = useToast();
+    const { effectiveBranchId } = useWorkspace();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
@@ -25,7 +27,8 @@ export default function ReportsPage() {
 
     useEffect(() => {
         loadData();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.organizationId]);
 
     const loadData = async () => {
         try {
@@ -263,6 +266,7 @@ export default function ReportsPage() {
 
 function SystemReports() {
     const { showToast } = useToast();
+    const { effectiveBranchId } = useWorkspace();
     const [downloading, setDownloading] = useState<string | null>(null);
     const [exportingExcel, setExportingExcel] = useState<string | null>(null);
 
@@ -309,7 +313,7 @@ function SystemReports() {
 
             if (reportId === 'sales_monthly') {
                 const { generateSalesReportPDF } = await import('@/lib/pdf-generator');
-                const data = await reportsService.getSalesReportData(currentMonth, currentYear);
+                const data = await reportsService.getSalesReportData(currentMonth, currentYear, effectiveBranchId);
                 generateSalesReportPDF(data);
             } else if (reportId === 'customer_growth') {
                 const { generateCustomerGrowthReportPDF } = await import('@/lib/pdf-generator');
@@ -317,7 +321,7 @@ function SystemReports() {
                 generateCustomerGrowthReportPDF(data);
             } else if (reportId === 'staff_performance') {
                 const { generateStaffPerformanceReportPDF } = await import('@/lib/pdf-generator');
-                const data = await reportsService.getStaffPerformanceReportData();
+                const data = await reportsService.getStaffPerformanceReportData(undefined, undefined, effectiveBranchId);
                 generateStaffPerformanceReportPDF(data);
             } else if (reportId === 'inventory_status') {
                 const { generateInventoryReportPDF } = await import('@/lib/pdf-generator');
@@ -376,7 +380,7 @@ function SystemReports() {
                                     try {
                                         const { reportsService } = await import('@/services/reports');
                                         const now = new Date();
-                                        const data = await reportsService.getSalesReportData(now.getMonth() + 1, now.getFullYear());
+                                        const data = await reportsService.getSalesReportData(now.getMonth() + 1, now.getFullYear(), effectiveBranchId);
                                         exportSalesReportToExcel(data);
                                         showToast('Excel file downloaded successfully!', 'success');
                                     } catch (error) {
@@ -410,25 +414,32 @@ function SystemReports() {
 }
 
 function AllInvoices() {
+    const { user } = useAuth();
+    const { effectiveBranchId } = useWorkspace();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
     useEffect(() => {
-        loadInvoices();
-    }, []);
+        void loadInvoices();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.organizationId, effectiveBranchId]);
 
     const loadInvoices = async () => {
         try {
+            if (!user?.organizationId) return;
             // Fetch last 50 invoices for the report
-            const { data, error } = await supabase
+            let q = supabase
                 .from('invoices')
                 .select(`
                     *,
                     customer:customers(*)
                 `)
+                .eq('organization_id', user.organizationId)
                 .order('created_at', { ascending: false })
                 .limit(50);
+            if (effectiveBranchId) q = q.eq('branch_id', effectiveBranchId);
+            const { data, error } = await q;
 
             if (error) throw error;
             setInvoices(data || []);
