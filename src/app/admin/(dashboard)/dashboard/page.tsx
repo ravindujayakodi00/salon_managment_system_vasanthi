@@ -13,6 +13,7 @@ import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { getLocalDateString } from '@/lib/utils';
 import { adminHref } from '@/lib/admin-paths';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 import {
     DollarSign,
     Calendar,
@@ -105,11 +106,12 @@ export default function DashboardPage() {
 
             const today = getLocalDateString();
             const b = effectiveBranchId;
+            const organizationId = await getCurrentOrganizationId();
             const [basicStats, topServices, revenueTrend, recentActivity] = await Promise.all([
                 reportsService.getDashboardStats(b, stylistStaffId),
                 reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59', b, stylistStaffId),
-                fetchRevenueTrend(b, stylistStaffId),
-                fetchRecentActivity(b, stylistStaffId),
+                fetchRevenueTrend(organizationId, b, stylistStaffId),
+                fetchRecentActivity(organizationId, b, stylistStaffId),
             ]);
 
             setStats({
@@ -135,7 +137,7 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRevenueTrend = async (branchId?: string, stylistStaffId?: string) => {
+    const fetchRevenueTrend = async (organizationId: string, branchId?: string, stylistStaffId?: string) => {
         try {
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const today = new Date();
@@ -147,6 +149,7 @@ export default function DashboardPage() {
             let invQ = supabase
                 .from('invoices')
                 .select('total, created_at, appointment_id')
+                .eq('organization_id', organizationId)
                 .gte('created_at', `${startDate}T00:00:00`)
                 .lte('created_at', `${endDate}T23:59:59`);
             if (branchId) invQ = invQ.eq('branch_id', branchId);
@@ -195,7 +198,7 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRecentActivity = async (branchId?: string, stylistStaffId?: string) => {
+    const fetchRecentActivity = async (organizationId: string, branchId?: string, stylistStaffId?: string) => {
         try {
             const activities: { createdAtMs: number; time: string; action: string; customer: string; amount?: number }[] = [];
 
@@ -221,6 +224,7 @@ export default function DashboardPage() {
                     appointment_id,
                     customers (name)
                 `)
+                .eq('organization_id', organizationId)
                 .order('created_at', { ascending: false })
                 .limit(stylistStaffId ? 12 : 5);
             if (branchId) invQuery = invQuery.eq('branch_id', branchId);
@@ -264,6 +268,7 @@ export default function DashboardPage() {
                     appointment_date,
                     start_time
                 `)
+                .eq('organization_id', organizationId)
                 .order('created_at', { ascending: false })
                 .limit(5);
             if (branchId) aptQuery = aptQuery.eq('branch_id', branchId);
@@ -328,7 +333,8 @@ export default function DashboardPage() {
             inFlight = true;
             try {
                 const stylistOnly = user?.role === 'Stylist' ? staffId || undefined : undefined;
-                const latest = await fetchRecentActivity(effectiveBranchId, stylistOnly);
+                const orgId = await getCurrentOrganizationId();
+                const latest = await fetchRecentActivity(orgId, effectiveBranchId, stylistOnly);
                 if (!mounted) return;
                 setStats(prev => ({
                     ...prev,
