@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,11 @@ export default function Modal({
         xl: 'max-w-4xl',
     };
 
-    return (
+    // Render into a portal to avoid being trapped by parent stacking contexts
+    // (e.g. tables/containers with transforms/overflow creating unexpected layering).
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -95,5 +100,7 @@ export default function Modal({
                 </>
             )}
         </AnimatePresence>
+        ,
+        document.body
     );
 }
