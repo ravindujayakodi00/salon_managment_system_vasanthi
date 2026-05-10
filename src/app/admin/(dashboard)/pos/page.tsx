@@ -46,7 +46,7 @@ export default function POSPage() {
     const [customerSearch, setCustomerSearch] = useState('');
     const [serviceSearch, setServiceSearch] = useState('');
     const [processingPayment, setProcessingPayment] = useState(false);
-    const [manualItem, setManualItem] = useState({ description: '', price: '' });
+    const [manualItem, setManualItem] = useState({ description: '', price: '', stylistId: '' });
 
     // Appointment integration state
     const [customerAppointments, setCustomerAppointments] = useState<any[]>([]);
@@ -216,13 +216,15 @@ export default function POSPage() {
     const fetchStaff = async () => {
         if (!user?.organizationId) return;
         try {
-            const { data, error } = await supabase
+            let q = supabase
                 .from('staff')
                 .select('id, name, role')
                 .eq('organization_id', user.organizationId)
                 .eq('is_active', true)
                 .eq('role', 'Stylist')
                 .order('name');
+            if (effectiveBranchId) q = q.eq('branch_id', effectiveBranchId);
+            const { data, error } = await q;
 
             if (error) throw error;
             setStaff(data || []);
@@ -428,16 +430,27 @@ export default function POSPage() {
             showToast('Please enter description and price', 'warning');
             return;
         }
+        if (!manualItem.stylistId) {
+            showToast('Please select the stylist who provided this service', 'warning');
+            return;
+        }
+        const stylist = staff.find(s => s.id === manualItem.stylistId);
+        if (!stylist) {
+            showToast('Invalid stylist selected', 'error');
+            return;
+        }
         setCart([...cart, {
             type: 'manual',
             name: manualItem.description,
             price: parseFloat(manualItem.price),
             quantity: 1,
-            description: manualItem.description
+            description: manualItem.description,
+            stylistId: manualItem.stylistId,
+            stylistName: stylist?.name,
         }]);
-        setManualItem({ description: '', price: '' });
+        setManualItem({ description: '', price: '', stylistId: '' });
         setShowManualFee(false);
-        showToast('Manual item added', 'success');
+        showToast(`Manual item added (Stylist: ${stylist?.name})`, 'success');
     };
 
     const addLoyaltyCardToCart = () => {
@@ -1232,12 +1245,24 @@ export default function POSPage() {
                                         exit={{ height: 0 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="p-4 pt-0 border-t border-gray-100 dark:border-gray-700 space-y-3">
+                                        <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
                                             <Input
                                                 placeholder="Description"
                                                 value={manualItem.description}
                                                 onChange={(e) => setManualItem({ ...manualItem, description: e.target.value })}
                                             />
+                                            <select
+                                                value={manualItem.stylistId}
+                                                onChange={(e) => setManualItem({ ...manualItem, stylistId: e.target.value })}
+                                                className="w-full min-w-0 max-w-full px-4 py-2.5 rounded-xl border transition-all duration-200 appearance-none text-base bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:border-gray-400"
+                                            >
+                                                <option value="">Select Stylist...</option>
+                                                {staff.map((s: any) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                             <div className="flex flex-col sm:flex-row gap-2">
                                                 <Input
                                                     type="number"
@@ -1349,7 +1374,7 @@ export default function POSPage() {
                                                         <div className="flex items-center gap-2">
                                                             <div className="flex-1">
                                                                 <span className="text-gray-900 dark:text-white">{item.name}</span>
-                                                                {item.type === 'walk-in-service' && item.stylistName && (
+                                                                {(item.type === 'walk-in-service' || item.type === 'manual') && item.stylistName && (
                                                                     <div className="flex items-center gap-1 mt-0.5">
                                                                         <User className="h-3 w-3 text-primary-500" />
                                                                         <span className="text-xs text-primary-600 dark:text-primary-400">

@@ -500,7 +500,9 @@ export const earningsService = {
 
     /**
      * Calculate and update earnings for walk-in services (no appointment)
-     * Items should have stylistId and type='walk-in-service'
+     * Items should have stylistId and be either:
+     * - type='walk-in-service' (regular walk-in services)
+     * - type='manual' (manual fees that should be attributed to a stylist)
      */
     async updateEarningsForWalkIn(
         invoiceId: string,
@@ -520,9 +522,9 @@ export const earningsService = {
                 return;
             }
 
-            // Filter walk-in service items that have stylistId
+            // Filter walk-in revenue items that have stylistId
             const walkInItems = items.filter((item: any) =>
-                item.type === 'walk-in-service' && item.stylistId
+                (item.type === 'walk-in-service' || item.type === 'manual') && item.stylistId
             );
 
             if (walkInItems.length === 0) {
@@ -553,7 +555,7 @@ export const earningsService = {
 
                 const commissionRate = stylist?.commission || 40;
 
-                // Calculate revenue for this stylist's walk-in services
+                // Calculate revenue for this stylist's walk-in services + manual fees
                 const serviceRevenue = stylistItems.reduce((sum: number, item: any) =>
                     sum + (item.price * item.quantity), 0
                 );

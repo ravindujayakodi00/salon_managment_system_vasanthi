@@ -10,9 +10,10 @@ export const invoicesService = {
         appointment_id?: string;
         appointment_ids?: string[]; // NEW: Support multiple appointments
         items: Array<{
-            type: 'service' | 'manual' | 'appointment';
+            type: 'service' | 'manual' | 'appointment' | 'walk-in-service' | 'product';
             serviceId?: string;
             appointmentId?: string;
+            stylistId?: string;
             description: string;
             name?: string;
             price: number;
@@ -129,9 +130,11 @@ export const invoicesService = {
             }
         }
 
-        // Update earnings for walk-in services (no appointment)
-        const walkInItems = invoice.items.filter((item: any) => item.type === 'walk-in-service' && item.stylistId);
-        if (data && walkInItems.length > 0) {
+        // Update earnings for walk-in services + stylist-attributed manual fees (no appointment)
+        const walkInAttributed = invoice.items.filter((item: any) =>
+            (item.type === 'walk-in-service' || item.type === 'manual') && item.stylistId
+        );
+        if (data && walkInAttributed.length > 0) {
             try {
                 await earningsService.updateEarningsForWalkIn(
                     data.id,
