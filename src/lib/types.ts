@@ -1,11 +1,28 @@
 // User and Authentication Types
-export type UserRole = 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
+
+/** The 4 fixed system roles that drive all behavioral logic (permissions, queries, branch gating). */
+export type SystemRole = 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
+
+/** Display role name — can be a custom string per organization (e.g. "Head Stylist", "Front Desk"). */
+export type UserRole = string;
+
+/** An organization-specific role entry, linking a display name to a system role. */
+export interface OrgRole {
+    id: string;
+    organizationId: string;
+    displayName: string;
+    systemRole: SystemRole;
+    isDeletable: boolean;
+}
 
 export interface User {
     id: string;
     email: string;
     name: string;
-    role: UserRole;
+    /** Display role name (custom per org). Use for UI labels only. */
+    role: string;
+    /** Behavioral role — one of the 4 system roles. Use for all permission checks. */
+    systemRole: SystemRole;
     branchId?: string;
     organizationId: string;
     organizationSlug?: string;
@@ -77,7 +94,10 @@ export interface Staff {
     name: string;
     email: string;
     phone: string;
-    role: UserRole;
+    /** Display role name (custom per org). Use for UI labels only. */
+    role: string;
+    /** Behavioral role — one of the 4 system roles. Use for all permission/query logic. */
+    systemRole?: SystemRole;
     branchId: string;
     specializations: string[]; // Service IDs they can perform
     workingDays: string[]; // ['Monday', 'Tuesday', ...]

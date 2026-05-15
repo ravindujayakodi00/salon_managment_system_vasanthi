@@ -88,9 +88,9 @@ export const financialService = {
         // 1) Select stylists based on who is requesting.
         let stylistsQuery = supabase
             .from('staff')
-            .select('id, name, branch_id, profile_id, role')
+            .select('id, name, branch_id, profile_id, system_role')
             .eq('organization_id', organizationId)
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .order('name');
 

@@ -129,12 +129,12 @@ export const earningsService = {
             // Get staff role
             const { data: staff } = await supabase
                 .from('staff')
-                .select('role')
+                .select('system_role')
                 .eq('id', staffId)
                 .eq('organization_id', organizationId)
                 .single();
 
-            if (staff?.role === 'Stylist') {
+            if (staff?.system_role === 'Stylist') {
                 return; // Stylists don't get daily salary
             }
 
@@ -241,7 +241,7 @@ export const earningsService = {
                 .from('staff_earnings')
                 .select(`
                     *,
-                    staff:staff(id, name, role)
+                    staff:staff(id, name, system_role)
                 `)
                 .in('staff_id', staffIds)
                 .gte('date', startDate)
@@ -266,7 +266,7 @@ export const earningsService = {
             // 1. Get all active staff first
             const { data: allStaff, error: staffError } = await supabase
                 .from('staff')
-                .select('id, name, role')
+                .select('id, name, system_role')
                 .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
@@ -311,7 +311,7 @@ export const earningsService = {
                 return {
                     staff_id: staff.id,
                     staff_name: staff.name,
-                    staff_role: staff.role,
+                    staff_role: staff.system_role,
                     ...staffEarnings
                 };
             });

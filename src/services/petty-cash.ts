@@ -12,7 +12,6 @@ export interface PettyCashTransaction {
     branch_id: string;
     profiles?: {
         name: string;
-        role: string;
     };
 }
 
@@ -57,8 +56,7 @@ export const pettyCashService = {
             .select(`
                 *,
                 profiles (
-                    name,
-                    role
+                    name
                 )
             `, { count: 'exact' })
             .eq('organization_id', organizationId)
@@ -197,8 +195,7 @@ export const pettyCashService = {
             .select(`
                 *,
                 profiles (
-                    name,
-                    role
+                    name
                 )
             `)
             .eq('organization_id', organizationId)

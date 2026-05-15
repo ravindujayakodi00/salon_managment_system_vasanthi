@@ -45,10 +45,10 @@ export default function FinancialPage() {
     const [advanceMax, setAdvanceMax] = useState<number>(0);
     const [advanceProcessing, setAdvanceProcessing] = useState(false);
 
-    const canCreateAdvance = user?.role === 'Owner' || user?.role === 'Manager';
+    const canCreateAdvance = user?.systemRole === 'Owner' || user?.systemRole === 'Manager';
 
     const fetchFinancials = async () => {
-        if (!user?.id || !user?.role) return;
+        if (!user?.id || !user?.systemRole) return;
 
         try {
             setLoading(true);
@@ -57,7 +57,7 @@ export default function FinancialPage() {
                 endDate: dateRange.end,
                 branchId: user.branchId || null,
                 requesterId: user.id,
-                requesterRole: user.role,
+                requesterRole: user.systemRole,
             });
 
             setRows(res.rows);
@@ -73,7 +73,7 @@ export default function FinancialPage() {
 
     useEffect(() => {
         fetchFinancials();
-    }, [dateRange.start, dateRange.end, user?.id, user?.role, user?.branchId]);
+    }, [dateRange.start, dateRange.end, user?.id, user?.systemRole, user?.branchId]);
 
     const selectedRow = useMemo(() => rows.find((r) => r.staff_id === advanceStaffId) || null, [rows, advanceStaffId]);
 

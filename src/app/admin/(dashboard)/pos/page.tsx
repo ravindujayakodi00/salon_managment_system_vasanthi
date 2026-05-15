@@ -218,10 +218,10 @@ export default function POSPage() {
         try {
             let q = supabase
                 .from('staff')
-                .select('id, name, role')
+                .select('id, name, system_role')
                 .eq('organization_id', user.organizationId)
                 .eq('is_active', true)
-                .eq('role', 'Stylist')
+                .eq('system_role', 'Stylist')
                 .order('name');
             if (effectiveBranchId) q = q.eq('branch_id', effectiveBranchId);
             const { data, error } = await q;
@@ -272,7 +272,8 @@ export default function POSPage() {
                     email: customerData.email || null,
                     gender: customerData.gender || null,
                     total_visits: 0,
-                    total_spent: 0
+                    total_spent: 0,
+                    organization_id: user?.organizationId,
                 })
                 .select()
                 .single();
@@ -1256,7 +1257,7 @@ export default function POSPage() {
                                                 onChange={(e) => setManualItem({ ...manualItem, stylistId: e.target.value })}
                                                 className="w-full min-w-0 max-w-full px-4 py-2.5 rounded-xl border transition-all duration-200 appearance-none text-base bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:border-gray-400"
                                             >
-                                                <option value="">Select Stylist...</option>
+                                                <option value="">Select Beautician...</option>
                                                 {staff.map((s: any) => (
                                                     <option key={s.id} value={s.id}>
                                                         {s.name}

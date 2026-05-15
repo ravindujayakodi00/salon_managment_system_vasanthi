@@ -54,7 +54,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!user) return;
         // Non-owners are locked to their profile branch_id and must not use org-wide branch switching.
-        if (user.role === 'Receptionist' || user.role === 'Stylist' || user.role === 'Manager') {
+        if (user.systemRole === 'Receptionist' || user.systemRole === 'Stylist' || user.systemRole === 'Manager') {
             setBranchScopeState(user.branchId || 'all');
             return;
         }
@@ -68,12 +68,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         } catch {
             setBranchScopeState('all');
         }
-    }, [user?.id, user?.branchId, user?.role]);
+    }, [user?.id, user?.branchId, user?.systemRole]);
 
     const setBranchScope = useCallback(
         (id: BranchScope) => {
             setBranchScopeState(id);
-            if (user?.role === 'Owner' || user?.role === 'Manager') {
+            if (user?.systemRole === 'Owner' || user?.systemRole === 'Manager') {
                 try {
                     localStorage.setItem(STORAGE_KEY, id);
                 } catch {
@@ -81,12 +81,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 }
             }
         },
-        [user?.role]
+        [user?.systemRole]
     );
 
     // Drop stale localStorage branch id (e.g. after rename / migration) so the select matches real rows.
     useEffect(() => {
-        if (!user || user.role === 'Receptionist' || user.role === 'Stylist' || user.role === 'Manager') return;
+        if (!user || user.systemRole === 'Receptionist' || user.systemRole === 'Stylist' || user.systemRole === 'Manager') return;
         if (branchScope === 'all' || branches.length === 0) return;
         const valid = branches.some(b => b.id === branchScope);
         if (!valid) {
@@ -96,7 +96,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     const effectiveBranchId = useMemo(() => {
         if (!user) return undefined;
-        if (user.role === 'Receptionist' || user.role === 'Stylist' || user.role === 'Manager') {
+        if (user.systemRole === 'Receptionist' || user.systemRole === 'Stylist' || user.systemRole === 'Manager') {
             return user.branchId;
         }
         if (branchScope === 'all') return undefined;

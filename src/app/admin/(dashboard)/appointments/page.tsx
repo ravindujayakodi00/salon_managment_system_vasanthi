@@ -54,7 +54,7 @@ export default function AppointmentsPage() {
         'Cancelled',
     ];
 
-    const isStylist = user?.role === 'Stylist';
+    const isStylist = user?.systemRole === 'Stylist';
 
     // Fetch stylists for dropdown (Owner/Manager/Receptionist use-case)
     useEffect(() => {

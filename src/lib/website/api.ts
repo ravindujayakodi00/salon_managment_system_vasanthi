@@ -297,7 +297,7 @@ export async function fetchStylistsForService(serviceId: string, date?: string, 
         .from('staff')
         .select('*')
         .eq('is_active', true)
-        .eq('role', 'Stylist')
+        .eq('system_role', 'Stylist')
         .eq('organization_id', ORG_ID)
         .not('is_emergency_unavailable', 'is', true);
 

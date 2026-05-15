@@ -3,12 +3,12 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { UserRole } from '@/lib/types';
+import { SystemRole } from '@/lib/types';
 import { adminPaths } from '@/lib/admin-paths';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    allowedRoles?: UserRole[];
+    allowedRoles?: SystemRole[];
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
             return;
         }
 
-        if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+        if (allowedRoles && user && !allowedRoles.includes(user.systemRole)) {
             router.push(adminPaths.dashboard);
         }
     }, [isAuthenticated, user, allowedRoles, router, pathname, loading]);
@@ -46,7 +46,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         return null;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    if (allowedRoles && user && !allowedRoles.includes(user.systemRole)) {
         return null;
     }
 

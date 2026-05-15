@@ -21,7 +21,7 @@ export async function createStaffAction(staffData: {
     name: string;
     email: string;
     phone: string;
-    role: 'Manager' | 'Receptionist' | 'Stylist';
+    system_role: string; // 'Manager' | 'Receptionist' | 'Stylist'
     branch_id: string;
     specializations?: string[];
     working_days?: string[];
@@ -40,13 +40,13 @@ export async function createStaffAction(staffData: {
 
         const { data: callerProfile, error: callerProfileError } = await supabaseAuthed
             .from('profiles')
-            .select('id, role, organization_id')
+            .select('id, system_role, organization_id')
             .eq('id', user.id)
             .single();
         if (callerProfileError || !callerProfile) {
             return { success: false, message: 'Unauthorized' };
         }
-        if (callerProfile.role !== 'Owner') {
+        if (callerProfile.system_role !== 'Owner') {
             return { success: false, message: 'Only the Owner can create staff members.' };
         }
 
@@ -94,7 +94,7 @@ export async function createStaffAction(staffData: {
                 id: authData.user.id,
                 email: staffData.email,
                 name: staffData.name,
-                role: staffData.role,
+                system_role: staffData.system_role,
                 branch_id: staffData.branch_id,
                 organization_id: branch.organization_id,
                 is_active: true,
@@ -114,7 +114,7 @@ export async function createStaffAction(staffData: {
                 name: staffData.name,
                 email: staffData.email,
                 phone: staffData.phone,
-                role: staffData.role,
+                system_role: staffData.system_role,
                 branch_id: staffData.branch_id,
                 organization_id: branch.organization_id,
                 specializations: staffData.specializations || [],
@@ -212,13 +212,13 @@ export async function deleteStaffAction(id: string) {
 
         const { data: callerProfile, error: profileError } = await supabaseAuthed
             .from('profiles')
-            .select('id, role, organization_id')
+            .select('id, system_role, organization_id')
             .eq('id', user.id)
             .single();
         if (profileError || !callerProfile) {
             return { success: false, message: 'Unauthorized' };
         }
-        if (callerProfile.role !== 'Owner') {
+        if (callerProfile.system_role !== 'Owner') {
             return { success: false, message: 'Only the Owner can delete staff members.' };
         }
 

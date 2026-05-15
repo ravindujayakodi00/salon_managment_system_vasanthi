@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Organization, User, UserRole } from './types';
+import { Organization, User, SystemRole } from './types';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
 import { brandingService } from '@/services/branding';
@@ -12,7 +12,7 @@ interface AuthContextType {
     refreshProfile: () => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
-    hasRole: (roles: UserRole[]) => boolean;
+    hasRole: (roles: SystemRole[]) => boolean;
     loading: boolean;
 }
 
@@ -87,11 +87,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         : organization.name;
                 }
             }
+            // Fetch display_name for this user's system_role from organization_roles
+            let displayName: string = data.system_role as string;
+            try {
+                const { data: orgRole } = await supabase
+                    .from('organization_roles')
+                    .select('display_name')
+                    .eq('organization_id', data.organization_id)
+                    .eq('system_role', data.system_role)
+                    .maybeSingle();
+                if (orgRole?.display_name) displayName = orgRole.display_name;
+            } catch {
+                // fall back to system_role as display name
+            }
+
             setUser({
                 id: data.id,
                 email: data.email,
                 name: data.name,
-                role: data.role as UserRole,
+                role: displayName,
+                systemRole: data.system_role as SystemRole,
                 branchId: data.branch_id || undefined,
                 organizationId: data.organization_id as string,
                 organizationSlug,
@@ -164,9 +179,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
-    const hasRole = (roles: UserRole[]): boolean => {
+    const hasRole = (roles: SystemRole[]): boolean => {
         if (!user) return false;
-        return roles.includes(user.role);
+        return roles.includes(user.systemRole);
     };
 
     return (

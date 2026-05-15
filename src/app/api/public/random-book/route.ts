@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         const { data: qualifiedStylists, error: qualifiedError } = await supabase
             .from('staff')
             .select('id, name, branch_id, specializations, working_days, working_hours, is_emergency_unavailable')
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .eq('is_emergency_unavailable', false)
             .eq('organization_id', organizationId)

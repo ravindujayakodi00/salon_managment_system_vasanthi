@@ -24,7 +24,7 @@ export default function DashboardLayout({
     useEffect(() => {
         if (
             user &&
-            (user.role === 'Manager' || user.role === 'Stylist' || user.role === 'Receptionist') &&
+            (user.systemRole === 'Manager' || user.systemRole === 'Stylist' || user.systemRole === 'Receptionist') &&
             !user.branchId
         ) {
             router.replace('/admin/select-branch');

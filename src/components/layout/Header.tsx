@@ -21,7 +21,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const { displayName } = useBranding();
     const { branches, branchScope, setBranchScope } = useWorkspace();
-    const showBranchPicker = user && user.role === 'Owner' && branches.length > 0;
+    const showBranchPicker = user && user.systemRole === 'Owner' && branches.length > 0;
     const assignedBranchLabel = useMemo(() => {
         if (!user?.branchId) return undefined;
         const b = branches.find(br => br.id === user.branchId);

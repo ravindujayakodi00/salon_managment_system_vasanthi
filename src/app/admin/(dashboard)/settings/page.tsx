@@ -18,14 +18,15 @@ import { supabase } from '@/lib/supabase';
 import { schedulingService } from '@/services/scheduling';
 import { availabilityService, AvailabilityRecord } from '@/services/availability';
 import { staffService } from '@/services/staff';
-import { UserRole } from '@/lib/types';
+import { SystemRole } from '@/lib/types';
+import { orgRolesService } from '@/services/orgRoles';
 
 interface ShowMessage {
     (type: 'success' | 'error', text: string): void;
 }
 
 interface PasswordChangeSectionProps {
-    hasRole: (roles: UserRole[]) => boolean;
+    hasRole: (roles: SystemRole[]) => boolean;
     showMessage: ShowMessage;
 }
 
@@ -284,6 +285,7 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
+    const [orgRoles, setOrgRoles] = useState<Record<string, string>>({}); // system_role → display_name
     const [selectedStaff, setSelectedStaff] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -296,13 +298,20 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
     const fetchStaff = async () => {
         if (!user?.organizationId) return;
         try {
-            const { data } = await supabase
-                .from('staff')
-                .select('id, name, email, role')
-                .eq('organization_id', user.organizationId)
-                .eq('is_active', true)
-                .order('name');
+            const [{ data }, roles] = await Promise.all([
+                supabase
+                    .from('staff')
+                    .select('id, name, email, system_role')
+                    .eq('organization_id', user.organizationId)
+                    .eq('is_active', true)
+                    .order('name'),
+                orgRolesService.getOrgRoles(user.organizationId),
+            ]);
             setStaff(data || []);
+            // Build system_role → display_name map
+            const roleMap: Record<string, string> = {};
+            roles.forEach(r => { roleMap[r.systemRole] = r.displayName; });
+            setOrgRoles(roleMap);
         } catch (error) {
             console.error('Error fetching staff:', error);
         }
@@ -381,7 +390,7 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
                         <option value="">Choose a staff member...</option>
                         {staff.map((s) => (
                             <option key={s.id} value={s.id}>
-                                {s.name} - {s.role} ({s.email})
+                                {s.name} - {orgRoles[s.system_role] ?? s.system_role} ({s.email})
                             </option>
                         ))}
                     </select>

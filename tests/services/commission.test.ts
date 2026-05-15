@@ -19,7 +19,7 @@ describe('Commission Calculations', () => {
         testStylist = {
             id: `test-stylist-${Date.now()}`,
             name: 'Test Stylist',
-            role: 'Stylist',
+            system_role: 'Stylist',
             commission: 45, // 45% commission
             is_active: true,
         };

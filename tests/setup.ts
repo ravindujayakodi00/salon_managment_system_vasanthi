@@ -31,7 +31,7 @@ declare global {
     createTestStaff: () => ({
         id: `test-staff-${Date.now()}`,
         name: 'Test Stylist',
-        role: 'Stylist',
+        system_role: 'Stylist',
         commission: 40,
         is_active: true,
     }),

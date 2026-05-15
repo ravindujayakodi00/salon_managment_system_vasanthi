@@ -14,14 +14,14 @@ export const authService = {
             // Get user profile to check role
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role, email')
+                .select('system_role, email')
                 .eq('id', user.id)
                 .single();
 
             if (!profile) throw new Error('Profile not found');
 
             // Only Owner/Manager require OTP
-            if (!['Owner', 'Manager'].includes(profile.role)) {
+            if (!['Owner', 'Manager'].includes(profile.system_role)) {
                 throw new Error('OTP not required for your role');
             }
 
@@ -130,14 +130,14 @@ export const authService = {
             // Get user profile to check role
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role')
+                .select('system_role')
                 .eq('id', user.id)
                 .single();
 
             if (!profile) throw new Error('Profile not found');
 
             // Only Stylist/Receptionist can use direct change
-            if (['Owner', 'Manager'].includes(profile.role)) {
+            if (['Owner', 'Manager'].includes(profile.system_role)) {
                 throw new Error('Please use OTP verification');
             }
 

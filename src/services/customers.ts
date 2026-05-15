@@ -211,17 +211,24 @@ export const customersService = {
      */
     async deleteCustomer(id: string) {
         const organizationId = await getCurrentOrganizationId();
+
+        // Check for existing appointments before attempting delete
+        const { count: apptCount } = await supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('customer_id', id)
+            .eq('organization_id', organizationId);
+
+        if (apptCount && apptCount > 0) {
+            throw new Error(`Cannot delete this customer because they have ${apptCount} appointment${apptCount > 1 ? 's' : ''} on record. Please delete or reassign the appointments first.`);
+        }
+
         // Delete related campaign sends first (foreign key constraint)
-        const { error: campaignSendsError } = await supabase
+        await supabase
             .from('campaign_sends')
             .delete()
             .eq('customer_id', id)
             .eq('organization_id', organizationId);
-
-        if (campaignSendsError) {
-            console.error('Error deleting campaign sends:', campaignSendsError);
-            // Continue anyway - customer might not have campaign sends
-        }
 
         // Now delete the customer
         const { error } = await supabase
@@ -232,7 +239,7 @@ export const customersService = {
 
         if (error) {
             console.error('Supabase delete error:', error);
-            throw new Error(error.message || 'Failed to delete customer. Please check if customer has related appointments or invoices.');
+            throw new Error('Failed to delete customer. They may have related records that must be removed first.');
         }
         return true;
     }

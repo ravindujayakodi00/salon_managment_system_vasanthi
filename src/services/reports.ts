@@ -311,6 +311,15 @@ export const reportsService = {
         }
 
         const organizationId = await getCurrentOrganizationId();
+
+        // Build system_role → display_name map for this org
+        const { data: orgRoles } = await supabase
+            .from('organization_roles')
+            .select('system_role, display_name')
+            .eq('organization_id', organizationId);
+        const roleDisplayMap: Record<string, string> = {};
+        (orgRoles || []).forEach(r => { roleDisplayMap[r.system_role] = r.display_name; });
+
         let staffQuery = supabase
             .from('staff')
             .select('*')
@@ -350,7 +359,7 @@ export const reportsService = {
 
                 return {
                     name: staffMember.name,
-                    role: staffMember.role,
+                    role: roleDisplayMap[staffMember.system_role] ?? staffMember.system_role,
                     appointmentsCompleted: appointments?.length || 0,
                     totalRevenue,
                     commission: totalCommission,

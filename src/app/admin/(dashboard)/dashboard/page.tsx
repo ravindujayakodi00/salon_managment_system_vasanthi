@@ -78,13 +78,13 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardData();
-    }, [effectiveBranchId, user?.role, user?.email]);
+    }, [effectiveBranchId, user?.systemRole, user?.email]);
 
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
             let stylistStaffId: string | undefined;
-            if (user?.role === 'Stylist' && user?.email) {
+            if (user?.systemRole === 'Stylist' && user?.email) {
                 try {
                     const staff = await staffService.getStaffByEmail(user.email);
                     if (staff?.id) {
@@ -332,7 +332,7 @@ export default function DashboardPage() {
             if (inFlight) return;
             inFlight = true;
             try {
-                const stylistOnly = user?.role === 'Stylist' ? staffId || undefined : undefined;
+                const stylistOnly = user?.systemRole === 'Stylist' ? staffId || undefined : undefined;
                 const orgId = await getCurrentOrganizationId();
                 const latest = await fetchRecentActivity(orgId, effectiveBranchId, stylistOnly);
                 if (!mounted) return;
@@ -357,7 +357,7 @@ export default function DashboardPage() {
             mounted = false;
             if (intervalId) clearInterval(intervalId);
         };
-    }, [user?.id, user?.role, effectiveBranchId, staffId]);
+    }, [user?.id, user?.systemRole, effectiveBranchId, staffId]);
 
     const handleEmergencyToggle = async () => {
         if (!staffId) {
@@ -396,7 +396,7 @@ export default function DashboardPage() {
         );
     }
 
-    const isStylistView = user?.role === 'Stylist';
+    const isStylistView = user?.systemRole === 'Stylist';
 
     const appointmentStatusData = [
         { name: 'Completed', value: stats.completed, color: '#10b981' },
@@ -419,7 +419,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Emergency Toggle for Stylists */}
-                {user?.role === 'Stylist' && (
+                {user?.systemRole === 'Stylist' && (
                     <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800">
                         <div className="flex flex-col">
                             <span className="text-sm font-semibold text-red-800 dark:text-red-300">Emergency Mode</span>

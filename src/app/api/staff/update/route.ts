@@ -50,13 +50,13 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        // If name or role changed, update profile too
-        if (updates.name || updates.role) {
+        // If name or system_role changed, sync profile too
+        if (updates.name || updates.system_role) {
             const staff = data[0];
             if (staff?.profile_id) {
                 const profileUpdates: any = {};
                 if (updates.name) profileUpdates.name = updates.name;
-                if (updates.role) profileUpdates.role = updates.role;
+                if (updates.system_role) profileUpdates.system_role = updates.system_role;
 
                 const { error: profileError } = await supabaseAdmin
                     .from('profiles')
@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest) {
         // Get caller's organization from their staff/profile row
         const { data: callerProfile } = await supabaseAdmin
             .from('staff')
-            .select('organization_id, role')
+            .select('organization_id, system_role')
             .eq('profile_id', callerUser.id)
             .maybeSingle();
 
@@ -119,7 +119,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Only Owners and Managers can change passwords
-        if (!['Owner', 'Manager'].includes(callerProfile.role)) {
+        if (!['Owner', 'Manager'].includes(callerProfile.system_role)) {
             return NextResponse.json({ success: false, error: 'Forbidden: insufficient role' }, { status: 403 });
         }
 

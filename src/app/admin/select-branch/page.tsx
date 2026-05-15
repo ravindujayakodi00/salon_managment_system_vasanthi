@@ -29,7 +29,7 @@ export default function SelectBranchPage() {
         if (!user) return;
 
         // Owners can switch in the header, so no login-time branch gate is needed.
-        if (user.role === 'Owner') {
+        if (user.systemRole === 'Owner') {
             router.replace(adminPaths.dashboard);
             return;
         }

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
             const { data: managers } = await supabase
                 .from('staff')
                 .select('id, name, phone')
-                .eq('role', 'Manager')
+                .eq('system_role', 'Manager')
                 .eq('is_active', true)
                 .eq('organization_id', organizationId);
 
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
             const { data: managers } = await supabase
                 .from('staff')
                 .select('id, name, phone')
-                .eq('role', 'Manager')
+                .eq('system_role', 'Manager')
                 .eq('is_active', true)
                 .eq('organization_id', organizationId);
 

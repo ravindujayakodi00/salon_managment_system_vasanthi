@@ -190,7 +190,7 @@ export const settingsService = {
             const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('staff')
-                .select('id, name, email, role, is_active')
+                .select('id, name, email, system_role, is_active')
                 .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');

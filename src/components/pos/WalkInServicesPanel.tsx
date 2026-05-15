@@ -125,7 +125,7 @@ export default function WalkInServicesPanel({
                                                     onChange={(e) => onStylistChange(service.id, e.target.value)}
                                                     className="flex-1 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
                                                 >
-                                                    <option value="">Select Stylist...</option>
+                                                    <option value="">Select Beautician...</option>
                                                     {staff.map((stylist: any) => (
                                                         <option key={stylist.id} value={stylist.id}>
                                                             {stylist.name}

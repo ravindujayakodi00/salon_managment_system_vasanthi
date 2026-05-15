@@ -25,11 +25,11 @@ export const appointmentsService = {
         if (user) {
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role, id')
+                .select('system_role, id')
                 .eq('id', user.id)
                 .single();
 
-            if (profile?.role === 'Stylist') {
+            if (profile?.system_role === 'Stylist') {
                 // If user is a stylist, find their staff record
                 const { data: staff } = await supabase
                     .from('staff')

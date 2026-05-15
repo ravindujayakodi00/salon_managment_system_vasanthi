@@ -6,10 +6,11 @@ import { Plus, Search, Edit, Trash2, X, Check, Loader, Copy, AlertCircle, Sparkl
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import PhoneInput from '@/components/shared/PhoneInput';
-import { Staff, Branch, Service } from '@/lib/types';
+import { Staff, Branch, Service, OrgRole } from '@/lib/types';
 import { staffService } from '@/services/staff';
 import { branchesService } from '@/services/branches';
 import { servicesService } from '@/services/services';
+import { orgRolesService } from '@/services/orgRoles';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 
@@ -19,6 +20,7 @@ export default function StaffPage() {
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [services, setServices] = useState<Service[]>([]);
+    const [orgRoles, setOrgRoles] = useState<OrgRole[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
@@ -36,7 +38,7 @@ export default function StaffPage() {
         name: '',
         email: '',
         phone: '',
-        role: 'Stylist' as 'Manager' | 'Receptionist' | 'Stylist',
+        role: 'Stylist' as string,
         branch_id: '',
         specializations: [] as string[],
         working_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as string[],
@@ -47,8 +49,14 @@ export default function StaffPage() {
     const [formLoading, setFormLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const roles = ['All', 'Manager', 'Receptionist', 'Stylist'];
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    // Role filter tabs: 'All' + distinct display names from loaded staff
+    const roleFilterOptions = ['All', ...Array.from(new Set(staffMembers.map(s => s.role)))];
+
+    /** Returns the system_role for the currently selected form role display name. */
+    const getFormSystemRole = () =>
+        orgRoles.find(r => r.displayName === formData.role)?.systemRole ?? 'Stylist';
 
     useEffect(() => {
         fetchData();
@@ -58,11 +66,13 @@ export default function StaffPage() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [staffData, branchesData, servicesData] = await Promise.all([
+            const [staffData, branchesData, servicesData, rolesData] = await Promise.all([
                 staffService.getStaff(effectiveBranchId),
                 branchesService.getBranches(user?.organizationId),
-                servicesService.getServices()
+                servicesService.getServices(),
+                user?.organizationId ? orgRolesService.getAssignableRoles(user.organizationId) : Promise.resolve([]),
             ]);
+            setOrgRoles(rolesData);
 
             setBranches(branchesData || []);
             setServices(servicesData || []);
@@ -80,7 +90,9 @@ export default function StaffPage() {
                 name: s.name,
                 email: s.email,
                 phone: s.phone || '',
-                role: s.role,
+                // role = display name looked up from org roles
+                role: rolesData.find(r => r.systemRole === s.system_role)?.displayName ?? s.system_role,
+                systemRole: s.system_role,
                 branchId: s.branch_id,
                 specializations: s.specializations || [],
                 workingDays: s.working_days || [],
@@ -99,7 +111,6 @@ export default function StaffPage() {
     };
 
     const fetchStaff = async () => {
-        // Kept for compatibility with existing calls, but fetchData handles everything
         try {
             const data = await staffService.getStaff(effectiveBranchId);
             const mappedStaff = (data || []).map((s: any) => ({
@@ -107,11 +118,14 @@ export default function StaffPage() {
                 name: s.name,
                 email: s.email,
                 phone: s.phone || '',
-                role: s.role,
+                role: orgRoles.find(r => r.systemRole === s.system_role)?.displayName ?? s.system_role,
+                systemRole: s.system_role,
                 branchId: s.branch_id,
                 specializations: s.specializations || [],
                 workingDays: s.working_days || [],
                 workingHours: s.working_hours || { start: '09:00', end: '18:00' },
+                salary: s.salary,
+                commission: s.commission,
                 isActive: s.is_active,
                 createdAt: s.created_at,
             }));
@@ -128,17 +142,18 @@ export default function StaffPage() {
 
     const handleAddStaff = async () => {
         setFormLoading(true);
+        const systemRole = getFormSystemRole();
         const result = await staffService.createStaff({
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
-            role: formData.role,
+            system_role: systemRole,
             branch_id: formData.branch_id || (branches.length > 0 ? branches[0].id : ''),
             specializations: formData.specializations,
             working_days: formData.working_days,
             working_hours: formData.working_hours,
             salary: formData.salary ? parseFloat(formData.salary) : undefined,
-            commission: formData.role === 'Stylist' && formData.commission ? parseFloat(formData.commission) : undefined,
+            commission: systemRole === 'Stylist' && formData.commission ? parseFloat(formData.commission) : undefined,
         });
 
         setFormLoading(false);
@@ -158,16 +173,17 @@ export default function StaffPage() {
         if (!selectedStaff) return;
 
         setFormLoading(true);
+        const systemRole = getFormSystemRole();
         const result = await staffService.updateStaff(selectedStaff.id, {
             name: formData.name,
             phone: formData.phone,
-            role: formData.role,
+            system_role: systemRole,
             branch_id: formData.branch_id,
             specializations: formData.specializations,
             working_days: formData.working_days,
             working_hours: formData.working_hours,
             salary: formData.salary ? parseFloat(formData.salary) : undefined,
-            commission: formData.role === 'Stylist' && formData.commission ? parseFloat(formData.commission) : undefined,
+            commission: systemRole === 'Stylist' && formData.commission ? parseFloat(formData.commission) : undefined,
         });
 
         setFormLoading(false);
@@ -200,11 +216,12 @@ export default function StaffPage() {
 
     const resetForm = () => {
         const defaultBranchId = effectiveBranchId || (branches.length > 0 ? branches[0].id : '');
+        const defaultRole = orgRoles[0]?.displayName ?? 'Stylist';
         setFormData({
             name: '',
             email: '',
             phone: '',
-            role: 'Stylist',
+            role: defaultRole,
             branch_id: defaultBranchId,
             specializations: [],
             working_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
@@ -238,7 +255,7 @@ export default function StaffPage() {
             name: staff.name || '',
             email: staff.email || '',
             phone: staff.phone || '',
-            role: (staff.role as any) || 'Stylist',
+            role: staff.role || orgRoles[0]?.displayName || 'Stylist',
             branch_id: staff.branchId || '',
             specializations: staff.specializations || [],
             working_days: staff.workingDays || [],
@@ -310,7 +327,7 @@ export default function StaffPage() {
                 </div>
 
                 <div className="flex gap-2 mt-4 overflow-x-auto">
-                    {roles.map((role) => (
+                    {roleFilterOptions.map((role) => (
                         <button
                             key={role}
                             onClick={() => setRoleFilter(role)}
@@ -379,7 +396,7 @@ export default function StaffPage() {
                                 )}
 
                                 {/* Commission Badge - Only for Stylists */}
-                                {staff.role === 'Stylist' && staff.commission !== undefined && staff.commission !== null && (
+                                {staff.systemRole === 'Stylist' && staff.commission !== undefined && staff.commission !== null && (
                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-semibold">
                                         <DollarSign className="w-3.5 h-3.5" />
                                         {staff.commission}% Commission
@@ -470,21 +487,31 @@ export default function StaffPage() {
                                     <select
                                         value={formData.role}
                                         onChange={(e) => {
-                                            const newRole = e.target.value as any;
+                                            const newRole = e.target.value;
+                                            const newSystemRole = orgRoles.find(r => r.displayName === newRole)?.systemRole ?? 'Stylist';
                                             setFormData({
                                                 ...formData,
                                                 role: newRole,
-                                                // Set default commission when switching to Stylist (only for new staff)
-                                                commission: showAddModal && newRole === 'Stylist' && !formData.commission
+                                                // Set default commission when switching to a Stylist system role (only for new staff)
+                                                commission: showAddModal && newSystemRole === 'Stylist' && !formData.commission
                                                     ? '40'
                                                     : formData.commission
                                             });
                                         }}
                                         className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
                                     >
-                                        <option value="Stylist">Stylist</option>
-                                        <option value="Receptionist">Receptionist</option>
-                                        <option value="Manager">Manager</option>
+                                        {orgRoles.length > 0
+                                            ? orgRoles.map(r => (
+                                                <option key={r.id} value={r.displayName}>{r.displayName}</option>
+                                            ))
+                                            : (
+                                                <>
+                                                    <option value="Stylist">Stylist</option>
+                                                    <option value="Receptionist">Receptionist</option>
+                                                    <option value="Manager">Manager</option>
+                                                </>
+                                            )
+                                        }
                                     </select>
                                 </div>
 
@@ -508,7 +535,7 @@ export default function StaffPage() {
                                 </div>
 
                                 {/* Specializations/Skills - Only for Stylists */}
-                                {formData.role === 'Stylist' && (
+                                {getFormSystemRole() === 'Stylist' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Skills / Services
@@ -593,7 +620,7 @@ export default function StaffPage() {
                                         onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                                         placeholder="e.g., 50000"
                                     />
-                                    {formData.role === 'Stylist' && (
+                                    {getFormSystemRole() === 'Stylist' && (
                                         <div>
                                             <Input
                                                 label="Commission Rate (%)"

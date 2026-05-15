@@ -528,7 +528,7 @@ export const notificationsService = {
                     .select('phone, name')
                     .eq('organization_id', organizationId)
                     .eq('branch_id', branchId)
-                    .eq('role', 'Manager')
+                    .eq('system_role', 'Manager')
                     .eq('is_active', true);
 
                 if (managers && managers.length > 0) {

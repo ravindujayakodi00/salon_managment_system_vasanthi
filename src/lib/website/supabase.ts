@@ -30,7 +30,7 @@ export interface DbStaff {
     name: string;
     email: string | null;
     phone: string;
-    role: 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
+    system_role: 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
     branch_id: string | null;
     specializations: string[]; // Array of service IDs
     working_days: string[];

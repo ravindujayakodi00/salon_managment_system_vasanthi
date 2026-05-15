@@ -1,19 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { createStaffAction, deleteStaffAction } from '@/app/actions/staff';
-import { randomBytes } from 'crypto';
+import { deleteStaffAction } from '@/app/actions/staff';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
-
-// Utility to generate cryptographically secure random password
-function generatePassword(): string {
-    const length = 16;
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    const bytes = randomBytes(length);
-    let password = '';
-    for (let i = 0; i < length; i++) {
-        password += charset[bytes[i] % charset.length];
-    }
-    return password;
-}
 
 export const staffService = {
     /**
@@ -47,7 +34,7 @@ export const staffService = {
             .from('staff')
             .select('*')
             .eq('organization_id', organizationId)
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .order('name');
 
@@ -135,7 +122,7 @@ export const staffService = {
         name: string;
         email: string;
         phone: string;
-        role: 'Manager' | 'Receptionist' | 'Stylist';
+        system_role: string; // 'Manager' | 'Receptionist' | 'Stylist'
         branch_id: string;
         specializations?: string[];
         working_days?: string[];
@@ -143,7 +130,20 @@ export const staffService = {
         salary?: number;
         commission?: number;
     }): Promise<{ success: boolean; message: string; credentials?: { email: string; password: string } }> {
-        return await createStaffAction(staffData);
+        try {
+            const response = await fetch('/api/staff/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(staffData),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                return { success: false, message: result.error || 'Failed to create staff member' };
+            }
+            return { success: true, message: result.message, credentials: result.credentials };
+        } catch (error: any) {
+            return { success: false, message: error.message || 'Failed to create staff member' };
+        }
     },
 
     /**
@@ -152,7 +152,7 @@ export const staffService = {
     async updateStaff(id: string, updates: {
         name?: string;
         phone?: string;
-        role?: string;
+        system_role?: string;
         branch_id?: string;
         specializations?: string[];
         working_days?: string[];
@@ -237,7 +237,7 @@ export const staffService = {
             .from('staff')
             .select('*')
             .eq('organization_id', organizationId)
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .contains('specializations', [serviceId])
             .order('name');
@@ -279,7 +279,7 @@ export const staffService = {
             .from('staff')
             .select('*')
             .eq('organization_id', organizationId)
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .order('name');
 

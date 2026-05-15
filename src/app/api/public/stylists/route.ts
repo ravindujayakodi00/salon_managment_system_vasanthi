@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         let query = supabase
             .from('staff')
             .select('id, name, phone, specializations, working_days, working_hours, is_emergency_unavailable')
-            .eq('role', 'Stylist')
+            .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .eq('is_emergency_unavailable', false)
             .eq('organization_id', organizationId)

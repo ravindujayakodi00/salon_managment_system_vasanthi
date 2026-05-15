@@ -14,7 +14,7 @@ describe('admin navigation (manual QA inventory)', () => {
     });
 
     it('Owner sees all nav items when page access is empty', () => {
-        const filtered = filterNavItemsForUser({ role: 'Owner' }, {}, ADMIN_NAV_ITEMS);
+        const filtered = filterNavItemsForUser({ systemRole: 'Owner' }, {}, ADMIN_NAV_ITEMS);
         expect(filtered).toHaveLength(17);
     });
 
@@ -44,7 +44,7 @@ describe('admin navigation (manual QA inventory)', () => {
         const pageAccess = {
             pos: { Receptionist: false },
         };
-        const filtered = filterNavItemsForUser({ role: 'Receptionist' }, pageAccess, ADMIN_NAV_ITEMS);
+        const filtered = filterNavItemsForUser({ systemRole: 'Receptionist' }, pageAccess, ADMIN_NAV_ITEMS);
         expect(filtered.map((i) => i.href)).not.toContain('/admin/pos');
     });
 });

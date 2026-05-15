@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import Button from '@/components/shared/Button';
 import { Eye, Save, Loader, Trash2 } from 'lucide-react';
-import type { UserRole } from '@/lib/types';
+import type { SystemRole } from '@/lib/types';
 import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
 
 type PageKey =
@@ -27,7 +27,7 @@ type PageKey =
     | 'reports'
     | 'settings';
 
-type PageAccessRow = { page_key: PageKey; role: UserRole; allowed: boolean };
+type PageAccessRow = { page_key: PageKey; role: SystemRole; allowed: boolean };
 
 /** PostgREST errors are plain objects; console.error(err) often prints `{}`. */
 function supabaseErrorMessage(err: unknown): string {
@@ -58,10 +58,10 @@ function isMissingPageAccessTable(err: unknown): boolean {
     );
 }
 
-const roles: UserRole[] = ['Owner', 'Manager', 'Receptionist', 'Stylist'];
+const roles: SystemRole[] = ['Owner', 'Manager', 'Receptionist', 'Stylist'];
 
 // Mirrors the sidebar routes. These page keys drive the access matrix.
-const pageDefaults: Array<{ page_key: PageKey; allowedRoles: UserRole[] }> = [
+const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
     { page_key: 'dashboard', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'appointments', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'pos', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
@@ -144,7 +144,7 @@ export default function PageAccessSettings({
         })();
     }, [orgId, defaults, showMessage]);
 
-    const updateAllowed = (pageKey: PageKey, role: UserRole, allowed: boolean) => {
+    const updateAllowed = (pageKey: PageKey, role: SystemRole, allowed: boolean) => {
         setRows(prev => ({
             ...prev,
             [`${pageKey}:${role}`]: role === 'Owner' ? true : allowed,
@@ -162,7 +162,7 @@ export default function PageAccessSettings({
         }
         setSaving(true);
         try {
-            const payload: Array<{ organization_id: string; role: UserRole; page_key: PageKey; allowed: boolean }> = [];
+            const payload: Array<{ organization_id: string; role: SystemRole; page_key: PageKey; allowed: boolean }> = [];
             for (const p of pageDefaults) {
                 for (const r of roles) {
                     payload.push({
@@ -176,7 +176,8 @@ export default function PageAccessSettings({
 
             const { error } = await supabase
                 .from('organization_page_access')
-                .upsert(payload, { onConflict: 'organization_id,role,page_key' });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .upsert(payload as any, { onConflict: 'organization_id,role,page_key' } as any);
 
             if (error) throw error;
             showMessage('success', 'Page access saved');
@@ -239,11 +240,11 @@ export default function PageAccessSettings({
                     <Button
                         type="button"
                         variant="primary"
-                        leftIcon={<Save className="h-4 w-4" />}
                         onClick={handleSave}
                         isLoading={saving}
                         disabled={pageAccessOff}
                     >
+                        <Save className="h-4 w-4" />
                         Save access
                     </Button>
                 </div>

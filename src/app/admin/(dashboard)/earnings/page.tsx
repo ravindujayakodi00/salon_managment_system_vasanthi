@@ -18,7 +18,7 @@ export default function EarningsPage() {
         end: new Date().toISOString().split('T')[0]
     });
 
-    const isStaff = user?.role === 'Stylist' || user?.role === 'Receptionist' || user?.role === 'Manager';
+    const isStaff = user?.systemRole === 'Stylist' || user?.systemRole === 'Receptionist' || user?.systemRole === 'Manager';
     const isOwner = hasRole(['Owner', 'Manager']);
 
     useEffect(() => {

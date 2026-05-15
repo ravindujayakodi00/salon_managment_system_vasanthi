@@ -7,7 +7,7 @@ export interface Database {
                     id: string;
                     email: string;
                     name: string;
-                    role: 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
+                    system_role: 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
                     branch_id: string | null;
                     is_active: boolean;
                     created_at: string;

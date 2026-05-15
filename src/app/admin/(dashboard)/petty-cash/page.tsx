@@ -140,7 +140,7 @@ export default function PettyCashPage() {
         });
     };
 
-    const canAddCash = user?.role === 'Owner' || user?.role === 'Manager';
+    const canAddCash = user?.systemRole === 'Owner' || user?.systemRole === 'Manager';
 
     if (loading) {
         return (

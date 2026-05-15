@@ -17,14 +17,14 @@ import {
     Package,
     Wallet,
 } from 'lucide-react';
-import type { UserRole } from '@/lib/types';
+import type { SystemRole } from '@/lib/types';
 import { adminHref, adminPageKey } from '@/lib/admin-paths';
 
 export interface AdminNavItem {
     label: string;
     href: string;
     icon: LucideIcon;
-    allowedRoles: UserRole[];
+    allowedRoles: SystemRole[];
 }
 
 /** First-level admin sidebar destinations (order matches desktop sidebar). */
@@ -134,24 +134,24 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 ];
 
 export function filterNavItemsForUser(
-    user: { role: UserRole } | null,
+    user: { systemRole: SystemRole } | null,
     pageAccess: Record<string, Record<string, boolean>>,
     items: AdminNavItem[] = ADMIN_NAV_ITEMS
 ): AdminNavItem[] {
     if (!user) return [];
     return items.filter((item) => {
-        if (user.role === 'Owner') return true;
+        if (user.systemRole === 'Owner') return true;
 
         const pageKey = adminPageKey(item.href);
-        const forcedAllowed = pageAccess[pageKey]?.[user.role];
+        const forcedAllowed = pageAccess[pageKey]?.[user.systemRole];
         if (typeof forcedAllowed === 'boolean') return forcedAllowed;
 
-        return item.allowedRoles.includes(user.role);
+        return item.allowedRoles.includes(user.systemRole);
     });
 }
 
-/** Hrefs a role should see when org page access is not overriding (Owner sees all). */
-export function expectedNavHrefsForRole(role: UserRole): string[] {
+/** Hrefs a system role should see when org page access is not overriding (Owner sees all). */
+export function expectedNavHrefsForRole(role: SystemRole): string[] {
     if (role === 'Owner') return ADMIN_NAV_ITEMS.map((i) => i.href);
     return ADMIN_NAV_ITEMS.filter((i) => i.allowedRoles.includes(role)).map((i) => i.href);
 }
