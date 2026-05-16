@@ -5,8 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import Button from '@/components/shared/Button';
 import { Eye, Save, Loader, Trash2 } from 'lucide-react';
-import type { SystemRole } from '@/lib/types';
+import type { OrgRole, SystemRole } from '@/lib/types';
 import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
+import { orgRolesService } from '@/services/orgRoles';
 
 type PageKey =
     | 'dashboard'
@@ -90,8 +91,12 @@ export default function PageAccessSettings({
     const [rows, setRows] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [orgRoles, setOrgRoles] = useState<OrgRole[]>([]);
 
     const orgId = user?.organizationId;
+
+    const roleDisplayName = (r: SystemRole): string =>
+        orgRoles.find(o => o.systemRole === r)?.displayName ?? r;
 
     const defaults = useMemo(() => {
         const map: Record<string, boolean> = {};
@@ -109,6 +114,10 @@ export default function PageAccessSettings({
             setLoading(false);
             return;
         }
+
+        // Load org roles for display names (non-blocking — falls back to system_role names)
+        orgRolesService.getOrgRoles(orgId).then(setOrgRoles).catch(() => {});
+
         if (!isOrgPageAccessEnabled()) {
             setRows({ ...defaults });
             setLoading(false);
@@ -257,7 +266,7 @@ export default function PageAccessSettings({
                             <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">Page</th>
                             {roles.map(r => (
                                 <th key={r} className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">
-                                    {r}
+                                    {roleDisplayName(r)}
                                 </th>
                             ))}
                         </tr>
