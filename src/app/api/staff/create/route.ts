@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
                 email,
                 name,
                 system_role,
+                role: system_role, // keep in sync for Dione app which still reads role column
                 branch_id,
                 organization_id: branch.organization_id,
                 is_active: true,
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
             email,
             phone,
             system_role,
+            role: system_role, // keep in sync for Dione app which still reads role column
             branch_id,
             organization_id: branch.organization_id,
             specializations: specializations || [],

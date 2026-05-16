@@ -27,10 +27,15 @@ export async function PUT(request: NextRequest) {
             );
         }
 
+        // Keep role in sync with system_role for Dione app which still reads role column
+        const staffUpdates = updates.system_role
+            ? { ...updates, role: updates.system_role }
+            : updates;
+
         // Update staff entry using admin client (bypasses RLS)
         const { data, error: staffError } = await supabaseAdmin
             .from('staff')
-            .update(updates)
+            .update(staffUpdates)
             .eq('id', id)
             .eq('organization_id', organizationId)
             .select();
@@ -56,7 +61,10 @@ export async function PUT(request: NextRequest) {
             if (staff?.profile_id) {
                 const profileUpdates: any = {};
                 if (updates.name) profileUpdates.name = updates.name;
-                if (updates.system_role) profileUpdates.system_role = updates.system_role;
+                if (updates.system_role) {
+                    profileUpdates.system_role = updates.system_role;
+                    profileUpdates.role = updates.system_role; // keep in sync for Dione app
+                }
 
                 const { error: profileError } = await supabaseAdmin
                     .from('profiles')

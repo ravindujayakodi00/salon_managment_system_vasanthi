@@ -887,9 +887,10 @@ export default function POSPage() {
                 {/* Left: Customer & Selection */}
                 <div className="xl:col-span-2 space-y-4">
                     {/* Customer Search */}
-                    <div className="card p-4 surface-panel">
-                        <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Step 1: Select Customer</h2>
-                        <div className="relative">
+                    {/* Outer relative wrapper is outside the surface-panel stacking context so the dropdown z-index works correctly */}
+                    <div className="relative">
+                        <div className="card p-4 surface-panel">
+                            <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Step 1: Select Customer</h2>
                             <Input
                                 type="text"
                                 placeholder="Search by phone or name..."
@@ -897,69 +898,68 @@ export default function POSPage() {
                                 onChange={(e) => setCustomerSearch(e.target.value)}
                                 leftIcon={<Search className="h-5 w-5" />}
                             />
-                            {customerSearch.length > 2 && (
-                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                    {customers.length > 0 ? (
-                                        customers.map(customer => (
-                                            <button
-                                                key={customer.id}
-                                                className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
-                                                onClick={() => {
-                                                    setSelectedCustomer(customer);
-                                                    setCustomerSearch('');
-                                                    setCustomers([]);
-                                                }}
-                                            >
-                                                <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">{customer.phone}</p>
-                                            </button>
-                                        ))
-                                    ) : (
-                                        <div className="p-4">
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
-                                                No customer found
-                                            </p>
-                                            <button
-                                                onClick={() => {
-                                                    // Open modal with phone number pre-filled
-                                                    const phone = customerSearch.replace(/\D/g, '');
-                                                    if (phone.length >= 9) {
-                                                        setPendingPhone(phone);
-                                                        setShowCustomerForm(true);
-                                                    } else {
-                                                        showToast('Please enter a valid phone number', 'warning');
-                                                    }
-                                                }}
-                                                className="w-full p-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                                Create Walk-in Customer
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
-                        {selectedCustomer && (
-                            <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-primary-900 dark:text-primary-100">{selectedCustomer.name}</p>
-                                    <p className="text-sm text-primary-700 dark:text-primary-300">{selectedCustomer.phone}</p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setSelectedCustomer(null);
-                                        setCustomerSearch('');
-                                        setCustomerAppointments([]);
-                                        setCart([]);
-                                    }}
-                                    className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                                >
-                                    Change
-                                </button>
+                        {customerSearch.length > 2 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                {customers.length > 0 ? (
+                                    customers.map(customer => (
+                                        <button
+                                            key={customer.id}
+                                            className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                            onClick={() => {
+                                                setSelectedCustomer(customer);
+                                                setCustomerSearch('');
+                                                setCustomers([]);
+                                            }}
+                                        >
+                                            <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{customer.phone}</p>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="p-4">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
+                                            No customer found
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                const phone = customerSearch.replace(/\D/g, '');
+                                                if (phone.length >= 9) {
+                                                    setPendingPhone(phone);
+                                                    setShowCustomerForm(true);
+                                                } else {
+                                                    showToast('Please enter a valid phone number', 'warning');
+                                                }
+                                            }}
+                                            className="w-full p-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Create Walk-in Customer
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
+                    {selectedCustomer && (
+                        <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex justify-between items-center border border-primary-100 dark:border-primary-800">
+                            <div>
+                                <p className="font-medium text-primary-900 dark:text-primary-100">{selectedCustomer.name}</p>
+                                <p className="text-sm text-primary-700 dark:text-primary-300">{selectedCustomer.phone}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedCustomer(null);
+                                    setCustomerSearch('');
+                                    setCustomerAppointments([]);
+                                    setCart([]);
+                                }}
+                                className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                            >
+                                Change
+                            </button>
+                        </div>
+                    )}
 
                     {/* Today's Appointments */}
                     {selectedCustomer && (
