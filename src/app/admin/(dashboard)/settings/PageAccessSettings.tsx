@@ -13,6 +13,7 @@ type PageKey =
     | 'dashboard'
     | 'appointments'
     | 'pos'
+    | 'invoices'
     | 'services'
     | 'inventory'
     | 'staff'
@@ -66,6 +67,7 @@ const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
     { page_key: 'dashboard', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'appointments', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'pos', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
+    { page_key: 'invoices', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'services', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'inventory', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'staff', allowedRoles: ['Owner', 'Manager'] },
@@ -83,8 +85,8 @@ const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
 ];
 
 export default function PageAccessSettings({
-    showMessage,
-}: {
+                                               showMessage,
+                                           }: {
     showMessage: (type: 'success' | 'error', text: string) => void;
 }) {
     const { user } = useAuth();
@@ -262,34 +264,34 @@ export default function PageAccessSettings({
             <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-xl">
                 <table className="min-w-[760px] w-full text-sm">
                     <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-900/40">
-                            <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">Page</th>
-                            {roles.map(r => (
-                                <th key={r} className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">
-                                    {roleDisplayName(r)}
-                                </th>
-                            ))}
-                        </tr>
+                    <tr className="bg-gray-50 dark:bg-gray-900/40">
+                        <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">Page</th>
+                        {roles.map(r => (
+                            <th key={r} className="text-left p-4 font-semibold text-gray-700 dark:text-gray-200">
+                                {roleDisplayName(r)}
+                            </th>
+                        ))}
+                    </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {pageDefaults.map(p => (
-                            <tr key={p.page_key}>
-                                <td className="p-4 font-medium text-gray-900 dark:text-gray-100">{p.page_key}</td>
-                                {roles.map(r => {
-                                    const checked = rows[`${p.page_key}:${r}`] ?? false;
-                                    return (
-                                        <td key={`${p.page_key}:${r}`} className="p-4">
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                disabled={saving || r === 'Owner'}
-                                                onChange={(e) => updateAllowed(p.page_key, r, e.target.checked)}
-                                            />
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        ))}
+                    {pageDefaults.map(p => (
+                        <tr key={p.page_key}>
+                            <td className="p-4 font-medium text-gray-900 dark:text-gray-100">{p.page_key}</td>
+                            {roles.map(r => {
+                                const checked = rows[`${p.page_key}:${r}`] ?? false;
+                                return (
+                                    <td key={`${p.page_key}:${r}`} className="p-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            disabled={saving || r === 'Owner'}
+                                            onChange={(e) => updateAllowed(p.page_key, r, e.target.checked)}
+                                        />
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
                     </tbody>
                 </table>
             </div>

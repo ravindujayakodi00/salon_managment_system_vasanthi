@@ -3,6 +3,7 @@ import {
     LayoutDashboard,
     Calendar,
     ShoppingCart,
+    FileText,
     Scissors,
     Users,
     UserCircle,
@@ -46,6 +47,12 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         href: adminHref('/pos'),
         icon: ShoppingCart,
         allowedRoles: ['Owner', 'Manager', 'Receptionist'],
+    },
+    {
+        label: 'Invoices',
+        href: adminHref('/invoices'),
+        icon: FileText,
+        allowedRoles: ['Owner', 'Manager'],
     },
     {
         label: 'Services',
@@ -150,7 +157,7 @@ export function filterNavItemsForUser(
     });
 }
 
-/** Hrefs a system role should see when org page access is not overriding (Owner sees all). */
+/** Hrefs a role should see when org page access is not overriding (Owner sees all). */
 export function expectedNavHrefsForRole(role: SystemRole): string[] {
     if (role === 'Owner') return ADMIN_NAV_ITEMS.map((i) => i.href);
     return ADMIN_NAV_ITEMS.filter((i) => i.allowedRoles.includes(role)).map((i) => i.href);

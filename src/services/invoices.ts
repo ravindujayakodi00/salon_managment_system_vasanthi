@@ -183,6 +183,8 @@ export const invoicesService = {
         customerId?: string;
         startDate?: string;
         endDate?: string;
+        branchId?: string;
+        paymentMethod?: string;
         limit?: number;
         page?: number;
     }) {
@@ -196,22 +198,16 @@ export const invoicesService = {
             .from('invoices')
             .select(`
                 *,
-                customer:customers(*)
+                customer:customers(id, name, phone)
             `, { count: 'exact' })
             .eq('organization_id', organizationId)
             .order('created_at', { ascending: false });
 
-        if (filters?.customerId) {
-            query = query.eq('customer_id', filters.customerId);
-        }
-
-        if (filters?.startDate) {
-            query = query.gte('created_at', filters.startDate);
-        }
-
-        if (filters?.endDate) {
-            query = query.lte('created_at', filters.endDate);
-        }
+        if (filters?.customerId) query = query.eq('customer_id', filters.customerId);
+        if (filters?.branchId) query = query.eq('branch_id', filters.branchId);
+        if (filters?.paymentMethod) query = query.eq('payment_method', filters.paymentMethod);
+        if (filters?.startDate) query = query.gte('created_at', `${filters.startDate}T00:00:00`);
+        if (filters?.endDate) query = query.lte('created_at', `${filters.endDate}T23:59:59`);
 
         query = query.range(from, to);
 

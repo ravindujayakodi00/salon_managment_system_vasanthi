@@ -623,9 +623,7 @@ export default function POSPage() {
                 items: cart.map(item => ({
                     type: (item as { loyaltyCardPurchase?: boolean }).loyaltyCardPurchase
                         ? 'manual'
-                        : item.type === 'walk-in-service'
-                            ? 'service'
-                            : item.type,
+                        : item.type,
                     serviceId: item.serviceId,
                     appointmentId: item.appointmentId,
                     stylistId: item.stylistId, // Include stylist for commission tracking

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit, Trash2, X, Check, Loader, Copy, AlertCircle, Sparkles, DollarSign } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, Loader, Copy, AlertCircle, Sparkles, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import PhoneInput from '@/components/shared/PhoneInput';
@@ -48,6 +48,9 @@ export default function StaffPage() {
     });
     const [formLoading, setFormLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [serviceSearch, setServiceSearch] = useState('');
+    const [serviceCategoryFilter, setServiceCategoryFilter] = useState<string>('All');
+    const [collapsedServiceCategories, setCollapsedServiceCategories] = useState<Set<string>>(new Set());
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -438,10 +441,11 @@ export default function StaffPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[92dvh] overflow-y-auto"
+                            className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[92dvh] overflow-hidden flex flex-col"
                         >
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {/* Fixed header */}
+                            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                                     {showAddModal ? 'Add Staff Member' : 'Edit Staff Member'}
                                 </h2>
                                 <button
@@ -450,13 +454,13 @@ export default function StaffPage() {
                                         setShowEditModal(false);
                                         resetForm();
                                     }}
-                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-4 px-4 sm:px-6 py-4 overflow-y-auto flex-1">
                                 <Input
                                     label="Name"
                                     value={formData.name}
@@ -535,41 +539,116 @@ export default function StaffPage() {
                                 </div>
 
                                 {/* Specializations/Skills - Only for Stylists */}
-                                {getFormSystemRole() === 'Stylist' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Skills / Services
-                                            <span className="text-xs text-gray-500 ml-2">(Select services this stylist can perform)</span>
-                                        </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
-                                            {services.map((service) => (
-                                                <label key={service.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.specializations.includes(service.id)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setFormData({ ...formData, specializations: [...formData.specializations, service.id] });
-                                                            } else {
-                                                                setFormData({ ...formData, specializations: formData.specializations.filter(id => id !== service.id) });
-                                                            }
-                                                        }}
-                                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{service.name}</span>
-                                                        <span className="text-xs text-gray-500 ml-2">({service.category})</span>
-                                                    </div>
+                                {getFormSystemRole() === 'Stylist' && (() => {
+                                    const serviceCategories = ['All', ...Array.from(new Set(services.map(s => s.category)))];
+                                    const filteredServices = services.filter(s => {
+                                        const matchesSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase());
+                                        const matchesCategory = serviceCategoryFilter === 'All' || s.category === serviceCategoryFilter;
+                                        return matchesSearch && matchesCategory;
+                                    });
+                                    const groupedServices = filteredServices.reduce((acc, s) => {
+                                        if (!acc[s.category]) acc[s.category] = [];
+                                        acc[s.category].push(s);
+                                        return acc;
+                                    }, {} as Record<string, Service[]>);
+                                    const toggleServiceCategory = (cat: string) => {
+                                        setCollapsedServiceCategories(prev => {
+                                            const next = new Set(prev);
+                                            next.has(cat) ? next.delete(cat) : next.add(cat);
+                                            return next;
+                                        });
+                                    };
+                                    return (
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Skills / Services
+                                                    <span className="text-xs text-gray-500 ml-2">(Select services this stylist can perform)</span>
                                                 </label>
-                                            ))}
+                                                {formData.specializations.length > 0 && (
+                                                    <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                                                        {formData.specializations.length} selected
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Search */}
+                                            <div className="relative mb-2">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search services..."
+                                                    value={serviceSearch}
+                                                    onChange={(e) => setServiceSearch(e.target.value)}
+                                                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                />
+                                            </div>
+                                            {/* Category pills */}
+                                            <div className="flex gap-1.5 flex-wrap mb-2">
+                                                {serviceCategories.map(cat => (
+                                                    <button
+                                                        key={cat}
+                                                        type="button"
+                                                        onClick={() => setServiceCategoryFilter(cat)}
+                                                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${serviceCategoryFilter === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                    >
+                                                        {cat}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {/* Grouped services */}
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {Object.entries(groupedServices).map(([cat, catServices]) => {
+                                                    const isCollapsed = collapsedServiceCategories.has(cat);
+                                                    const selectedInCat = catServices.filter(s => formData.specializations.includes(s.id)).length;
+                                                    return (
+                                                        <div key={cat} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleServiceCategory(cat)}
+                                                                className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{cat}</span>
+                                                                    <span className="text-xs text-gray-500">({catServices.length})</span>
+                                                                    {selectedInCat > 0 && (
+                                                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
+                                                                            {selectedInCat} selected
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {isCollapsed ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronUp className="h-4 w-4 text-gray-400" />}
+                                                            </button>
+                                                            {!isCollapsed && (
+                                                                <div className="p-2 space-y-1 bg-white dark:bg-gray-900">
+                                                                    {catServices.map(service => (
+                                                                        <label key={service.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={formData.specializations.includes(service.id)}
+                                                                                onChange={(e) => {
+                                                                                    if (e.target.checked) {
+                                                                                        setFormData({ ...formData, specializations: [...formData.specializations, service.id] });
+                                                                                    } else {
+                                                                                        setFormData({ ...formData, specializations: formData.specializations.filter(id => id !== service.id) });
+                                                                                    }
+                                                                                }}
+                                                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                                            />
+                                                                            <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{service.name}</span>
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {filteredServices.length === 0 && (
+                                                    <p className="text-sm text-gray-500 text-center py-4">No services found</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        {formData.specializations.length > 0 && (
-                                            <p className="text-xs text-primary-600 dark:text-primary-400 mt-2">
-                                                {formData.specializations.length} service{formData.specializations.length !== 1 ? 's' : ''} selected
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
+                                    );
+                                })()}
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 
-interface StaffEarning {
+interface StaffEarningRow {
     id: string;
     staff_id: string;
+    invoice_id: string | null;
+    appointment_id: string | null;
     date: string;
     service_revenue: number;
     commission_amount: number;
@@ -12,20 +14,56 @@ interface StaffEarning {
     appointments_count: number;
 }
 
+/** Daily aggregate returned to callers — groups per-invoice rows by date */
+export interface DailyEarning {
+    id: string; // = date string used as key
+    date: string;
+    service_revenue: number;
+    commission_amount: number;
+    salary_amount: number;
+    total_earnings: number;
+    appointments_count: number;
+}
+
+function groupByDate(rows: StaffEarningRow[]): DailyEarning[] {
+    const map = new Map<string, DailyEarning>();
+    for (const r of rows) {
+        if (!map.has(r.date)) {
+            map.set(r.date, {
+                id: r.date,
+                date: r.date,
+                service_revenue: 0,
+                commission_amount: 0,
+                salary_amount: 0,
+                total_earnings: 0,
+                appointments_count: 0,
+            });
+        }
+        const day = map.get(r.date)!;
+        day.service_revenue += r.service_revenue;
+        day.commission_amount += r.commission_amount;
+        day.salary_amount += r.salary_amount;
+        day.total_earnings += r.total_earnings;
+        day.appointments_count += r.appointments_count;
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
 export const earningsService = {
     /**
-     * Calculate and update earnings for a stylist based on invoice
+     * Calculate and update earnings for a stylist based on a single invoice.
+     * Inserts one row per invoice per stylist (idempotent via DELETE + INSERT).
      */
     async updateEarningsForInvoice(invoiceId: string) {
         try {
             const organizationId = await getCurrentOrganizationId();
 
-            // Get invoice details
             const { data: invoice, error: invoiceError } = await supabase
                 .from('invoices')
                 .select(`
                     *,
                     appointment:appointments(
+                        id,
                         stylist_id,
                         appointment_date
                     )
@@ -41,6 +79,7 @@ export const earningsService = {
             }
 
             const stylistId = invoice.appointment.stylist_id;
+            const appointmentId = invoice.appointment.id;
             const date = invoice.appointment.appointment_date;
 
             if (!stylistId) {
@@ -48,7 +87,6 @@ export const earningsService = {
                 return;
             }
 
-            // Get commission settings for stylist role (tenant-scoped)
             const { data: commissionSettings } = await supabase
                 .from('commission_settings')
                 .select('*')
@@ -59,14 +97,10 @@ export const earningsService = {
 
             const commissionRate = commissionSettings?.commission_percentage || 40;
 
-
-            // Calculate service revenue (only services, not products/manual fees)
             const items = invoice.items as any[];
             const serviceRevenue = items
                 .filter((item: any) => item.type === 'service')
                 .reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-
-
 
             if (serviceRevenue === 0) {
                 console.warn('Service revenue is 0, skipping earnings update');
@@ -75,45 +109,28 @@ export const earningsService = {
 
             const commissionAmount = (serviceRevenue * commissionRate) / 100;
 
-            // Get or create earnings record for this date
-            const { data: existingEarning } = await supabase
+            // Delete any existing row for this invoice + stylist, then insert fresh
+            await supabase
                 .from('staff_earnings')
-                .select('*')
+                .delete()
                 .eq('staff_id', stylistId)
-                .eq('date', date)
-                .eq('organization_id', organizationId)
-                .single();
+                .eq('invoice_id', invoiceId)
+                .eq('organization_id', organizationId);
 
-            if (existingEarning) {
-                // Update existing record
-
-                await supabase
-                    .from('staff_earnings')
-                    .update({
-                        service_revenue: existingEarning.service_revenue + serviceRevenue,
-                        commission_amount: existingEarning.commission_amount + commissionAmount,
-                        total_earnings: existingEarning.total_earnings + commissionAmount,
-                        appointments_count: existingEarning.appointments_count + 1,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existingEarning.id)
-                    .eq('organization_id', organizationId);
-            } else {
-                // Create new record
-
-                await supabase
-                    .from('staff_earnings')
-                    .insert({
-                        staff_id: stylistId,
-                        date,
-                        service_revenue: serviceRevenue,
-                        commission_amount: commissionAmount,
-                        salary_amount: 0,
-                        total_earnings: commissionAmount,
-                        appointments_count: 1,
-                        organization_id: organizationId,
-                    });
-            }
+            await supabase
+                .from('staff_earnings')
+                .insert({
+                    staff_id: stylistId,
+                    invoice_id: invoiceId,
+                    appointment_id: appointmentId,
+                    date,
+                    service_revenue: serviceRevenue,
+                    commission_amount: commissionAmount,
+                    salary_amount: 0,
+                    total_earnings: commissionAmount,
+                    appointments_count: 1,
+                    organization_id: organizationId,
+                });
         } catch (error) {
             console.error('Error updating earnings for invoice:', error);
             throw error;
@@ -121,12 +138,13 @@ export const earningsService = {
     },
 
     /**
-     * Calculate daily salary for non-stylist staff
+     * Calculate daily salary for non-stylist staff.
+     * Salary rows have invoice_id = NULL. One row per staff per date.
      */
     async calculateDailySalary(staffId: string, date: string) {
         try {
             const organizationId = await getCurrentOrganizationId();
-            // Get staff role
+
             const { data: staff } = await supabase
                 .from('staff')
                 .select('system_role')
@@ -134,11 +152,8 @@ export const earningsService = {
                 .eq('organization_id', organizationId)
                 .single();
 
-            if (staff?.system_role === 'Stylist') {
-                return; // Stylists don't get daily salary
-            }
+            if (staff?.system_role === 'Stylist') return;
 
-            // Get salary settings
             const { data: salarySettings } = await supabase
                 .from('salary_settings')
                 .select('*')
@@ -150,32 +165,35 @@ export const earningsService = {
 
             const salaryAmount = salarySettings.salary_type === 'daily'
                 ? salarySettings.amount
-                : salarySettings.amount / 30; // Monthly salary divided by 30 days
+                : salarySettings.amount / 30;
 
-            // Get or create earnings record
-            const { data: existingEarning } = await supabase
+            // Salary row: invoice_id IS NULL, unique per (org, staff, date)
+            const { data: existing } = await supabase
                 .from('staff_earnings')
-                .select('*')
+                .select('id, commission_amount')
                 .eq('staff_id', staffId)
                 .eq('date', date)
                 .eq('organization_id', organizationId)
-                .single();
+                .is('invoice_id', null)
+                .maybeSingle();
 
-            if (existingEarning) {
+            if (existing) {
                 await supabase
                     .from('staff_earnings')
                     .update({
                         salary_amount: salaryAmount,
-                        total_earnings: existingEarning.commission_amount + salaryAmount,
-                        updated_at: new Date().toISOString()
+                        total_earnings: (existing.commission_amount || 0) + salaryAmount,
+                        updated_at: new Date().toISOString(),
                     })
-                    .eq('id', existingEarning.id)
+                    .eq('id', existing.id)
                     .eq('organization_id', organizationId);
             } else {
                 await supabase
                     .from('staff_earnings')
                     .insert({
                         staff_id: staffId,
+                        invoice_id: null,
+                        appointment_id: null,
                         date,
                         service_revenue: 0,
                         commission_amount: 0,
@@ -192,11 +210,12 @@ export const earningsService = {
     },
 
     /**
-     * Get staff earnings for a date range
+     * Get staff earnings for a date range, grouped by date for daily breakdown.
      */
-    async getStaffEarnings(staffId: string, startDate: string, endDate: string) {
+    async getStaffEarnings(staffId: string, startDate: string, endDate: string): Promise<DailyEarning[]> {
         try {
             const organizationId = await getCurrentOrganizationId();
+
             const { data: staffRow } = await supabase
                 .from('staff')
                 .select('id')
@@ -216,7 +235,7 @@ export const earningsService = {
                 .limit(10000);
 
             if (error) throw error;
-            return data as StaffEarning[];
+            return groupByDate((data || []) as StaffEarningRow[]);
         } catch (error) {
             console.error('Error fetching staff earnings:', error);
             throw error;
@@ -224,7 +243,7 @@ export const earningsService = {
     },
 
     /**
-     * Get all staff earnings summary (for owner/manager)
+     * Get all staff earnings rows for a date range (raw, for internal use).
      */
     async getAllStaffEarnings(startDate: string, endDate: string) {
         try {
@@ -258,12 +277,12 @@ export const earningsService = {
     },
 
     /**
-     * Get earnings summary by staff member
+     * Get earnings summary grouped by staff member (for owner/manager view).
      */
     async getEarningsSummaryByStaff(startDate: string, endDate: string) {
         try {
             const organizationId = await getCurrentOrganizationId();
-            // 1. Get all active staff first
+
             const { data: allStaff, error: staffError } = await supabase
                 .from('staff')
                 .select('id, name, system_role')
@@ -273,11 +292,16 @@ export const earningsService = {
 
             if (staffError) throw staffError;
 
-            // 2. Get earnings for the period
             const earnings = await this.getAllStaffEarnings(startDate, endDate);
 
-            // 3. Group earnings by staff
-            const earningsMap = new Map();
+            const earningsMap = new Map<string, {
+                total_revenue: number;
+                total_commission: number;
+                total_salary: number;
+                total_earnings: number;
+                appointments_count: number;
+            }>();
+
             earnings?.forEach((earning: any) => {
                 const staffId = earning.staff_id;
                 if (!earningsMap.has(staffId)) {
@@ -286,11 +310,10 @@ export const earningsService = {
                         total_commission: 0,
                         total_salary: 0,
                         total_earnings: 0,
-                        appointments_count: 0
+                        appointments_count: 0,
                     });
                 }
-
-                const summary = earningsMap.get(staffId);
+                const summary = earningsMap.get(staffId)!;
                 summary.total_revenue += earning.service_revenue || 0;
                 summary.total_commission += earning.commission_amount || 0;
                 summary.total_salary += earning.salary_amount || 0;
@@ -298,25 +321,18 @@ export const earningsService = {
                 summary.appointments_count += earning.appointments_count || 0;
             });
 
-            // 4. Merge all staff with earnings (including those with 0)
-            const result = allStaff?.map(staff => {
-                const staffEarnings = earningsMap.get(staff.id) || {
+            return allStaff?.map(staff => ({
+                staff_id: staff.id,
+                staff_name: staff.name,
+                staff_role: staff.system_role,
+                ...(earningsMap.get(staff.id) || {
                     total_revenue: 0,
                     total_commission: 0,
                     total_salary: 0,
                     total_earnings: 0,
-                    appointments_count: 0
-                };
-
-                return {
-                    staff_id: staff.id,
-                    staff_name: staff.name,
-                    staff_role: staff.system_role,
-                    ...staffEarnings
-                };
-            });
-
-            return result;
+                    appointments_count: 0,
+                }),
+            }));
         } catch (error) {
             console.error('Error getting earnings summary:', error);
             throw error;
@@ -324,7 +340,8 @@ export const earningsService = {
     },
 
     /**
-     * Update earnings for multiple appointments in a single invoice (from POS)
+     * Update earnings for multiple appointments in a single invoice (from POS).
+     * Inserts one row per appointment per stylist, linked to the invoice.
      */
     async updateEarningsForMultipleAppointments(
         appointmentIds: string[],
@@ -334,7 +351,6 @@ export const earningsService = {
         try {
             const organizationId = await getCurrentOrganizationId();
 
-            // Get all appointments with stylist info
             const { data: appointments, error: appointmentsError } = await supabase
                 .from('appointments')
                 .select(`
@@ -347,17 +363,9 @@ export const earningsService = {
                 .eq('organization_id', organizationId)
                 .in('id', appointmentIds);
 
-            if (appointmentsError) {
-                console.error('❌ Error fetching appointments:');
-                console.error('  Code:', appointmentsError.code);
-                console.error('  Message:', appointmentsError.message);
-                console.error('  Details:', appointmentsError.details);
-                console.error('  Hint:', appointmentsError.hint);
-                throw appointmentsError;
-            }
-
+            if (appointmentsError) throw appointmentsError;
             if (!appointments || appointments.length === 0) {
-                console.warn('⚠️ No appointments found for earnings update');
+                console.warn('No appointments found for earnings update');
                 return;
             }
 
@@ -367,150 +375,94 @@ export const earningsService = {
                 .eq('id', invoiceId)
                 .eq('organization_id', organizationId)
                 .single();
-            const invoiceOrganizationId = invoiceRow?.organization_id as string | undefined;
+            const invoiceOrganizationId = (invoiceRow?.organization_id as string | undefined) || organizationId;
 
-            // Default commission rate (fallback if staff doesn't have one set)
             const DEFAULT_COMMISSION = 40;
 
-            // Calculate earnings per stylist per appointment
+            // Delete any existing earnings rows for this invoice first (idempotent)
+            await supabase
+                .from('staff_earnings')
+                .delete()
+                .eq('invoice_id', invoiceId)
+                .eq('organization_id', organizationId);
+
             for (const appointment of appointments) {
                 const stylistId = appointment.stylist_id;
                 const date = appointment.appointment_date;
 
                 if (!stylistId) {
-                    console.warn(`⚠️ Appointment ${appointment.id} has no stylist assigned`);
+                    console.warn(`Appointment ${appointment.id} has no stylist assigned`);
                     continue;
                 }
 
-                // Get commission rate from stylist record, fall back to global settings
                 let commissionRate = DEFAULT_COMMISSION;
-                const stylistData = appointment.stylist as any; // Type assertion for nested relation
+                const stylistData = appointment.stylist as any;
 
-                if (stylistData && stylistData.commission) {
+                if (stylistData?.commission) {
                     commissionRate = stylistData.commission;
                 } else {
-                    // Fallback to commission_settings table (tenant-scoped)
-                    const cq = supabase
+                    const { data: commissionSettings } = await supabase
                         .from('commission_settings')
                         .select('*')
-                        .eq('organization_id', invoiceOrganizationId || organizationId)
+                        .eq('organization_id', invoiceOrganizationId)
                         .eq('role', 'Stylist')
-                        .eq('is_active', true);
-                    const { data: commissionSettings, error: commissionError } = await cq.single();
-
-                    if (commissionError) {
-                        console.warn('⚠️ Error fetching commission settings, using default:', commissionError);
-                    } else if (commissionSettings?.commission_percentage) {
+                        .eq('is_active', true)
+                        .maybeSingle();
+                    if (commissionSettings?.commission_percentage) {
                         commissionRate = commissionSettings.commission_percentage;
                     }
                 }
 
-                // Find items belonging to this appointment
                 let serviceRevenue = 0;
                 let additionalFeesTotal = 0;
 
                 for (const item of invoiceItems) {
-                    // Match items by appointmentId
                     if (item.appointmentId === appointment.id) {
                         if (item.type === 'service' || item.type === 'appointment') {
-                            const itemRevenue = (item.price || 0) * (item.quantity || 1);
-                            serviceRevenue += itemRevenue;
-
-                            // Add additional fee if present
-                            const additionalFee = item.additionalFee || 0;
-                            additionalFeesTotal += additionalFee;
+                            serviceRevenue += (item.price || 0) * (item.quantity || 1);
+                            additionalFeesTotal += item.additionalFee || 0;
                         }
                     }
                 }
 
-                if (serviceRevenue === 0 && additionalFeesTotal === 0) {
-                    continue;
-                }
+                if (serviceRevenue === 0 && additionalFeesTotal === 0) continue;
 
-                // Calculate commission on both service revenue and additional fees
                 const totalRevenue = serviceRevenue + additionalFeesTotal;
                 const commissionAmount = (totalRevenue * commissionRate) / 100;
 
-                // Get or create earnings record for this date
-                const { data: existingEarning, error: earningFetchError } = await supabase
+                await supabase
                     .from('staff_earnings')
-                    .select('*')
-                    .eq('staff_id', stylistId)
-                    .eq('date', date)
-                    .eq('organization_id', organizationId)
-                    .single();
-
-                if (earningFetchError && earningFetchError.code !== 'PGRST116') {
-                    console.error('❌ Error fetching existing earning:', earningFetchError);
-                    throw earningFetchError;
-                }
-
-                if (existingEarning) {
-                    // Update existing record
-                    const { error: updateError } = await supabase
-                        .from('staff_earnings')
-                        .update({
-                            service_revenue: existingEarning.service_revenue + totalRevenue,
-                            commission_amount: existingEarning.commission_amount + commissionAmount,
-                            total_earnings: existingEarning.total_earnings + commissionAmount,
-                            appointments_count: existingEarning.appointments_count + 1,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', existingEarning.id)
-                        .eq('organization_id', organizationId);
-
-                    if (updateError) {
-                        console.error('❌ Error updating earning:', updateError);
-                        throw updateError;
-                    }
-                } else {
-                    // Create new record
-                    const { error: insertError } = await supabase
-                        .from('staff_earnings')
-                        .insert({
-                            staff_id: stylistId,
-                            date,
-                            service_revenue: totalRevenue,
-                            commission_amount: commissionAmount,
-                            salary_amount: 0,
-                            total_earnings: commissionAmount,
-                            appointments_count: 1,
-                            organization_id: organizationId,
-                        });
-
-                    if (insertError) {
-                        console.error('❌ Error inserting earning:', insertError);
-                        throw insertError;
-                    }
-                }
+                    .insert({
+                        staff_id: stylistId,
+                        invoice_id: invoiceId,
+                        appointment_id: appointment.id,
+                        date,
+                        service_revenue: totalRevenue,
+                        commission_amount: commissionAmount,
+                        salary_amount: 0,
+                        total_earnings: commissionAmount,
+                        appointments_count: 1,
+                        organization_id: organizationId,
+                    });
             }
         } catch (error: any) {
-            console.error('❌ Error updating earnings for multiple appointments');
-            console.error('  Error type:', typeof error);
-            if (error && typeof error === 'object') {
-                console.error('  Code:', error.code);
-                console.error('  Message:', error.message);
-                console.error('  Details:', error.details);
-                console.error('  Hint:', error.hint);
-            }
-            console.error('  Full error:', JSON.stringify(error, null, 2));
+            console.error('Error updating earnings for multiple appointments:', error);
             throw error;
         }
     },
 
     /**
-     * Calculate and update earnings for walk-in services (no appointment)
-     * Items should have stylistId and be either:
-     * - type='walk-in-service' (regular walk-in services)
-     * - type='manual' (manual fees that should be attributed to a stylist)
+     * Calculate and update earnings for walk-in services (no appointment).
+     * One row per invoice per stylist, with invoice_id but no appointment_id.
      */
     async updateEarningsForWalkIn(
         invoiceId: string,
         items: any[],
-        invoiceDate: string // created_at from invoice
+        invoiceDate: string
     ) {
         try {
             const organizationId = await getCurrentOrganizationId();
+
             const { data: invOrg } = await supabase
                 .from('invoices')
                 .select('organization_id')
@@ -522,16 +474,11 @@ export const earningsService = {
                 return;
             }
 
-            // Filter walk-in revenue items that have stylistId
             const walkInItems = items.filter((item: any) =>
                 (item.type === 'walk-in-service' || item.type === 'manual') && item.stylistId
             );
+            if (walkInItems.length === 0) return;
 
-            if (walkInItems.length === 0) {
-                return;
-            }
-
-            // Extract date from timestamp
             const date = invoiceDate.split('T')[0];
 
             // Group items by stylist
@@ -543,76 +490,45 @@ export const earningsService = {
                 itemsByStylist.get(item.stylistId)!.push(item);
             });
 
-            // Calculate and update earnings for each stylist
+            // Delete any existing walk-in earnings for this invoice (idempotent)
+            await supabase
+                .from('staff_earnings')
+                .delete()
+                .eq('invoice_id', invoiceId)
+                .eq('organization_id', organizationId);
+
             for (const [stylistId, stylistItems] of itemsByStylist) {
-                // Get stylist's commission rate (from staff table or default 40%)
                 const { data: stylist } = await supabase
                     .from('staff')
-                    .select('commission, name')
+                    .select('commission')
                     .eq('id', stylistId)
                     .eq('organization_id', organizationId)
                     .single();
 
                 const commissionRate = stylist?.commission || 40;
-
-                // Calculate revenue for this stylist's walk-in services + manual fees
-                const serviceRevenue = stylistItems.reduce((sum: number, item: any) =>
-                    sum + (item.price * item.quantity), 0
+                const serviceRevenue = stylistItems.reduce(
+                    (sum: number, item: any) => sum + (item.price * item.quantity), 0
                 );
                 const commissionAmount = (serviceRevenue * commissionRate) / 100;
 
-                // Get or create earnings record for this stylist and date
-                const { data: existingEarning } = await supabase
+                await supabase
                     .from('staff_earnings')
-                    .select('*')
-                    .eq('staff_id', stylistId)
-                    .eq('date', date)
-                    .eq('organization_id', organizationId)
-                    .single();
-
-                if (existingEarning) {
-                    // Update existing record
-                    const { error: updateError } = await supabase
-                        .from('staff_earnings')
-                        .update({
-                            service_revenue: existingEarning.service_revenue + serviceRevenue,
-                            commission_amount: existingEarning.commission_amount + commissionAmount,
-                            total_earnings: existingEarning.total_earnings + commissionAmount,
-                            // Don't increment appointments_count for walk-ins
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', existingEarning.id)
-                        .eq('organization_id', organizationId);
-
-                    if (updateError) {
-                        console.error('❌ Error updating earning:', updateError);
-                        throw updateError;
-                    }
-                } else {
-                    // Create new record
-                    const { error: insertError } = await supabase
-                        .from('staff_earnings')
-                        .insert({
-                            staff_id: stylistId,
-                            date,
-                            service_revenue: serviceRevenue,
-                            commission_amount: commissionAmount,
-                            salary_amount: 0,
-                            total_earnings: commissionAmount,
-                            appointments_count: 0, // 0 for walk-ins
-                            organization_id: organizationId,
-                        });
-
-                    if (insertError) {
-                        console.error('❌ Error inserting earning:', insertError);
-                        throw insertError;
-                    }
-                }
+                    .insert({
+                        staff_id: stylistId,
+                        invoice_id: invoiceId,
+                        appointment_id: null, // walk-ins have no appointment
+                        date,
+                        service_revenue: serviceRevenue,
+                        commission_amount: commissionAmount,
+                        salary_amount: 0,
+                        total_earnings: commissionAmount,
+                        appointments_count: 0,
+                        organization_id: organizationId,
+                    });
             }
         } catch (error: any) {
-            console.error('❌ Error updating earnings for walk-in services');
-            console.error('  Error:', error);
+            console.error('Error updating earnings for walk-in services:', error);
             throw error;
         }
-    }
+    },
 };
