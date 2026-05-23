@@ -88,7 +88,7 @@ export const financialService = {
         // 1) Select stylists based on who is requesting.
         let stylistsQuery = supabase
             .from('staff')
-            .select('id, name, branch_id, profile_id, system_role')
+            .select('id, name, branch_id, profile_id, system_role, salary')
             .eq('organization_id', organizationId)
             .eq('system_role', 'Stylist')
             .eq('is_active', true)
@@ -129,18 +129,13 @@ export const financialService = {
             commissionByStaff.set(e.staff_id, (commissionByStaff.get(e.staff_id) || 0) + commission);
         });
 
-        // 3) Initial/base salary from salary_settings.
-        const { data: salarySettings, error: salaryError } = await supabase
-            .from('salary_settings')
-            .select('staff_id, amount, salary_type, effective_from, is_active')
-            .eq('organization_id', organizationId)
-            .in('staff_id', staffIds)
-            .eq('is_active', true);
-
-        if (salaryError) throw salaryError;
-
-        const salaryByStaff = new Map<string, any>();
-        (salarySettings || []).forEach((s) => salaryByStaff.set(s.staff_id, s));
+        // 3) Initial/base salary — read directly from staff.salary (monthly amount).
+        const salaryByStaff = new Map<string, number>();
+        (stylists || []).forEach((s) => {
+            if (s.salary && Number(s.salary) > 0) {
+                salaryByStaff.set(s.id, Number(s.salary));
+            }
+        });
 
         // 4) Advances sums and last advances.
         const startTs = `${startDate}T00:00:00`;
@@ -182,12 +177,12 @@ export const financialService = {
             const commission_sum = commissionByStaff.get(s.id) || 0;
             const advances_sum = advancesByStaff.get(s.id) || 0;
 
-            const setting = salaryByStaff.get(s.id);
-            const initial_salary = setting
+            const monthlySalary = salaryByStaff.get(s.id) ?? 0;
+            const initial_salary = monthlySalary > 0
                 ? calculateInitialSalary({
-                    amount: Number(setting.amount || 0),
-                    salary_type: setting.salary_type as SalaryType,
-                    effective_from: setting.effective_from ?? null,
+                    amount: monthlySalary,
+                    salary_type: 'monthly',
+                    effective_from: null,
                     startDate,
                     endDate,
                 })

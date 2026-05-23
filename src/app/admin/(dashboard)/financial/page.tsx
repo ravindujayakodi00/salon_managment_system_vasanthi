@@ -11,13 +11,22 @@ import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { financialService, type StylistFinancialRow } from '@/services/financial';
 
-function getTodayISO() {
-    return new Date().toISOString().split('T')[0];
+function localDateStr(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
-
+function getTodayISO() {
+    return localDateStr(new Date());
+}
 function getFirstDayOfMonthISO() {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    return localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+}
+function getLastDayOfMonthISO() {
+    const now = new Date();
+    return localDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 }
 
 export default function FinancialPage() {
@@ -26,7 +35,7 @@ export default function FinancialPage() {
 
     const [dateRange, setDateRange] = useState({
         start: getFirstDayOfMonthISO(),
-        end: getTodayISO(),
+        end: getLastDayOfMonthISO(),
     });
 
     const [loading, setLoading] = useState(true);

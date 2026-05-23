@@ -91,8 +91,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         allowedRoles: ['Owner', 'Manager', 'Stylist'],
     },
     {
-        label: 'Petty Cash',
-        href: adminHref('/petty-cash'),
+        label: 'Expenses',
+        href: adminHref('/expenses'),
         icon: Wallet,
         allowedRoles: ['Owner', 'Manager', 'Receptionist'],
     },

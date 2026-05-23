@@ -285,12 +285,21 @@ export const earningsService = {
 
             const { data: allStaff, error: staffError } = await supabase
                 .from('staff')
-                .select('id, name, system_role')
+                .select('id, name, system_role, salary')
                 .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
 
             if (staffError) throw staffError;
+
+            // Calculate how many full months the date range spans (for monthly salary)
+            const startD = new Date(startDate);
+            const endD = new Date(endDate);
+            const monthsSpanned = Math.max(
+                1,
+                (endD.getFullYear() - startD.getFullYear()) * 12 +
+                (endD.getMonth() - startD.getMonth()) + 1
+            );
 
             const earnings = await this.getAllStaffEarnings(startDate, endDate);
 
@@ -321,18 +330,27 @@ export const earningsService = {
                 summary.appointments_count += earning.appointments_count || 0;
             });
 
-            return allStaff?.map(staff => ({
-                staff_id: staff.id,
-                staff_name: staff.name,
-                staff_role: staff.system_role,
-                ...(earningsMap.get(staff.id) || {
+            return allStaff?.map(staff => {
+                const fromEarnings = earningsMap.get(staff.id) || {
                     total_revenue: 0,
                     total_commission: 0,
                     total_salary: 0,
                     total_earnings: 0,
                     appointments_count: 0,
-                }),
-            }));
+                };
+                // Salary comes from staff.salary (monthly), not from staff_earnings rows
+                const monthlySalary = Number(staff.salary || 0);
+                const total_salary = monthlySalary * monthsSpanned;
+                const total_earnings = fromEarnings.total_commission + total_salary;
+                return {
+                    staff_id: staff.id,
+                    staff_name: staff.name,
+                    staff_role: staff.system_role,
+                    ...fromEarnings,
+                    total_salary,
+                    total_earnings,
+                };
+            });
         } catch (error) {
             console.error('Error getting earnings summary:', error);
             throw error;

@@ -20,7 +20,7 @@ type PageKey =
     | 'customers'
     | 'earnings'
     | 'financial'
-    | 'petty-cash'
+    | 'expenses'
     | 'segments'
     | 'promos'
     | 'loyalty'
@@ -74,7 +74,7 @@ const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
     { page_key: 'customers', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
     { page_key: 'earnings', allowedRoles: ['Owner', 'Manager', 'Stylist', 'Receptionist'] },
     { page_key: 'financial', allowedRoles: ['Owner', 'Manager', 'Stylist'] },
-    { page_key: 'petty-cash', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
+    { page_key: 'expenses', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
     { page_key: 'segments', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'promos', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'loyalty', allowedRoles: ['Owner', 'Manager'] },

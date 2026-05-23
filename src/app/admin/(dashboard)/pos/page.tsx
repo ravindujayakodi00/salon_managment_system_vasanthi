@@ -46,7 +46,7 @@ export default function POSPage() {
     const [customerSearch, setCustomerSearch] = useState('');
     const [serviceSearch, setServiceSearch] = useState('');
     const [processingPayment, setProcessingPayment] = useState(false);
-    const [manualItem, setManualItem] = useState({ description: '', price: '', stylistId: '' });
+    const [manualItem, setManualItem] = useState({ serviceName: '', price: '', stylistId: '' });
 
     // Appointment integration state
     const [customerAppointments, setCustomerAppointments] = useState<any[]>([]);
@@ -427,8 +427,8 @@ export default function POSPage() {
     };
 
     const addManualItem = () => {
-        if (!manualItem.description || !manualItem.price) {
-            showToast('Please enter description and price', 'warning');
+        if (!manualItem.serviceName || !manualItem.price) {
+            showToast('Please select a service and enter a price', 'warning');
             return;
         }
         if (!manualItem.stylistId) {
@@ -442,14 +442,14 @@ export default function POSPage() {
         }
         setCart([...cart, {
             type: 'manual',
-            name: manualItem.description,
+            name: manualItem.serviceName,
             price: parseFloat(manualItem.price),
             quantity: 1,
-            description: manualItem.description,
+            description: manualItem.serviceName,
             stylistId: manualItem.stylistId,
             stylistName: stylist?.name,
         }]);
-        setManualItem({ description: '', price: '', stylistId: '' });
+        setManualItem({ serviceName: '', price: '', stylistId: '' });
         setShowManualFee(false);
         showToast(`Manual item added (Stylist: ${stylist?.name})`, 'success');
     };
@@ -1245,11 +1245,19 @@ export default function POSPage() {
                                         className="overflow-hidden"
                                     >
                                         <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
-                                            <Input
-                                                placeholder="Description"
-                                                value={manualItem.description}
-                                                onChange={(e) => setManualItem({ ...manualItem, description: e.target.value })}
-                                            />
+                                            <select
+                                                value={manualItem.serviceName}
+                                                onChange={(e) => setManualItem({ ...manualItem, serviceName: e.target.value })}
+                                                className="w-full min-w-0 max-w-full px-4 py-2.5 rounded-xl border transition-all duration-200 appearance-none text-base bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:border-gray-400"
+                                            >
+                                                <option value="">Select Service...</option>
+                                                <option value="Grey Hair Coverage">Grey Hair Coverage</option>
+                                                <option value="Soft Bonding">Soft Bonding</option>
+                                                <option value="Keratin Treatment">Keratin Treatment</option>
+                                                <option value="Hair Botox Treatment">Hair Botox Treatment</option>
+                                                <option value="Hair Color">Hair Color</option>
+                                                <option value="Other">Other</option>
+                                            </select>
                                             <select
                                                 value={manualItem.stylistId}
                                                 onChange={(e) => setManualItem({ ...manualItem, stylistId: e.target.value })}

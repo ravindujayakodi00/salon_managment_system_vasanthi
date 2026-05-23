@@ -4,27 +4,37 @@ import { getCurrentOrganizationId } from '@/lib/org-scope';
 export interface PettyCashTransaction {
     id: string;
     type: 'deposit' | 'withdrawal';
+    entry_type: 'petty_cash' | 'expense';
     amount: number;
     description: string;
     balance_after: number;
     created_by: string;
     created_at: string;
     branch_id: string;
-    profiles?: {
-        name: string;
-    };
+    expense_category_id?: string;
+    profiles?: { name: string };
+    expense_categories?: { name: string };
+}
+
+export interface ExpenseCategory {
+    id: string;
+    name: string;
+    organization_id: string | null;
+    is_active: boolean;
+    created_at: string;
 }
 
 export const pettyCashService = {
     /**
-     * Get current petty cash balance
+     * Get current petty cash balance (only petty_cash entry_type affects balance)
      */
     async getCurrentBalance(branchId?: string | null): Promise<number> {
         const organizationId = await getCurrentOrganizationId();
         let query = supabase
             .from('petty_cash_transactions')
             .select('balance_after')
-            .eq('organization_id', organizationId);
+            .eq('organization_id', organizationId)
+            .eq('entry_type', 'petty_cash');
 
         if (branchId) {
             query = query.eq('branch_id', branchId);
@@ -44,31 +54,35 @@ export const pettyCashService = {
     },
 
     /**
-     * Get all petty cash transactions with pagination
+     * Get all transactions with pagination (both petty cash and expenses)
      */
-    async getTransactions(page = 0, limit = 100) {
+    async getTransactions(page = 0, limit = 100, entryType?: 'petty_cash' | 'expense') {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();
 
-        const { data, error, count } = await supabase
+        let query = supabase
             .from('petty_cash_transactions')
             .select(`
                 *,
-                profiles (
-                    name
-                )
+                profiles ( name ),
+                expense_categories ( name )
             `, { count: 'exact' })
             .eq('organization_id', organizationId)
             .order('created_at', { ascending: false })
             .range(from, to);
 
+        if (entryType) {
+            query = query.eq('entry_type', entryType);
+        }
+
+        const { data, error, count } = await query;
         if (error) throw error;
         return { data: data as PettyCashTransaction[], count };
     },
 
     /**
-     * Add cash deposit (Owner only)
+     * Add cash deposit to petty cash fund (Owner only)
      */
     async addDeposit(
         amount: number,
@@ -77,7 +91,6 @@ export const pettyCashService = {
         branchId: string | null,
         organizationId: string
     ) {
-        // Get current balance
         const currentBalance = await this.getCurrentBalance(branchId);
         const newBalance = currentBalance + amount;
 
@@ -85,6 +98,7 @@ export const pettyCashService = {
             .from('petty_cash_transactions')
             .insert({
                 type: 'deposit',
+                entry_type: 'petty_cash',
                 amount,
                 description,
                 balance_after: newBalance,
@@ -100,19 +114,17 @@ export const pettyCashService = {
     },
 
     /**
-     * Record expense (withdrawal)
+     * Record a petty cash withdrawal (free-text description)
      */
-    async recordExpense(
+    async recordPettyCash(
         amount: number,
         description: string,
         userId: string,
         branchId: string | null,
         organizationId: string
     ) {
-        // Get current balance
         const currentBalance = await this.getCurrentBalance(branchId);
 
-        // Check if sufficient balance
         if (currentBalance < amount) {
             throw new Error(`Insufficient balance. Available: Rs ${currentBalance.toLocaleString()}, Required: Rs ${amount.toLocaleString()}`);
         }
@@ -123,9 +135,41 @@ export const pettyCashService = {
             .from('petty_cash_transactions')
             .insert({
                 type: 'withdrawal',
+                entry_type: 'petty_cash',
                 amount,
                 description,
                 balance_after: newBalance,
+                created_by: userId,
+                branch_id: branchId,
+                organization_id: organizationId,
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Record a formal expense linked to a category (does NOT affect petty cash balance)
+     */
+    async recordExpense(
+        amount: number,
+        description: string,
+        expenseCategoryId: string,
+        userId: string,
+        branchId: string | null,
+        organizationId: string
+    ) {
+        const { data, error } = await supabase
+            .from('petty_cash_transactions')
+            .insert({
+                type: 'withdrawal',
+                entry_type: 'expense',
+                amount,
+                description,
+                balance_after: 0, // expenses don't affect petty cash balance
+                expense_category_id: expenseCategoryId,
                 created_by: userId,
                 branch_id: branchId,
                 organization_id: organizationId,
@@ -153,13 +197,29 @@ export const pettyCashService = {
     },
 
     /**
-     * Get transactions summary for date range
+     * Get expense categories (global + org-specific)
+     */
+    async getExpenseCategories(): Promise<ExpenseCategory[]> {
+        const organizationId = await getCurrentOrganizationId();
+        const { data, error } = await supabase
+            .from('expense_categories')
+            .select('*')
+            .eq('is_active', true)
+            .or(`organization_id.is.null,organization_id.eq.${organizationId}`)
+            .order('name');
+
+        if (error) throw error;
+        return data as ExpenseCategory[];
+    },
+
+    /**
+     * Get summary for a date range
      */
     async getSummary(startDate: string, endDate: string) {
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('petty_cash_transactions')
-            .select('type, amount')
+            .select('type, amount, entry_type')
             .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`);
@@ -168,42 +228,22 @@ export const pettyCashService = {
 
         const summary = {
             totalDeposits: 0,
-            totalWithdrawals: 0,
+            totalPettyCash: 0,
+            totalExpenses: 0,
             netChange: 0
         };
 
-        data.forEach(transaction => {
-            if (transaction.type === 'deposit') {
-                summary.totalDeposits += transaction.amount;
+        data.forEach(t => {
+            if (t.type === 'deposit') {
+                summary.totalDeposits += t.amount;
+            } else if (t.entry_type === 'expense') {
+                summary.totalExpenses += t.amount;
             } else {
-                summary.totalWithdrawals += transaction.amount;
+                summary.totalPettyCash += t.amount;
             }
         });
 
-        summary.netChange = summary.totalDeposits - summary.totalWithdrawals;
-
+        summary.netChange = summary.totalDeposits - summary.totalPettyCash;
         return summary;
     },
-
-    /**
-     * Search transactions by description
-     */
-    async searchTransactions(searchQuery: string) {
-        const organizationId = await getCurrentOrganizationId();
-        const { data, error } = await supabase
-            .from('petty_cash_transactions')
-            .select(`
-                *,
-                profiles (
-                    name
-                )
-            `)
-            .eq('organization_id', organizationId)
-            .ilike('description', `%${searchQuery}%`)
-            .order('created_at', { ascending: false })
-            .limit(200);
-
-        if (error) throw error;
-        return data as PettyCashTransaction[];
-    }
 };

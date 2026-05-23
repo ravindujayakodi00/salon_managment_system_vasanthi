@@ -1,36 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, Calendar, User, Receipt } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, TrendingDown, Banknote } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 import { earningsService } from '@/services/earnings';
 import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { getCurrentOrganizationId } from '@/lib/org-scope';
 
+function localDateStr(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
 function todayStr() {
-    return new Date().toISOString().split('T')[0];
+    return localDateStr(new Date());
 }
 function yesterdayStr() {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
 }
 function thisWeekStart() {
     const d = new Date();
     d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
 }
 function thisMonthStart() {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    return localDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+function thisMonthEnd() {
+    const d = new Date();
+    return localDateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0));
 }
 
 const PRESETS = [
     { label: 'Today', getRange: () => ({ start: todayStr(), end: todayStr() }) },
     { label: 'Yesterday', getRange: () => ({ start: yesterdayStr(), end: yesterdayStr() }) },
     { label: 'This Week', getRange: () => ({ start: thisWeekStart(), end: todayStr() }) },
-    { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: todayStr() }) },
+    { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: thisMonthEnd() }) },
 ];
 
 export default function EarningsPage() {
@@ -39,10 +50,11 @@ export default function EarningsPage() {
     const [loading, setLoading] = useState(true);
     const [earnings, setEarnings] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>(null);
+    const [totalExpenses, setTotalExpenses] = useState(0);
     const [activePreset, setActivePreset] = useState<string | null>('This Month');
     const [dateRange, setDateRange] = useState({
         start: thisMonthStart(),
-        end: todayStr(),
+        end: thisMonthEnd(),
     });
 
     const isStaff = user?.systemRole === 'Stylist' || user?.systemRole === 'Receptionist' || user?.systemRole === 'Manager';
@@ -67,7 +79,7 @@ export default function EarningsPage() {
             if (isStaff && !isOwner) {
                 const { data: staffRow, error: staffLookupError } = await supabase
                     .from('staff')
-                    .select('id')
+                    .select('id, salary')
                     .eq('profile_id', user?.id || '')
                     .eq('is_active', true)
                     .single();
@@ -83,14 +95,42 @@ export default function EarningsPage() {
                 setEarnings(staffData || []);
 
                 const total_revenue = staffData?.reduce((sum: number, e: any) => sum + (e.service_revenue || 0), 0) || 0;
-                const total_earnings = staffData?.reduce((sum: number, e: any) => sum + (e.total_earnings || 0), 0) || 0;
                 const total_commission = staffData?.reduce((sum: number, e: any) => sum + (e.commission_amount || 0), 0) || 0;
-                const total_salary = staffData?.reduce((sum: number, e: any) => sum + (e.salary_amount || 0), 0) || 0;
                 const appointments_count = staffData?.reduce((sum: number, e: any) => sum + (e.appointments_count || 0), 0) || 0;
+
+                // Calculate salary from staff.salary (monthly) for the selected date range
+                const monthlySalary = Number(staffRow.salary || 0);
+                const startD = new Date(dateRange.start);
+                const endD = new Date(dateRange.end);
+                const monthsSpanned = Math.max(
+                    1,
+                    (endD.getFullYear() - startD.getFullYear()) * 12 +
+                    (endD.getMonth() - startD.getMonth()) + 1
+                );
+                const total_salary = monthlySalary * monthsSpanned;
+                const total_earnings = total_commission + total_salary;
                 setSummary({ total_revenue, total_earnings, total_commission, total_salary, appointments_count });
             } else if (isOwner) {
                 const summaryData = await earningsService.getEarningsSummaryByStaff(dateRange.start, dateRange.end);
                 setEarnings(summaryData || []);
+            }
+
+            // Fetch total expenses for the period (owner view only)
+            if (isOwner) {
+                try {
+                    const organizationId = await getCurrentOrganizationId();
+                    const { data: expenseRows } = await supabase
+                        .from('petty_cash_transactions')
+                        .select('amount')
+                        .eq('organization_id', organizationId)
+                        .eq('entry_type', 'expense')
+                        .gte('created_at', `${dateRange.start}T00:00:00`)
+                        .lte('created_at', `${dateRange.end}T23:59:59`);
+                    const expenseTotal = (expenseRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+                    setTotalExpenses(expenseTotal);
+                } catch {
+                    setTotalExpenses(0);
+                }
             }
         } catch (error) {
             console.error('Error fetching earnings:', error);
@@ -118,28 +158,53 @@ export default function EarningsPage() {
         appointments_count: earnings.reduce((sum, e) => sum + (e.appointments_count || 0), 0),
     } : null;
 
-    const renderRevenueBanner = (totalRevenue: number, totalAppointments: number) => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    const ownerSalariesAndCommissions = (ownerTotals?.total_salary || 0) + (ownerTotals?.total_commission || 0);
+    const ownerProfit = (ownerTotals?.total_revenue || 0) - totalExpenses - ownerSalariesAndCommissions;
+
+    const renderOwnerSummaryCards = () => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="card p-6 surface-panel">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">Total Revenue</p>
-                        <h3 className="text-3xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalRevenue)}</h3>
+                        <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(ownerTotals?.total_revenue || 0)}</h3>
                         <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                             {dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} — ${dateRange.end}`}
                         </p>
                     </div>
-                    <Receipt className="h-12 w-12 text-emerald-500 opacity-70" />
+                    <DollarSign className="h-10 w-10 text-emerald-500 opacity-70" />
                 </div>
             </div>
             <div className="card p-6 surface-panel">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Total Appointments</p>
-                        <h3 className="text-3xl font-bold mt-1 text-gray-900 dark:text-white">{totalAppointments}</h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
+                        <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalExpenses)}</h3>
                         <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Across selected period</p>
                     </div>
-                    <Calendar className="h-12 w-12 text-emerald-500 opacity-70" />
+                    <TrendingDown className="h-10 w-10 text-red-500 opacity-70" />
+                </div>
+            </div>
+            <div className="card p-6 surface-panel">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Salaries & Commissions</p>
+                        <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(ownerSalariesAndCommissions)}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Across selected period</p>
+                    </div>
+                    <Banknote className="h-10 w-10 text-orange-500 opacity-70" />
+                </div>
+            </div>
+            <div className="card p-6 surface-panel">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Total Profit</p>
+                        <h3 className={`text-2xl font-bold mt-1 ${ownerProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {formatCurrency(ownerProfit)}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Revenue − Expenses − Staff costs</p>
+                    </div>
+                    <TrendingUp className={`h-10 w-10 opacity-70 ${ownerProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
                 </div>
             </div>
         </div>
@@ -147,9 +212,7 @@ export default function EarningsPage() {
 
     const renderStaffView = () => (
         <div className="space-y-6">
-            {renderRevenueBanner(summary?.total_revenue || 0, summary?.appointments_count || 0)}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="card p-6 bg-gradient-to-br from-primary-500 to-primary-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
@@ -175,15 +238,6 @@ export default function EarningsPage() {
                             <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(summary?.total_salary || 0)}</h3>
                         </div>
                         <Calendar className="h-10 w-10 text-secondary-500" />
-                    </div>
-                </div>
-                <div className="card p-6 surface-panel">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Appointments</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{summary?.appointments_count || 0}</h3>
-                        </div>
-                        <User className="h-10 w-10 text-warning-500" />
                     </div>
                 </div>
             </div>
@@ -238,7 +292,7 @@ export default function EarningsPage() {
 
     const renderOwnerView = () => (
         <div className="space-y-6">
-            {renderRevenueBanner(ownerTotals?.total_revenue || 0, ownerTotals?.appointments_count || 0)}
+            {renderOwnerSummaryCards()}
 
             <div className="card p-6 surface-panel">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Staff Earnings Summary</h3>

@@ -13,7 +13,7 @@ const LEGACY_ADMIN_SEGMENTS = new Set([
     'customers',
     'earnings',
     'financial',
-    'petty-cash',
+    'expenses',
     'segments',
     'promos',
     'loyalty',
