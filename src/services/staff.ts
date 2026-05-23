@@ -122,7 +122,8 @@ export const staffService = {
         name: string;
         email: string;
         phone: string;
-        system_role: string; // 'Manager' | 'Receptionist' | 'Stylist'
+        system_role: string;
+        org_role_id?: string;
         branch_id: string;
         specializations?: string[];
         working_days?: string[];
@@ -153,6 +154,7 @@ export const staffService = {
         name?: string;
         phone?: string;
         system_role?: string;
+        org_role_id?: string;
         branch_id?: string;
         specializations?: string[];
         working_days?: string[];

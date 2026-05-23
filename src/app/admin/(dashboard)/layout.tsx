@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { WorkspaceProvider } from '@/lib/workspace';
 import { BrandingProvider } from '@/lib/branding';
+import { OrgRolesProvider } from '@/lib/org-roles-context';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import MobileSidebar from '@/components/layout/MobileSidebar';
@@ -22,17 +23,14 @@ export default function DashboardLayout({
     // Branch gate: non-owners must pick a branch before they can access the dashboard.
     // This ensures RLS-enforced branch policies behave correctly right after login.
     useEffect(() => {
-        if (
-            user &&
-            (user.systemRole === 'Manager' || user.systemRole === 'Stylist' || user.systemRole === 'Receptionist') &&
-            !user.branchId
-        ) {
+        if (user && user.systemRole !== 'Owner' && !user.branchId) {
             router.replace('/admin/select-branch');
         }
     }, [user, router]);
 
     return (
         <ProtectedRoute>
+            <OrgRolesProvider>
             <WorkspaceProvider>
             <BrandingProvider>
             <div className="flex h-dvh overflow-hidden">
@@ -58,6 +56,7 @@ export default function DashboardLayout({
             </div>
             </BrandingProvider>
             </WorkspaceProvider>
+            </OrgRolesProvider>
         </ProtectedRoute>
     );
 }
