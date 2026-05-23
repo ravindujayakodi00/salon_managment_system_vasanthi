@@ -61,6 +61,10 @@ export default function StaffPage() {
     const getFormSystemRole = () =>
         orgRoles.find(r => r.displayName === formData.role)?.systemRole ?? 'Stylist';
 
+    /** Returns the org_role_id for the currently selected form role display name. */
+    const getFormOrgRoleId = () =>
+        orgRoles.find(r => r.displayName === formData.role)?.id;
+
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,8 +97,10 @@ export default function StaffPage() {
                 name: s.name,
                 email: s.email,
                 phone: s.phone || '',
-                // role = display name looked up from org roles
-                role: rolesData.find(r => r.systemRole === s.system_role)?.displayName ?? s.system_role,
+                // resolve display name by org_role_id first (exact match), fall back to system_role
+                role: rolesData.find(r => r.id === s.org_role_id)?.displayName
+                    ?? rolesData.find(r => r.systemRole === s.system_role)?.displayName
+                    ?? s.system_role,
                 systemRole: s.system_role,
                 branchId: s.branch_id,
                 specializations: s.specializations || [],
@@ -121,7 +127,9 @@ export default function StaffPage() {
                 name: s.name,
                 email: s.email,
                 phone: s.phone || '',
-                role: orgRoles.find(r => r.systemRole === s.system_role)?.displayName ?? s.system_role,
+                role: orgRoles.find(r => r.id === s.org_role_id)?.displayName
+                    ?? orgRoles.find(r => r.systemRole === s.system_role)?.displayName
+                    ?? s.system_role,
                 systemRole: s.system_role,
                 branchId: s.branch_id,
                 specializations: s.specializations || [],
@@ -151,6 +159,7 @@ export default function StaffPage() {
             email: formData.email,
             phone: formData.phone,
             system_role: systemRole,
+            org_role_id: getFormOrgRoleId(),
             branch_id: formData.branch_id || (branches.length > 0 ? branches[0].id : ''),
             specializations: formData.specializations,
             working_days: formData.working_days,
@@ -181,6 +190,7 @@ export default function StaffPage() {
             name: formData.name,
             phone: formData.phone,
             system_role: systemRole,
+            org_role_id: getFormOrgRoleId(),
             branch_id: formData.branch_id,
             specializations: formData.specializations,
             working_days: formData.working_days,

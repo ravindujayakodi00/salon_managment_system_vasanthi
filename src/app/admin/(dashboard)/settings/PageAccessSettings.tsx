@@ -5,9 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import Button from '@/components/shared/Button';
 import { Eye, Save, Loader, Trash2 } from 'lucide-react';
-import type { OrgRole, SystemRole } from '@/lib/types';
+import type { SystemRole } from '@/lib/types';
 import { isOrgPageAccessEnabled } from '@/lib/org-page-access';
-import { orgRolesService } from '@/services/orgRoles';
+import { useOrgRoles } from '@/lib/org-roles-context';
 
 type PageKey =
     | 'dashboard'
@@ -60,7 +60,7 @@ function isMissingPageAccessTable(err: unknown): boolean {
     );
 }
 
-const roles: SystemRole[] = ['Owner', 'Manager', 'Receptionist', 'Stylist'];
+const SYSTEM_ROLES: SystemRole[] = ['Owner', 'Manager', 'Receptionist', 'Stylist'];
 
 // Mirrors the sidebar routes. These page keys drive the access matrix.
 const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
@@ -90,15 +90,22 @@ export default function PageAccessSettings({
     showMessage: (type: 'success' | 'error', text: string) => void;
 }) {
     const { user } = useAuth();
+    const { orgRoles } = useOrgRoles();
     const [rows, setRows] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [orgRoles, setOrgRoles] = useState<OrgRole[]>([]);
 
     const orgId = user?.organizationId;
 
+    // Use dynamic org roles for column headers; fall back to the 4 system defaults
+    const roles: SystemRole[] = orgRoles.length > 0
+        ? (orgRoles.map(r => r.systemRole) as SystemRole[]).filter((v, i, a) => a.indexOf(v) === i)
+        : SYSTEM_ROLES;
+
     const roleDisplayName = (r: SystemRole): string =>
-        orgRoles.find(o => o.systemRole === r)?.displayName ?? r;
+        orgRoles.find(o => o.systemRole === r && !o.isDeletable)?.displayName
+        ?? orgRoles.find(o => o.systemRole === r)?.displayName
+        ?? r;
 
     const defaults = useMemo(() => {
         const map: Record<string, boolean> = {};
@@ -116,9 +123,6 @@ export default function PageAccessSettings({
             setLoading(false);
             return;
         }
-
-        // Load org roles for display names (non-blocking — falls back to system_role names)
-        orgRolesService.getOrgRoles(orgId).then(setOrgRoles).catch(() => {});
 
         if (!isOrgPageAccessEnabled()) {
             setRows({ ...defaults });

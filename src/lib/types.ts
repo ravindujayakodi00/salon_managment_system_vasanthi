@@ -6,13 +6,23 @@ export type SystemRole = 'Owner' | 'Manager' | 'Receptionist' | 'Stylist';
 /** Display role name — can be a custom string per organization (e.g. "Head Stylist", "Front Desk"). */
 export type UserRole = string;
 
-/** An organization-specific role entry, linking a display name to a system role. */
+/** An organization-specific role entry, linking a display name to a system role tier with feature flags. */
 export interface OrgRole {
     id: string;
     organizationId: string;
     displayName: string;
-    systemRole: SystemRole;
+    systemRole: string;  // one of the 4 tier values, or custom string for future roles
+    /** Numeric tier: 1=Owner, 2=Manager, 3=Receptionist, 4=Stylist. Lower = more authority. */
+    roleLevel: number;
     isDeletable: boolean;
+    // Feature flags — define what this role can do
+    canEarnCommission: boolean;
+    isBookable: boolean;
+    canManageStaff: boolean;
+    canManageSettings: boolean;
+    canViewAllEarnings: boolean;
+    canViewReports: boolean;
+    canProcessPos: boolean;
 }
 
 export interface User {
@@ -23,6 +33,8 @@ export interface User {
     role: string;
     /** Behavioral role — one of the 4 system roles. Use for all permission checks. */
     systemRole: SystemRole;
+    /** ID of the specific org role row this user belongs to (for feature flag lookups). */
+    orgRoleId?: string;
     branchId?: string;
     organizationId: string;
     organizationSlug?: string;

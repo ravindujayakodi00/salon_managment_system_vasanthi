@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const {
-            name, email, phone, system_role, branch_id,
+            name, email, phone, system_role, org_role_id, branch_id,
             specializations, working_days, working_hours,
             salary, commission,
         } = body;
@@ -96,18 +96,20 @@ export async function POST(request: NextRequest) {
         if (!authData.user) throw new Error('Failed to create auth user');
 
         // 2. Create profile
+        const profileInsert: Record<string, unknown> = {
+            id: authData.user.id,
+            email,
+            name,
+            system_role,
+            branch_id,
+            organization_id: branch.organization_id,
+            is_active: true,
+        };
+        if (org_role_id) profileInsert.org_role_id = org_role_id;
+
         const { error: insertProfileError } = await supabaseAdmin
             .from('profiles')
-            .insert({
-                id: authData.user.id,
-                email,
-                name,
-                system_role,
-                role: system_role, // keep in sync for Dione app which still reads role column
-                branch_id,
-                organization_id: branch.organization_id,
-                is_active: true,
-            });
+            .insert(profileInsert);
         if (insertProfileError) {
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
             throw insertProfileError;
@@ -120,7 +122,6 @@ export async function POST(request: NextRequest) {
             email,
             phone,
             system_role,
-            role: system_role, // keep in sync for Dione app which still reads role column
             branch_id,
             organization_id: branch.organization_id,
             specializations: specializations || [],
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
             working_hours: working_hours,
             is_active: true,
         };
+        if (org_role_id) staffInsert.org_role_id = org_role_id;
         if (salary !== undefined && salary !== null) staffInsert.salary = salary;
         if (commission !== undefined && commission !== null) staffInsert.commission = commission;
 
