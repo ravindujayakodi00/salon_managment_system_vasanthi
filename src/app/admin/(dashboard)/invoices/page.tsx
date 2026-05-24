@@ -9,16 +9,19 @@ import { formatCurrency } from '@/lib/utils';
 import { calculatePaymentTotals } from '@/lib/payment-utils';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 
-function todayStr() { return new Date().toISOString().split('T')[0]; }
-function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
-function thisWeekStart() { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().split('T')[0]; }
-function thisMonthStart() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; }
+function localDateStr(d: Date) { const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}`; }
+function todayStr() { return localDateStr(new Date()); }
+function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return localDateStr(d); }
+function thisWeekStart() { const d = new Date(); const day = d.getDay(); d.setDate(d.getDate() - (day === 0 ? 6 : day - 1)); return localDateStr(d); }
+function thisWeekEnd() { const d = new Date(); const day = d.getDay(); d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day)); return localDateStr(d); }
+function thisMonthStart() { const d = new Date(); return localDateStr(new Date(d.getFullYear(), d.getMonth(), 1)); }
+function thisMonthEnd() { const d = new Date(); return localDateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
 
 const PRESETS = [
     { label: 'Today', getRange: () => ({ start: todayStr(), end: todayStr() }) },
     { label: 'Yesterday', getRange: () => ({ start: yesterdayStr(), end: yesterdayStr() }) },
-    { label: 'This Week', getRange: () => ({ start: thisWeekStart(), end: todayStr() }) },
-    { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: todayStr() }) },
+    { label: 'This Week', getRange: () => ({ start: thisWeekStart(), end: thisWeekEnd() }) },
+    { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: thisMonthEnd() }) },
 ];
 
 const PAYMENT_METHODS = ['All', 'Cash', 'Card', 'BankTransfer', 'Other'];
@@ -42,7 +45,7 @@ export default function InvoicesPage() {
     const [page, setPage] = useState(0);
     const [activePreset, setActivePreset] = useState<string | null>('This Month');
     const [paymentFilter, setPaymentFilter] = useState('All');
-    const [dateRange, setDateRange] = useState({ start: thisMonthStart(), end: todayStr() });
+    const [dateRange, setDateRange] = useState({ start: thisMonthStart(), end: thisMonthEnd() });
     const [receiptInvoice, setReceiptInvoice] = useState<any>(null);
 
     const isOwner = hasRole(['Owner', 'Manager']);

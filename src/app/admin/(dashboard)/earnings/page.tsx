@@ -25,7 +25,14 @@ function yesterdayStr() {
 }
 function thisWeekStart() {
     const d = new Date();
-    d.setDate(d.getDate() - d.getDay());
+    const day = d.getDay(); // 0=Sun,1=Mon,...,6=Sat
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1)); // Monday-based
+    return localDateStr(d);
+}
+function thisWeekEnd() {
+    const d = new Date();
+    const day = d.getDay();
+    d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day)); // Sunday end
     return localDateStr(d);
 }
 function thisMonthStart() {
@@ -40,7 +47,7 @@ function thisMonthEnd() {
 const PRESETS = [
     { label: 'Today', getRange: () => ({ start: todayStr(), end: todayStr() }) },
     { label: 'Yesterday', getRange: () => ({ start: yesterdayStr(), end: yesterdayStr() }) },
-    { label: 'This Week', getRange: () => ({ start: thisWeekStart(), end: todayStr() }) },
+    { label: 'This Week', getRange: () => ({ start: thisWeekStart(), end: thisWeekEnd() }) },
     { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: thisMonthEnd() }) },
 ];
 
