@@ -118,7 +118,7 @@ export default function EarningsPage() {
                 const total_earnings = total_commission + total_salary;
                 setSummary({ total_revenue, total_earnings, total_commission, total_salary, appointments_count });
             } else if (isOwner) {
-                const summaryData = await earningsService.getEarningsSummaryByStaff(dateRange.start, dateRange.end);
+                const summaryData = await earningsService.getEarningsSummaryByStaff(dateRange.start, dateRange.end, effectiveBranchId);
                 setEarnings(summaryData || []);
             }
 
@@ -126,13 +126,15 @@ export default function EarningsPage() {
             if (isOwner) {
                 try {
                     const organizationId = await getCurrentOrganizationId();
-                    const { data: expenseRows } = await supabase
+                    let expenseQuery = supabase
                         .from('petty_cash_transactions')
                         .select('amount')
                         .eq('organization_id', organizationId)
                         .eq('entry_type', 'expense')
                         .gte('created_at', `${dateRange.start}T00:00:00`)
                         .lte('created_at', `${dateRange.end}T23:59:59`);
+                    if (effectiveBranchId) expenseQuery = expenseQuery.eq('branch_id', effectiveBranchId);
+                    const { data: expenseRows } = await expenseQuery;
                     const expenseTotal = (expenseRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
                     setTotalExpenses(expenseTotal);
                 } catch {

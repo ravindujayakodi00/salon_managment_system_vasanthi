@@ -245,13 +245,15 @@ export const earningsService = {
     /**
      * Get all staff earnings rows for a date range (raw, for internal use).
      */
-    async getAllStaffEarnings(startDate: string, endDate: string) {
+    async getAllStaffEarnings(startDate: string, endDate: string, branchId?: string | null) {
         try {
             const organizationId = await getCurrentOrganizationId();
-            const { data: orgStaff, error: staffIdsError } = await supabase
+            let staffQuery = supabase
                 .from('staff')
                 .select('id')
                 .eq('organization_id', organizationId);
+            if (branchId) staffQuery = staffQuery.eq('branch_id', branchId);
+            const { data: orgStaff, error: staffIdsError } = await staffQuery;
             if (staffIdsError) throw staffIdsError;
             const staffIds = (orgStaff || []).map(s => s.id);
             if (staffIds.length === 0) return [];
@@ -279,16 +281,18 @@ export const earningsService = {
     /**
      * Get earnings summary grouped by staff member (for owner/manager view).
      */
-    async getEarningsSummaryByStaff(startDate: string, endDate: string) {
+    async getEarningsSummaryByStaff(startDate: string, endDate: string, branchId?: string | null) {
         try {
             const organizationId = await getCurrentOrganizationId();
 
-            const { data: allStaff, error: staffError } = await supabase
+            let staffQuery = supabase
                 .from('staff')
                 .select('id, name, system_role, salary')
                 .eq('organization_id', organizationId)
                 .eq('is_active', true)
                 .order('name');
+            if (branchId) staffQuery = staffQuery.eq('branch_id', branchId);
+            const { data: allStaff, error: staffError } = await staffQuery;
 
             if (staffError) throw staffError;
 
@@ -301,7 +305,7 @@ export const earningsService = {
                 (endD.getMonth() - startD.getMonth()) + 1
             );
 
-            const earnings = await this.getAllStaffEarnings(startDate, endDate);
+            const earnings = await this.getAllStaffEarnings(startDate, endDate, branchId);
 
             const earningsMap = new Map<string, {
                 total_revenue: number;
