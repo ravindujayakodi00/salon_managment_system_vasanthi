@@ -15,7 +15,7 @@ type Tab = 'expenses' | 'petty-cash';
 
 export default function ExpensesPage() {
     const { user } = useAuth();
-    const { effectiveBranchId } = useWorkspace();
+    const { effectiveBranchId, branches } = useWorkspace();
     const { showToast } = useToast();
 
     const [activeTab, setActiveTab] = useState<Tab>('expenses');
@@ -29,14 +29,17 @@ export default function ExpensesPage() {
     const [expenseCategoryId, setExpenseCategoryId] = useState('');
     const [expenseAmount, setExpenseAmount] = useState('');
     const [expenseDescription, setExpenseDescription] = useState('');
+    const [expenseBranchId, setExpenseBranchId] = useState(effectiveBranchId ?? '');
 
     // Petty cash modal state
     const [showAddCash, setShowAddCash] = useState(false);
     const [showPettyCashModal, setShowPettyCashModal] = useState(false);
     const [depositAmount, setDepositAmount] = useState('');
     const [depositDescription, setDepositDescription] = useState('');
+    const [depositBranchId, setDepositBranchId] = useState(effectiveBranchId ?? '');
     const [pettyCashAmount, setPettyCashAmount] = useState('');
     const [pettyCashDescription, setPettyCashDescription] = useState('');
+    const [pettyCashBranchId, setPettyCashBranchId] = useState(effectiveBranchId ?? '');
 
     const [processing, setProcessing] = useState(false);
 
@@ -44,15 +47,23 @@ export default function ExpensesPage() {
 
     useEffect(() => {
         fetchData();
-    }, [activeTab]);
+    }, [activeTab, effectiveBranchId]);
+
+    useEffect(() => {
+        if (effectiveBranchId) {
+            setExpenseBranchId(effectiveBranchId);
+            setDepositBranchId(effectiveBranchId);
+            setPettyCashBranchId(effectiveBranchId);
+        }
+    }, [effectiveBranchId]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const entryType = activeTab === 'expenses' ? 'expense' : 'petty_cash';
             const [currentBalance, { data: txns }, categories] = await Promise.all([
-                pettyCashService.getCurrentBalance(),
-                pettyCashService.getTransactions(0, 200, entryType),
+                pettyCashService.getCurrentBalance(effectiveBranchId),
+                pettyCashService.getTransactions(0, 200, entryType, effectiveBranchId),
                 activeTab === 'expenses' ? pettyCashService.getExpenseCategories() : Promise.resolve([]),
             ]);
             setBalance(currentBalance);
@@ -75,6 +86,10 @@ export default function ExpensesPage() {
             showToast('Please enter a valid amount', 'error');
             return;
         }
+        if (!expenseBranchId) {
+            showToast('Please select a branch', 'error');
+            return;
+        }
         if (!user?.id) return;
 
         try {
@@ -89,13 +104,14 @@ export default function ExpensesPage() {
                 description,
                 expenseCategoryId,
                 user.id,
-                user.branchId ?? effectiveBranchId ?? null,
+                expenseBranchId,
                 user.organizationId
             );
             showToast('Expense recorded successfully', 'success');
             setExpenseCategoryId('');
             setExpenseAmount('');
             setExpenseDescription('');
+            setExpenseBranchId('');
             setShowExpenseModal(false);
             fetchData();
         } catch (error: any) {
@@ -114,6 +130,10 @@ export default function ExpensesPage() {
             showToast('Please enter a description', 'error');
             return;
         }
+        if (!depositBranchId) {
+            showToast('Please select a branch', 'error');
+            return;
+        }
         if (!user?.id) return;
 
         try {
@@ -122,12 +142,13 @@ export default function ExpensesPage() {
                 parseFloat(depositAmount),
                 depositDescription,
                 user.id,
-                user.branchId ?? effectiveBranchId ?? null,
+                depositBranchId,
                 user.organizationId
             );
             showToast('Cash added successfully', 'success');
             setDepositAmount('');
             setDepositDescription('');
+            setDepositBranchId('');
             setShowAddCash(false);
             fetchData();
         } catch (error: any) {
@@ -146,6 +167,10 @@ export default function ExpensesPage() {
             showToast('Please enter a description', 'error');
             return;
         }
+        if (!pettyCashBranchId) {
+            showToast('Please select a branch', 'error');
+            return;
+        }
         if (parseFloat(pettyCashAmount) > balance) {
             showToast('Insufficient petty cash balance', 'error');
             return;
@@ -158,12 +183,13 @@ export default function ExpensesPage() {
                 parseFloat(pettyCashAmount),
                 pettyCashDescription,
                 user.id,
-                user.branchId ?? effectiveBranchId ?? null,
+                pettyCashBranchId,
                 user.organizationId
             );
             showToast('Petty cash recorded successfully', 'success');
             setPettyCashAmount('');
             setPettyCashDescription('');
+            setPettyCashBranchId('');
             setShowPettyCashModal(false);
             fetchData();
         } catch (error: any) {
@@ -291,6 +317,19 @@ export default function ExpensesPage() {
             <Modal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} title="Record Expense">
                 <div className="space-y-4">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+                        <select
+                            value={expenseBranchId}
+                            onChange={(e) => setExpenseBranchId(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
+                        >
+                            <option value="">Select branch...</option>
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Expense Category
                         </label>
@@ -343,6 +382,19 @@ export default function ExpensesPage() {
             <Modal isOpen={showAddCash} onClose={() => setShowAddCash(false)} title="Add Cash to Petty Cash">
                 <div className="space-y-4">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+                        <select
+                            value={depositBranchId}
+                            onChange={(e) => setDepositBranchId(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
+                        >
+                            <option value="">Select branch...</option>
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (Rs)</label>
                         <Input
                             type="number"
@@ -378,6 +430,19 @@ export default function ExpensesPage() {
             {/* ── Record Petty Cash Modal ── */}
             <Modal isOpen={showPettyCashModal} onClose={() => setShowPettyCashModal(false)} title="Record Petty Cash">
                 <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+                        <select
+                            value={pettyCashBranchId}
+                            onChange={(e) => setPettyCashBranchId(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
+                        >
+                            <option value="">Select branch...</option>
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (Rs)</label>
                         <Input

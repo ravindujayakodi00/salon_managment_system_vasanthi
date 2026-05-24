@@ -56,7 +56,7 @@ export const pettyCashService = {
     /**
      * Get all transactions with pagination (both petty cash and expenses)
      */
-    async getTransactions(page = 0, limit = 100, entryType?: 'petty_cash' | 'expense') {
+    async getTransactions(page = 0, limit = 100, entryType?: 'petty_cash' | 'expense', branchId?: string | null) {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();
@@ -74,6 +74,10 @@ export const pettyCashService = {
 
         if (entryType) {
             query = query.eq('entry_type', entryType);
+        }
+
+        if (branchId) {
+            query = query.eq('branch_id', branchId);
         }
 
         const { data, error, count } = await query;
