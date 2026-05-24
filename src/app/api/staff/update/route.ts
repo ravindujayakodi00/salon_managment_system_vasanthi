@@ -110,19 +110,39 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get caller's organization from their staff/profile row
-        const { data: callerProfile } = await supabaseAdmin
+        // Get caller's organization and role — check staff table first, fall back to profiles
+        let callerOrgId: string | null = null;
+        let callerRole: string | null = null;
+
+        const { data: callerStaff } = await supabaseAdmin
             .from('staff')
             .select('organization_id, system_role')
             .eq('profile_id', callerUser.id)
             .maybeSingle();
 
-        if (!callerProfile?.organization_id) {
+        if (callerStaff?.organization_id) {
+            callerOrgId = callerStaff.organization_id;
+            callerRole = callerStaff.system_role;
+        } else {
+            // Owner may only have a profiles row, not a staff row
+            const { data: callerProfileRow } = await supabaseAdmin
+                .from('profiles')
+                .select('organization_id, system_role')
+                .eq('id', callerUser.id)
+                .maybeSingle();
+
+            if (callerProfileRow?.organization_id) {
+                callerOrgId = callerProfileRow.organization_id;
+                callerRole = callerProfileRow.system_role;
+            }
+        }
+
+        if (!callerOrgId) {
             return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
         }
 
         // Only Owners and Managers can change passwords
-        if (!['Owner', 'Manager'].includes(callerProfile.system_role)) {
+        if (!['Owner', 'Manager'].includes(callerRole ?? '')) {
             return NextResponse.json({ success: false, error: 'Forbidden: insufficient role' }, { status: 403 });
         }
 
@@ -136,7 +156,7 @@ export async function PATCH(request: NextRequest) {
             .from('staff')
             .select('profile_id, organization_id')
             .eq('id', staffId)
-            .eq('organization_id', callerProfile.organization_id)
+            .eq('organization_id', callerOrgId)
             .maybeSingle();
 
         if (!targetStaff?.profile_id) {

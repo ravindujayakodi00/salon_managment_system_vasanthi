@@ -165,11 +165,10 @@ export default function EarningsPage() {
         appointments_count: earnings.reduce((sum, e) => sum + (e.appointments_count || 0), 0),
     } : null;
 
-    const ownerSalariesAndCommissions = (ownerTotals?.total_salary || 0) + (ownerTotals?.total_commission || 0);
-    const ownerProfit = (ownerTotals?.total_revenue || 0) - totalExpenses - ownerSalariesAndCommissions;
+    const ownerProfit = (ownerTotals?.total_revenue || 0) - totalExpenses;
 
     const renderOwnerSummaryCards = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="card p-6 surface-panel">
                 <div className="flex items-center justify-between">
                     <div>
@@ -195,21 +194,11 @@ export default function EarningsPage() {
             <div className="card p-6 surface-panel">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Salaries & Commissions</p>
-                        <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(ownerSalariesAndCommissions)}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Across selected period</p>
-                    </div>
-                    <Banknote className="h-10 w-10 text-orange-500 opacity-70" />
-                </div>
-            </div>
-            <div className="card p-6 surface-panel">
-                <div className="flex items-center justify-between">
-                    <div>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">Total Profit</p>
                         <h3 className={`text-2xl font-bold mt-1 ${ownerProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                             {formatCurrency(ownerProfit)}
                         </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Revenue − Expenses − Staff costs</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Revenue − Expenses</p>
                     </div>
                     <TrendingUp className={`h-10 w-10 opacity-70 ${ownerProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
                 </div>

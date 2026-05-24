@@ -21,6 +21,7 @@ import { availabilityService, AvailabilityRecord } from '@/services/availability
 import { staffService } from '@/services/staff';
 import { SystemRole } from '@/lib/types';
 import { orgRolesService } from '@/services/orgRoles';
+import { useToast } from '@/context/ToastContext';
 
 interface ShowMessage {
     (type: 'success' | 'error', text: string): void;
@@ -284,6 +285,7 @@ interface StaffPasswordSectionProps {
 // Staff Password Management Section Component
 function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
     const [orgRolesMap, setOrgRolesMap] = useState<{ byId: Record<string, string>; bySystemRole: Record<string, string> }>({ byId: {}, bySystemRole: {} });
@@ -324,17 +326,17 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
 
     const handleChangeStaffPassword = async () => {
         if (!selectedStaff || !newPassword) {
-            showMessage('error', 'Please select a staff member and enter a new password');
+            showToast('Please select a staff member and enter a new password', 'error');
             return;
         }
 
         if (newPassword.length < 8) {
-            showMessage('error', 'Password must be at least 8 characters');
+            showToast('Password must be at least 8 characters', 'error');
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            showMessage('error', 'Passwords do not match');
+            showToast('Passwords do not match', 'error');
             return;
         }
 
@@ -360,14 +362,14 @@ function StaffPasswordSection({ showMessage }: StaffPasswordSectionProps) {
             const result = await res.json();
             if (!result.success) throw new Error(result.error);
 
-            showMessage('success', `Password updated for ${staffMember.name}`);
+            showToast(`Password updated for ${staffMember.name}`, 'success');
             setSelectedStaff('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (error: unknown) {
             console.error('Error changing password:', error);
             const message = error instanceof Error ? error.message : 'Failed to change password';
-            showMessage('error', message);
+            showToast(message, 'error');
         } finally {
             setLoading(false);
         }

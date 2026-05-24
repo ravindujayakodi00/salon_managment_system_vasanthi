@@ -48,7 +48,7 @@ export default function InvoicesPage() {
     const [dateRange, setDateRange] = useState({ start: thisMonthStart(), end: thisMonthEnd() });
     const [receiptInvoice, setReceiptInvoice] = useState<any>(null);
 
-    const isOwner = hasRole(['Owner', 'Manager']);
+    const isOwner = hasRole(['Owner', 'Manager', 'Receptionist']);
 
     useEffect(() => {
         setPage(0);

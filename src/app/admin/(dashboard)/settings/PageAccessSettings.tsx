@@ -67,7 +67,7 @@ const pageDefaults: Array<{ page_key: PageKey; allowedRoles: SystemRole[] }> = [
     { page_key: 'dashboard', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'appointments', allowedRoles: ['Owner', 'Manager', 'Receptionist', 'Stylist'] },
     { page_key: 'pos', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
-    { page_key: 'invoices', allowedRoles: ['Owner', 'Manager'] },
+    { page_key: 'invoices', allowedRoles: ['Owner', 'Manager', 'Receptionist'] },
     { page_key: 'services', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'inventory', allowedRoles: ['Owner', 'Manager'] },
     { page_key: 'staff', allowedRoles: ['Owner', 'Manager'] },

@@ -52,7 +52,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: 'Invoices',
         href: adminHref('/invoices'),
         icon: FileText,
-        allowedRoles: ['Owner', 'Manager'],
+        allowedRoles: ['Owner', 'Manager', 'Receptionist'],
     },
     {
         label: 'Services',
