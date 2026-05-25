@@ -48,7 +48,7 @@ export default function SplitPaymentModal({ total, onConfirm, onCancel }: SplitP
 
     const addPaymentMethod = () => {
         if (payments.length < 4) { // Max 4 payment methods
-            setPayments([...payments, { method: 'Other', amount: 0 }]);
+            setPayments([...payments, { method: 'BankTransfer', amount: 0 }]);
         }
     };
 
@@ -90,7 +90,6 @@ export default function SplitPaymentModal({ total, onConfirm, onCancel }: SplitP
                                         <option value="Cash">💵 Cash</option>
                                         <option value="Card">💳 Card</option>
                                         <option value="BankTransfer">🏦 Bank Transfer</option>
-                                        <option value="Other">💰 Other</option>
                                     </select>
                                 </div>
                                 <div className="flex-1">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Receipt, Banknote, CreditCard, ShoppingBag, ChevronDown, Printer } from 'lucide-react';
+import { Receipt, Banknote, CreditCard, Building, ChevronDown, Printer } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 import { invoicesService } from '@/services/invoices';
@@ -24,7 +24,7 @@ const PRESETS = [
     { label: 'This Month', getRange: () => ({ start: thisMonthStart(), end: thisMonthEnd() }) },
 ];
 
-const PAYMENT_METHODS = ['All', 'Cash', 'Card', 'BankTransfer', 'Other'];
+const PAYMENT_METHODS = ['All', 'Cash', 'Card', 'BankTransfer'];
 
 const paymentBadgeClass: Record<string, string> = {
     Cash: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
@@ -171,17 +171,7 @@ export default function InvoicesPage() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="card p-6 surface-panel">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Revenue</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalRevenue)}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{totalCount} invoice{totalCount !== 1 ? 's' : ''}</p>
-                        </div>
-                        <Receipt className="h-10 w-10 text-emerald-500 opacity-70" />
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
@@ -205,11 +195,11 @@ export default function InvoicesPage() {
                 <div className="card p-6 surface-panel">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Transactions</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{invoices.length}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Loaded of {totalCount}</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">Bank Transfer</p>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(paymentTotals.totalBankTransfer)}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Bank transfer payments</p>
                         </div>
-                        <ShoppingBag className="h-10 w-10 text-primary-500 opacity-70" />
+                        <Building className="h-10 w-10 text-purple-500 opacity-70" />
                     </div>
                 </div>
             </div>
