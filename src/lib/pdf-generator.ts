@@ -8,48 +8,70 @@ declare module 'jspdf' {
     }
 }
 
+function savePDF(doc: jsPDF, filename: string) {
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /**
- * Generate Monthly Sales Report PDF
+ * Generate Sales Report PDF
  */
 export function generateSalesReportPDF(data: {
-    month: string;
-    year: number;
+    period: string;
+    startDate: string;
+    endDate: string;
     totalRevenue: number;
     totalTransactions: number;
     totalDiscount: number;
     totalTax: number;
+    totalExpenses: number;
+    totalProfit: number;
+    totalCash: number;
+    totalCard: number;
+    totalBankTransfer: number;
     byPaymentMethod: { method: string; amount: number; count: number }[];
     byService: { service: string; revenue: number; count: number }[];
     dailyStats: { date: string; revenue: number; transactions: number }[];
+    invoices: { id: string; invoice_number?: string; customer: string; date: string; payment_method: string; subtotal: number; discount: number; total: number; items: any[] }[];
 }) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const periodLabel = data.period || (data.startDate && data.endDate ? `${data.startDate} to ${data.endDate}` : 'All Time');
 
     // Header
     doc.setFontSize(20);
-    doc.setTextColor(59, 130, 246); // Primary blue
-    doc.text('Monthly Sales Report', pageWidth / 2, 20, { align: 'center' });
+    doc.setTextColor(59, 130, 246);
+    doc.text('Sales Report', pageWidth / 2, 20, { align: 'center' });
 
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
-    doc.text(`${data.month} ${data.year}`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Period: ${periodLabel}`, pageWidth / 2, 28, { align: 'center' });
 
     // Summary section
-    let yPos = 45;
-    doc.setFontSize(14);
+    let yPos = 42;
+    doc.setFontSize(13);
     doc.setTextColor(0, 0, 0);
-    doc.text('Summary', 14, yPos);
+    doc.text('Financial Summary', 14, yPos);
 
-    yPos += 10;
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-
+    yPos += 6;
     const summary = [
         ['Total Revenue', `LKR ${data.totalRevenue.toLocaleString()}`],
+        ['Total Expenses', `LKR ${data.totalExpenses.toLocaleString()}`],
+        ['Total Profit', `LKR ${data.totalProfit.toLocaleString()}`],
         ['Total Transactions', data.totalTransactions.toString()],
         ['Total Discounts Given', `LKR ${data.totalDiscount.toLocaleString()}`],
-        ['Total Tax Collected', `LKR ${data.totalTax.toLocaleString()}`],
-        ['Net Revenue', `LKR ${(data.totalRevenue - data.totalDiscount).toLocaleString()}`]
     ];
 
     autoTable(doc, {
@@ -62,42 +84,38 @@ export function generateSalesReportPDF(data: {
     });
 
     // Payment Method Breakdown
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
+    yPos = (doc as any).lastAutoTable.finalY + 12;
+    doc.setFontSize(13);
     doc.setTextColor(0, 0, 0);
     doc.text('Revenue by Payment Method', 14, yPos);
 
     yPos += 5;
     autoTable(doc, {
         startY: yPos,
-        head: [['Payment Method', 'Amount', 'Transactions']],
-        body: data.byPaymentMethod.map(pm => [
-            pm.method,
-            `LKR ${pm.amount.toLocaleString()}`,
-            pm.count.toString()
-        ]),
+        head: [['Payment Method', 'Amount']],
+        body: [
+            ['Cash', `LKR ${data.totalCash.toLocaleString()}`],
+            ['Card', `LKR ${data.totalCard.toLocaleString()}`],
+            ['Bank Transfer', `LKR ${data.totalBankTransfer.toLocaleString()}`],
+        ],
         theme: 'striped',
         headStyles: { fillColor: [59, 130, 246] },
         margin: { left: 14, right: 14 }
     });
 
     // Service Breakdown
-    yPos = (doc as any).lastAutoTable.finalY + 15;
+    yPos = (doc as any).lastAutoTable.finalY + 12;
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
 
-    // Check if we need a new page
-    if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-    }
-
-    doc.setFontSize(14);
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
     doc.text('Revenue by Service', 14, yPos);
 
     yPos += 5;
     autoTable(doc, {
         startY: yPos,
         head: [['Service', 'Revenue', 'Count']],
-        body: data.byService.slice(0, 10).map(s => [
+        body: data.byService.slice(0, 15).map(s => [
             s.service,
             `LKR ${s.revenue.toLocaleString()}`,
             s.count.toString()
@@ -107,6 +125,44 @@ export function generateSalesReportPDF(data: {
         margin: { left: 14, right: 14 }
     });
 
+    // Invoice Details
+    if (data.invoices.length > 0) {
+        yPos = (doc as any).lastAutoTable.finalY + 12;
+        if (yPos > 220) { doc.addPage(); yPos = 20; }
+
+        doc.setFontSize(13);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Invoice Details', 14, yPos);
+
+        yPos += 5;
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Invoice #', 'Customer', 'Date', 'Payment', 'Subtotal', 'Discount', 'Total']],
+            body: data.invoices.map(inv => [
+                inv.invoice_number ? inv.invoice_number.slice(-10) : inv.id.slice(0, 8),
+                inv.customer,
+                inv.date,
+                inv.payment_method,
+                `LKR ${inv.subtotal.toLocaleString()}`,
+                inv.discount > 0 ? `LKR ${inv.discount.toLocaleString()}` : '-',
+                `LKR ${inv.total.toLocaleString()}`,
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
+            bodyStyles: { fontSize: 8 },
+            margin: { left: 14, right: 14 },
+            columnStyles: {
+                0: { cellWidth: 22 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 22 },
+                3: { cellWidth: 22 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 22 },
+                6: { cellWidth: 25 },
+            }
+        });
+    }
+
     // Footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -114,15 +170,14 @@ export function generateSalesReportPDF(data: {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`,
+            `Generated on ${todayStr()} | Page ${i} of ${pageCount}`,
             pageWidth / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: 'center' }
         );
     }
 
-    // Download
-    doc.save(`Sales_Report_${data.month}_${data.year}.pdf`);
+    savePDF(doc, `Sales_Report_${data.startDate || todayStr()}_to_${data.endDate || todayStr()}.pdf`);
 }
 
 /**
@@ -146,7 +201,7 @@ export function generateCustomerGrowthReportPDF(data: {
 
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
-    doc.text(new Date().toLocaleDateString(), pageWidth / 2, 28, { align: 'center' });
+    doc.text(todayStr(), pageWidth / 2, 28, { align: 'center' });
 
     // Summary
     let yPos = 45;
@@ -244,14 +299,14 @@ export function generateCustomerGrowthReportPDF(data: {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`,
+            `Generated on ${todayStr()} | Page ${i} of ${pageCount}`,
             pageWidth / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: 'center' }
         );
     }
 
-    doc.save(`Customer_Growth_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePDF(doc, `Customer_Growth_Report_${todayStr()}.pdf`);
 }
 
 /**
@@ -335,14 +390,14 @@ export function generateStaffPerformanceReportPDF(data: {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`,
+            `Generated on ${todayStr()} | Page ${i} of ${pageCount}`,
             pageWidth / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: 'center' }
         );
     }
 
-    doc.save(`Staff_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePDF(doc, `Staff_Performance_Report_${todayStr()}.pdf`);
 }
 
 /**
@@ -367,7 +422,7 @@ export function generateInventoryReportPDF(data: {
 
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
-    doc.text(new Date().toLocaleDateString(), pageWidth / 2, 28, { align: 'center' });
+    doc.text(todayStr(), pageWidth / 2, 28, { align: 'center' });
 
     // Summary
     let yPos = 45;
@@ -480,12 +535,12 @@ export function generateInventoryReportPDF(data: {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`,
+            `Generated on ${todayStr()} | Page ${i} of ${pageCount}`,
             pageWidth / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: 'center' }
         );
     }
 
-    doc.save(`Inventory_Status_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePDF(doc, `Inventory_Status_Report_${todayStr()}.pdf`);
 }

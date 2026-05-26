@@ -6,6 +6,7 @@ import Button from '@/components/shared/Button';
 import { Printer, Loader } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useBranding } from '@/lib/branding';
+import { useAuth } from '@/lib/auth';
 import { branchesService } from '@/services/branches';
 import type { Branch } from '@/lib/types';
 
@@ -18,6 +19,8 @@ interface ReceiptModalProps {
 export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalProps) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const { logoUrl } = useBranding();
+    const { user } = useAuth();
+    const salonName = user?.organization?.name ?? '';
     const [branch, setBranch] = useState<Branch | null>(null);
     const [loadingBranch, setLoadingBranch] = useState(false);
 
@@ -62,6 +65,9 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
                         <div className="text-center mb-6">
                             {logoUrl && (
                                 <img src={logoUrl} alt="Logo" className="h-16 mx-auto mb-3 object-contain" />
+                            )}
+                            {salonName && (
+                                <p className="text-xs font-bold text-gray-900 tracking-wide mb-1">{salonName}</p>
                             )}
                             {branch && (
                                 <>

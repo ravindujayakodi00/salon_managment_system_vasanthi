@@ -7,8 +7,8 @@ export const reportsService = {
     /**
      * Get basic dashboard stats for today
      */
-    async getDashboardStats(branchId?: string, stylistStaffId?: string) {
-        const today = getLocalDateString();
+    async getDashboardStats(branchId?: string, stylistStaffId?: string, date?: string) {
+        const today = date || getLocalDateString();
         const organizationId = await getCurrentOrganizationId();
 
         let apptQuery = supabase
@@ -163,30 +163,42 @@ export const reportsService = {
     },
 
     /**
-     * Get monthly sales report data for PDF
+     * Get sales report data for PDF/Excel — accepts an explicit date range
      */
-    async getSalesReportData(month: number, year: number, branchId?: string) {
-        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+    async getSalesReportData(startDate: string, endDate: string, branchId?: string) {
         const organizationId = await getCurrentOrganizationId();
 
-        let q = supabase
+        // Fetch invoices with customer info
+        let invQ = supabase
             .from('invoices')
-            .select('*')
+            .select('*, customers(name)')
             .eq('organization_id', organizationId)
             .gte('created_at', `${startDate}T00:00:00`)
             .lte('created_at', `${endDate}T23:59:59`)
+            .order('created_at', { ascending: true })
             .limit(50000);
-        if (branchId) q = q.eq('branch_id', branchId);
-        const { data: invoices, error } = await q;
-
+        if (branchId) invQ = invQ.eq('branch_id', branchId);
+        const { data: invoices, error } = await invQ;
         if (error) throw error;
+
+        // Fetch expenses (petty_cash_transactions with entry_type='expense')
+        let expQ = supabase
+            .from('petty_cash_transactions')
+            .select('amount')
+            .eq('organization_id', organizationId)
+            .eq('entry_type', 'expense')
+            .eq('type', 'withdrawal')
+            .gte('created_at', `${startDate}T00:00:00`)
+            .lte('created_at', `${endDate}T23:59:59`);
+        if (branchId) expQ = expQ.eq('branch_id', branchId);
+        const { data: expenses } = await expQ;
 
         const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
         const totalDiscount = invoices?.reduce((sum, inv) => sum + (inv.discount || 0), 0) || 0;
         const totalTax = invoices?.reduce((sum, inv) => sum + (inv.tax || 0), 0) || 0;
+        const totalExpenses = expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+        const totalProfit = totalRevenue - totalExpenses;
 
-        // NEW: Calculate payment totals with split payment support
         const paymentTotals = calculatePaymentTotals(invoices || []);
 
         const byService: { [key: string]: { revenue: number; count: number } } = {};
@@ -202,38 +214,50 @@ export const reportsService = {
 
         const dailyStats: { [key: string]: { revenue: number; transactions: number } } = {};
         invoices?.forEach(inv => {
-            const date = inv.created_at.split('T')[0];
-            if (!dailyStats[date]) dailyStats[date] = { revenue: 0, transactions: 0 };
-            dailyStats[date].revenue += inv.total || 0;
-            dailyStats[date].transactions += 1;
+            const d = inv.created_at.split('T')[0];
+            if (!dailyStats[d]) dailyStats[d] = { revenue: 0, transactions: 0 };
+            dailyStats[d].revenue += inv.total || 0;
+            dailyStats[d].transactions += 1;
         });
 
+        const period = `${startDate} to ${endDate}`;
+
         return {
-            month: new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long' }),
-            year,
+            period,
+            startDate,
+            endDate,
             totalRevenue,
             totalTransactions: invoices?.length || 0,
             totalDiscount,
             totalTax,
-            // NEW: Payment method totals
+            totalExpenses,
+            totalProfit,
             totalCash: paymentTotals.totalCash,
             totalCard: paymentTotals.totalCard,
             totalBankTransfer: paymentTotals.totalBankTransfer,
-            totalOther: paymentTotals.totalOther,
             splitPaymentCount: paymentTotals.splitPaymentCount,
-            // Legacy format for backward compatibility
             byPaymentMethod: [
                 { method: 'Cash', amount: paymentTotals.totalCash, count: 0 },
                 { method: 'Card', amount: paymentTotals.totalCard, count: 0 },
                 { method: 'Bank Transfer', amount: paymentTotals.totalBankTransfer, count: 0 },
-                { method: 'Other', amount: paymentTotals.totalOther, count: 0 }
             ].filter(p => p.amount > 0),
             byService: Object.entries(byService)
                 .map(([service, data]) => ({ service, revenue: data.revenue, count: data.count }))
                 .sort((a, b) => b.revenue - a.revenue),
             dailyStats: Object.entries(dailyStats)
                 .map(([date, data]) => ({ date, revenue: data.revenue, transactions: data.transactions }))
-                .sort((a, b) => a.date.localeCompare(b.date))
+                .sort((a, b) => a.date.localeCompare(b.date)),
+            invoices: (invoices || []).map(inv => ({
+                id: inv.id,
+                invoice_number: inv.invoice_number,
+                customer: (inv.customers as any)?.name ?? 'Walk-in',
+                date: inv.created_at?.split('T')[0] ?? '',
+                payment_method: inv.payment_method ?? 'Cash',
+                subtotal: inv.subtotal ?? inv.total ?? 0,
+                discount: inv.discount ?? 0,
+                total: inv.total ?? 0,
+                items: inv.items as any[] ?? [],
+            })),
         };
     },
 

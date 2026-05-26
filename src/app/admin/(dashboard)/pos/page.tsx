@@ -101,8 +101,22 @@ export default function POSPage() {
         fetchServices();
         fetchAvailableCoupons();
         fetchProducts();
-        fetchStaff();
     }, []);
+
+    useEffect(() => {
+        if (!user?.organizationId) return;
+        let q = supabase
+            .from('staff')
+            .select('id, name, system_role')
+            .eq('organization_id', user.organizationId)
+            .eq('is_active', true)
+            .eq('system_role', 'Stylist')
+            .order('name');
+        if (effectiveBranchId) q = q.eq('branch_id', effectiveBranchId);
+        q.then(({ data, error }) => {
+            if (!error) setStaff(data || []);
+        });
+    }, [effectiveBranchId, user?.organizationId]);
 
     const fetchSettings = async () => {
         if (!user?.organizationId) return;

@@ -264,11 +264,16 @@ export default function ReportsPage() {
     );
 }
 
+function localDateStr(d: Date) { const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}`; }
+function thisMonthStart() { const d = new Date(); return localDateStr(new Date(d.getFullYear(), d.getMonth(), 1)); }
+function thisMonthEnd() { const d = new Date(); return localDateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
+
 function SystemReports() {
     const { showToast } = useToast();
     const { effectiveBranchId } = useWorkspace();
     const [downloading, setDownloading] = useState<string | null>(null);
     const [exportingExcel, setExportingExcel] = useState<string | null>(null);
+    const [salesDateRange, setSalesDateRange] = useState({ start: thisMonthStart(), end: thisMonthEnd() });
 
     const reports = [
         {
@@ -307,13 +312,9 @@ function SystemReports() {
             // Dynamic imports to reduce bundle size
             const { reportsService } = await import('@/services/reports');
 
-            const now = new Date();
-            const currentMonth = now.getMonth() + 1;
-            const currentYear = now.getFullYear();
-
             if (reportId === 'sales_monthly') {
                 const { generateSalesReportPDF } = await import('@/lib/pdf-generator');
-                const data = await reportsService.getSalesReportData(currentMonth, currentYear, effectiveBranchId);
+                const data = await reportsService.getSalesReportData(salesDateRange.start, salesDateRange.end, effectiveBranchId);
                 generateSalesReportPDF(data);
             } else if (reportId === 'customer_growth') {
                 const { generateCustomerGrowthReportPDF } = await import('@/lib/pdf-generator');
@@ -355,7 +356,25 @@ function SystemReports() {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-6 flex gap-2 justify-end">
+                    {report.id === 'sales_monthly' && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Date range:</span>
+                            <input
+                                type="date"
+                                value={salesDateRange.start}
+                                onChange={(e) => setSalesDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                className="px-2 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            />
+                            <span className="text-xs text-gray-400">to</span>
+                            <input
+                                type="date"
+                                value={salesDateRange.end}
+                                onChange={(e) => setSalesDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                className="px-2 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            />
+                        </div>
+                    )}
+                    <div className="mt-4 flex gap-2 justify-end">
                         <button
                             onClick={() => handleDownload(report.id)}
                             disabled={downloading === report.id}
@@ -379,13 +398,12 @@ function SystemReports() {
                                     setExportingExcel(report.id);
                                     try {
                                         const { reportsService } = await import('@/services/reports');
-                                        const now = new Date();
-                                        const data = await reportsService.getSalesReportData(now.getMonth() + 1, now.getFullYear(), effectiveBranchId);
+                                        const data = await reportsService.getSalesReportData(salesDateRange.start, salesDateRange.end, effectiveBranchId);
                                         exportSalesReportToExcel(data);
                                         showToast('Excel file downloaded successfully!', 'success');
-                                    } catch (error) {
+                                    } catch (error: any) {
                                         console.error('Error exporting to Excel:', error);
-                                        showToast('Failed to export to Excel', 'error');
+                                        showToast(`Failed to export to Excel: ${error?.message}`, 'error');
                                     } finally {
                                         setExportingExcel(null);
                                     }
@@ -405,6 +423,7 @@ function SystemReports() {
                                     </>
                                 )}
                             </button>
+
                         )}
                     </div>
                 </div>

@@ -60,6 +60,7 @@ export default function DashboardPage() {
     const [isEmergencyUnavailable, setIsEmergencyUnavailable] = useState(false);
     const [togglingEmergency, setTogglingEmergency] = useState(false);
     const [staffId, setStaffId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
 
     const revenueTrendDelta = (() => {
         if (!stats.revenueWeek || stats.revenueWeek.length < 2) return 0;
@@ -78,7 +79,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardData();
-    }, [effectiveBranchId, user?.systemRole, user?.email]);
+    }, [effectiveBranchId, user?.systemRole, user?.email, selectedDate]);
 
     const fetchDashboardData = async () => {
         try {
@@ -104,14 +105,13 @@ export default function DashboardPage() {
                 setIsEmergencyUnavailable(false);
             }
 
-            const today = getLocalDateString();
             const b = effectiveBranchId;
             const organizationId = await getCurrentOrganizationId();
             const [basicStats, topServices, revenueTrend, recentActivity] = await Promise.all([
-                reportsService.getDashboardStats(b, stylistStaffId),
-                reportsService.getTopServices(today + 'T00:00:00', today + 'T23:59:59', b, stylistStaffId),
-                fetchRevenueTrend(organizationId, b, stylistStaffId),
-                fetchRecentActivity(organizationId, b, stylistStaffId),
+                reportsService.getDashboardStats(b, stylistStaffId, selectedDate),
+                reportsService.getTopServices(selectedDate + 'T00:00:00', selectedDate + 'T23:59:59', b, stylistStaffId),
+                fetchRevenueTrend(organizationId, b, stylistStaffId, selectedDate),
+                fetchRecentActivity(organizationId, b, stylistStaffId, selectedDate),
             ]);
 
             setStats({
@@ -137,10 +137,10 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRevenueTrend = async (organizationId: string, branchId?: string, stylistStaffId?: string) => {
+    const fetchRevenueTrend = async (organizationId: string, branchId?: string, stylistStaffId?: string, date?: string) => {
         try {
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const today = new Date();
+            const today = date ? new Date(date + 'T12:00:00') : new Date();
             const windowStart = new Date(today);
             windowStart.setDate(today.getDate() - 6);
             const startDate = windowStart.toISOString().split('T')[0];
@@ -198,7 +198,7 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchRecentActivity = async (organizationId: string, branchId?: string, stylistStaffId?: string) => {
+    const fetchRecentActivity = async (organizationId: string, branchId?: string, stylistStaffId?: string, date?: string) => {
         try {
             const activities: { createdAtMs: number; time: string; action: string; customer: string; amount?: number }[] = [];
 
@@ -215,6 +215,7 @@ export default function DashboardPage() {
                 return `${Math.floor(diffMins / 1440)} day ago`;
             };
 
+            const activityDate = date || getLocalDateString();
             let invQuery = supabase
                 .from('invoices')
                 .select(`
@@ -225,6 +226,8 @@ export default function DashboardPage() {
                     customers (name)
                 `)
                 .eq('organization_id', organizationId)
+                .gte('created_at', `${activityDate}T00:00:00`)
+                .lte('created_at', `${activityDate}T23:59:59`)
                 .order('created_at', { ascending: false })
                 .limit(stylistStaffId ? 12 : 5);
             if (branchId) invQuery = invQuery.eq('branch_id', branchId);
@@ -269,6 +272,7 @@ export default function DashboardPage() {
                     start_time
                 `)
                 .eq('organization_id', organizationId)
+                .eq('appointment_date', activityDate)
                 .order('created_at', { ascending: false })
                 .limit(5);
             if (branchId) aptQuery = aptQuery.eq('branch_id', branchId);
@@ -334,7 +338,7 @@ export default function DashboardPage() {
             try {
                 const stylistOnly = user?.systemRole === 'Stylist' ? staffId || undefined : undefined;
                 const orgId = await getCurrentOrganizationId();
-                const latest = await fetchRecentActivity(orgId, effectiveBranchId, stylistOnly);
+                const latest = await fetchRecentActivity(orgId, effectiveBranchId, stylistOnly, selectedDate);
                 if (!mounted) return;
                 setStats(prev => ({
                     ...prev,
@@ -357,7 +361,7 @@ export default function DashboardPage() {
             mounted = false;
             if (intervalId) clearInterval(intervalId);
         };
-    }, [user?.id, user?.systemRole, effectiveBranchId, staffId]);
+    }, [user?.id, user?.systemRole, effectiveBranchId, staffId, selectedDate]);
 
     const handleEmergencyToggle = async () => {
         if (!staffId) {
@@ -397,6 +401,9 @@ export default function DashboardPage() {
     }
 
     const isStylistView = user?.systemRole === 'Stylist';
+    const stylistGreeting = user?.name
+        ? 'Hi, ' + user.name.split(' ')[0] + ' \u2014 here\u2019s your day at a glance (only your appointments and payments).'
+        : 'Hi \u2014 here\u2019s your day at a glance (only your appointments and payments).';
 
     const appointmentStatusData = [
         { name: 'Completed', value: stats.completed, color: '#10b981' },
@@ -412,11 +419,21 @@ export default function DashboardPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {isStylistView
-                            ? `Hi${user?.name ? `, ${user.name.split(' ')[0]}` : ''} — here’s your day at a glance (only your appointments and payments).`
-                            : "Welcome back! Here's what's happening today."}
+                        {isStylistView ? stylistGreeting : "Welcome back! Here’s what’s happening."}
                     </p>
                 </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Date:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            max={getLocalDateString()}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        />
+                    </div>
 
                 {/* Emergency Toggle for Stylists */}
                 {user?.systemRole === 'Stylist' && (
@@ -438,18 +455,19 @@ export default function DashboardPage() {
                         </button>
                     </div>
                 )}
+                </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                 <StatCard
-                    title={isStylistView ? 'Your revenue (today)' : "Today's Revenue"}
+                    title={isStylistView ? 'Your revenue' : "Revenue"}
                     value={`Rs ${stats.todayRevenue.toLocaleString()}`}
                     icon={DollarSign}
                     trend={{ value: Math.abs(revenueTrendDelta), isPositive: revenueTrendDelta >= 0 }}
                 />
                 <StatCard
-                    title={isStylistView ? 'Your appointments (today)' : "Today's Appointments"}
+                    title={isStylistView ? 'Your appointments' : "Appointments"}
                     value={stats.todayAppointments}
                     icon={Calendar}
                     trend={{ value: Math.abs(appointmentsTrendDelta), isPositive: appointmentsTrendDelta >= 0 }}
