@@ -36,13 +36,71 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
 
     const handlePrint = () => {
         const printContent = receiptRef.current;
-        if (printContent) {
-            const originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContent.innerHTML;
-            window.print();
-            document.body.innerHTML = originalContents;
-            window.location.reload();
-        }
+        if (!printContent) return;
+
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        if (!printWindow) return;
+
+        printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Receipt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; background: #fff; padding: 16px; }
+  img { max-width: 100%; display: block; }
+  .text-center { text-align: center; }
+  .text-sm { font-size: 12px; }
+  .text-xs { font-size: 11px; }
+  .text-lg { font-size: 16px; }
+  .font-bold { font-weight: 700; }
+  .font-medium { font-weight: 500; }
+  .font-mono { font-family: monospace; }
+  .text-gray-500 { color: #6b7280; }
+  .text-gray-600 { color: #4b5563; }
+  .text-success-600 { color: #16a34a; }
+  .mb-1 { margin-bottom: 4px; }
+  .mb-3 { margin-bottom: 12px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mb-6 { margin-bottom: 24px; }
+  .mt-1 { margin-top: 4px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-8 { margin-top: 32px; }
+  .pt-2 { padding-top: 8px; }
+  .pt-4 { padding-top: 16px; }
+  .pb-4 { padding-bottom: 16px; }
+  .p-4 { padding: 16px; }
+  .h-16 { height: 64px; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .object-contain { object-fit: contain; }
+  .space-y-2 > * + * { margin-top: 8px; }
+  .flex { display: flex; }
+  .justify-between { justify-content: space-between; }
+  .border-b { border-bottom: 1px solid; }
+  .border-t { border-top: 1px solid; }
+  .border-dashed { border-style: dashed; }
+  .border-gray-200 { border-color: #e5e7eb; }
+  .border-gray-300 { border-color: #d1d5db; }
+  .tracking-wide { letter-spacing: 0.025em; }
+  @media print {
+    body { padding: 0; }
+    @page { margin: 10mm; }
+  }
+</style>
+</head>
+<body>
+${printContent.innerHTML}
+</body>
+</html>`);
+
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 300);
     };
 
     if (!invoice) return null;
