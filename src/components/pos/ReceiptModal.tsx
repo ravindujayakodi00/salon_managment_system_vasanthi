@@ -49,18 +49,27 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
 <title>Receipt</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; background: #fff; padding: 16px; }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #000;
+    background: #fff;
+    padding: 16px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   img { max-width: 100%; display: block; }
+  /* Force ALL text to black — no light grays on paper */
+  * { color: #000 !important; border-color: #000 !important; }
   .text-center { text-align: center; }
   .text-sm { font-size: 12px; }
   .text-xs { font-size: 11px; }
   .text-lg { font-size: 16px; }
   .font-bold { font-weight: 700; }
-  .font-medium { font-weight: 500; }
+  .font-medium { font-weight: 600; }
   .font-mono { font-family: monospace; }
-  .text-gray-500 { color: #6b7280; }
-  .text-gray-600 { color: #4b5563; }
-  .text-success-600 { color: #16a34a; }
+  .text-gray-500, .text-gray-600 { color: #000 !important; }
+  .text-success-600 { color: #000 !important; }
   .mb-1 { margin-bottom: 4px; }
   .mb-3 { margin-bottom: 12px; }
   .mb-4 { margin-bottom: 16px; }
@@ -78,15 +87,15 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
   .space-y-2 > * + * { margin-top: 8px; }
   .flex { display: flex; }
   .justify-between { justify-content: space-between; }
-  .border-b { border-bottom: 1px solid; }
-  .border-t { border-top: 1px solid; }
+  .border-b { border-bottom: 1px solid #000; }
+  .border-t { border-top: 1px solid #000; }
   .border-dashed { border-style: dashed; }
-  .border-gray-200 { border-color: #e5e7eb; }
-  .border-gray-300 { border-color: #d1d5db; }
+  .border-gray-200 { border-color: #000; }
+  .border-gray-300 { border-color: #000; }
   .tracking-wide { letter-spacing: 0.025em; }
   @media print {
-    body { padding: 0; }
-    @page { margin: 10mm; }
+    body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { margin: 8mm; }
   }
 </style>
 </head>
