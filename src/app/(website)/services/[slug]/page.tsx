@@ -139,26 +139,43 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </section>
         )}
 
-        {/* ── Price List placeholder ── */}
-        <section className={`py-20 lg:py-28 ${s.prepSteps && s.prepSteps.length > 0 ? '' : 'bg-[var(--t-bg-2)]'}`}>
-          <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
-            <div className="max-w-3xl">
-              <p className="t-label text-[var(--t-text-3)] tracking-[0.3em] mb-4">Pricing</p>
-              <h2
-                className="t-display font-light text-[var(--t-text)] mb-8"
-                style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)' }}
-              >
-                {s.title} Price List
-              </h2>
-              {/* Price list image to be added here */}
-              <div className="border border-dashed border-[var(--t-border-2)] flex items-center justify-center h-48 lg:h-64">
-                <p className="t-label text-[var(--t-text-3)] tracking-[0.2em] text-center px-6">
-                  Price list image to be added
-                </p>
+        {/* ── Price List ── */}
+        {(() => {
+          const priceListMap: Record<string, string> = {
+            sugaring: '/price-lists/wax-prices.jpeg',
+            hair:     '/price-lists/hair-prices.jpeg',
+            nails:    '/price-lists/nails-prices.jpeg',
+            facials:  '/price-lists/facials-prices.jpeg',
+            spa:      '/price-lists/spa-prices.jpeg',
+          };
+          const priceImage = priceListMap[slug];
+          if (!priceImage) return null;
+          return (
+            <section className={`py-20 lg:py-28 ${s.prepSteps && s.prepSteps.length > 0 ? '' : 'bg-[var(--t-bg-2)]'}`}>
+              <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
+                <div className="max-w-3xl">
+                  <p className="t-label text-[var(--t-text-3)] tracking-[0.3em] mb-4">Pricing</p>
+                  <h2
+                    className="t-display font-light text-[var(--t-text)] mb-8"
+                    style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)' }}
+                  >
+                    {s.title} Price List
+                  </h2>
+                  <div className="relative w-full">
+                    <Image
+                      src={priceImage}
+                      alt={`${s.title} price list`}
+                      width={900}
+                      height={1200}
+                      className="w-full h-auto rounded-sm"
+                      quality={90}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          );
+        })()}
 
         {/* ── Prev / Next navigation ── */}
         {(prevService || nextService) && (
