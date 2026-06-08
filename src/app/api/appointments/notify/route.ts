@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createTextLkService } from '@/services/textlk';
-import { SALON_SHORT_NAME } from '@/config/salon';
+import {SALON_NAME, SALON_SHORT_NAME} from '@/config/salon';
 
 // Use Service Role Key for reliable server-side operations
 const supabase = createClient(
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
                     .filter(Boolean)
                     .join(', ') || 'Service';
 
-                return `${serviceNames} at ${apt.start_time} with ${stylist?.name || 'stylist'}`;
+                return `${serviceNames} at ${apt.start_time}`;
             });
 
             const shortDate = new Date(appointments[0].appointment_date).toLocaleDateString();
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
             // Send ONE consolidated SMS to customer
             if (customer?.phone) {
                 const msg = appointments.length === 1
-                    ? `✅ Appointment Confirmed! ${appointmentsList[0]} on ${shortDate}. See you soon! - ${SALON_SHORT_NAME}`
+                    ? `✅ Appointment Confirmed! ${appointmentsList[0]} on ${shortDate}. See you soon! - ${SALON_NAME}`
                     : `✅ ${appointments.length} Appointments Confirmed for ${shortDate}:\n${appointmentsList.map((apt, i) => `${i + 1}. ${apt}`).join('\n')}\nSee you soon! - ${SALON_SHORT_NAME}`;
 
                 const result = await textlk.sendSMS(customer.phone, msg);
