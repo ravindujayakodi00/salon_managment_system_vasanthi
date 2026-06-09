@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { themeContent } from '@/themes';
-import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
 
 interface NavbarProps {
   alwaysVisible?: boolean;
@@ -90,8 +89,9 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               <div className="flex justify-center">
                 <Link href="/">
                   <Image
-                    src={logoLongLight}
+                    src="/new-light-logo.png"
                     alt={themeContent.salonName}
+                    width={42}
                     height={42}
                     className="w-auto transition-all duration-300"
                     priority
@@ -136,8 +136,9 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               {/* Logo centered — always goes to / */}
               <Link href="/" className="absolute left-1/2 -translate-x-1/2">
                 <Image
-                  src={logoLongLight}
+                  src="/new-light-logo.png"
                   alt={themeContent.salonName}
+                  width={36}
                   height={36}
                   className="w-auto"
                   priority

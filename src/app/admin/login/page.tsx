@@ -10,7 +10,6 @@ import Image from 'next/image';
 import Input from '@/components/shared/Input';
 import Button from '@/components/shared/Button';
 import { adminPaths } from '@/lib/admin-paths';
-import logoLongLight from '@/assets/logo-pack/logo-long-light.png';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -97,7 +96,7 @@ export default function LoginPage() {
                         transition={{ delay: 0.1, type: 'spring' }}
                         className="inline-flex items-center justify-center mb-4"
                     >
-                        <Image src={logoLongLight} alt="Salon Logo" height={80} className="w-auto" priority />
+                        <Image src="/new-light-logo.png" alt="Salon Logo" height={80} width={80} className="object-contain" priority />
                     </motion.div>
                     <p className="text-primary-600 dark:text-primary-100">Professional Care. Personal Attention</p>
                 </div>

@@ -33,8 +33,8 @@ export const metadata: Metadata = {
   title: `${themeContent.salonName} — ${themeContent.tagline}`,
   description: themeContent.hero.subtext,
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
+    icon: '/favicon-64.png',
+    shortcut: '/favicon-64.png',
   },
 };
 

@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { FaInstagram, FaFacebookF } from 'react-icons/fa';
 import { FaTiktok } from 'react-icons/fa6';
 import { themeContent } from '@/themes';
-import logoFooter from '@/assets/logo-pack/final one-08.png';
 import {JSX} from "react";
 
 const socialIcons: Record<string, JSX.Element> = {
@@ -36,8 +35,9 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <Image
-              src={logoFooter}
+              src="/new-light-logo.png"
               alt={salonName}
+              width={52}
               height={52}
               className="w-auto mb-4"
             />

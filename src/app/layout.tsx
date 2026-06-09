@@ -13,6 +13,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: `${SALON_NAME} - Management System`,
   description: `Salon management system for ${SALON_NAME}`,
+  icons: {
+    icon: '/favicon-64.png',
+    shortcut: '/favicon-64.png',
+  },
 };
 
 import { ToastProvider } from '@/context/ToastContext';
