@@ -40,6 +40,7 @@ export default function Footer() {
               width={52}
               height={52}
               className="w-auto mb-4"
+              priority
             />
             <p className="text-white/40 text-sm leading-relaxed max-w-[200px]">
               {footer.tagline}
