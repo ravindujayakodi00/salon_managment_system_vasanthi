@@ -91,9 +91,9 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                   <Image
                     src="/new-light-logo.png"
                     alt={themeContent.salonName}
-                    width={42}
-                    height={42}
-                    className="w-auto transition-all duration-300"
+                    width={70}
+                    height={70}
+                    className="h-[60px] w-[60px] object-contain transition-all duration-300"
                     priority
                   />
                 </Link>
@@ -138,9 +138,9 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
                 <Image
                   src="/new-light-logo.png"
                   alt={themeContent.salonName}
-                  width={36}
-                  height={36}
-                  className="w-auto"
+                  width={60}
+                  height={60}
+                  className="h-[60px] w-[60px] object-contain"
                   priority
                 />
               </Link>
