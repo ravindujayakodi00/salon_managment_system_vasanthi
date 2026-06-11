@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Wallet, TrendingUp, TrendingDown, Receipt, ReceiptText } from 'lucide-react';
+import { Plus, Minus, Wallet, TrendingUp, TrendingDown, Receipt, ReceiptText, ArrowDownCircle } from 'lucide-react';
 import { pettyCashService, PettyCashTransaction, ExpenseCategory } from '@/services/petty-cash';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
@@ -10,6 +10,14 @@ import Input from '@/components/shared/Input';
 import Button from '@/components/shared/Button';
 import Modal from '@/components/shared/Modal';
 import { useToast } from '@/context/ToastContext';
+import { getLocalDateString } from '@/lib/utils';
+
+const PRESETS = [
+    { label: 'Today', getRange: () => { const d = getLocalDateString(); return { start: d, end: d }; } },
+    { label: 'Yesterday', getRange: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = getLocalDateString(d); return { start: s, end: s }; } },
+    { label: 'This Week', getRange: () => { const d = new Date(); const day = d.getDay(); const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1)); return { start: getLocalDateString(mon), end: getLocalDateString() }; } },
+    { label: 'This Month', getRange: () => { const d = new Date(); return { start: getLocalDateString(new Date(d.getFullYear(), d.getMonth(), 1)), end: getLocalDateString() }; } },
+];
 
 type Tab = 'expenses' | 'petty-cash';
 
@@ -23,6 +31,11 @@ export default function ExpensesPage() {
     const [transactions, setTransactions] = useState<PettyCashTransaction[]>([]);
     const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const thisMonthStart = getLocalDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const today = getLocalDateString();
+    const [dateRange, setDateRange] = useState({ start: thisMonthStart, end: today });
+    const [activePreset, setActivePreset] = useState<string | null>('This Month');
 
     // Expense modal state
     const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -47,7 +60,7 @@ export default function ExpensesPage() {
 
     useEffect(() => {
         fetchData();
-    }, [activeTab, effectiveBranchId]);
+    }, [activeTab, effectiveBranchId, dateRange]);
 
     useEffect(() => {
         if (effectiveBranchId) {
@@ -63,7 +76,7 @@ export default function ExpensesPage() {
             const entryType = activeTab === 'expenses' ? 'expense' : 'petty_cash';
             const [currentBalance, { data: txns }, categories] = await Promise.all([
                 pettyCashService.getCurrentBalance(effectiveBranchId),
-                pettyCashService.getTransactions(0, 200, entryType, effectiveBranchId),
+                pettyCashService.getTransactions(0, 200, entryType, effectiveBranchId, dateRange.start, dateRange.end),
                 activeTab === 'expenses' ? pettyCashService.getExpenseCategories() : Promise.resolve([]),
             ]);
             setBalance(currentBalance);
@@ -199,6 +212,20 @@ export default function ExpensesPage() {
         }
     };
 
+    const applyPreset = (preset: typeof PRESETS[0]) => {
+        setActivePreset(preset.label);
+        setDateRange(preset.getRange());
+    };
+
+    const handleDateChange = (field: 'start' | 'end', value: string) => {
+        setActivePreset(null);
+        setDateRange(prev => ({ ...prev, [field]: value }));
+    };
+
+    const totalExpenses = transactions
+        .filter(t => t.type === 'withdrawal')
+        .reduce((sum, t) => sum + t.amount, 0);
+
     const formatCurrency = (amount: number) => `Rs ${amount.toLocaleString()}`;
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -211,9 +238,43 @@ export default function ExpensesPage() {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">Track business expenses and manage petty cash</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">Track business expenses and manage petty cash</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input
+                            type="date"
+                            value={dateRange.start}
+                            onChange={(e) => handleDateChange('start', e.target.value)}
+                            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        />
+                        <span className="text-gray-500 dark:text-gray-400 text-sm">to</span>
+                        <input
+                            type="date"
+                            value={dateRange.end}
+                            onChange={(e) => handleDateChange('end', e.target.value)}
+                            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {PRESETS.map(preset => (
+                        <button
+                            key={preset.label}
+                            onClick={() => applyPreset(preset)}
+                            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                                activePreset === preset.label
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Tabs */}
@@ -240,6 +301,32 @@ export default function ExpensesPage() {
                     <Wallet className="h-4 w-4" />
                     Petty Cash
                 </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="card p-6 surface-panel">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalExpenses)}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                                {transactions.filter(t => t.type === 'withdrawal').length} records in period
+                            </p>
+                        </div>
+                        <ArrowDownCircle className="h-10 w-10 text-red-500 opacity-70" />
+                    </div>
+                </div>
+                <div className="card p-6 surface-panel">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">Petty Cash Balance</p>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(balance)}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Current available balance</p>
+                        </div>
+                        <Wallet className="h-10 w-10 text-primary-500 opacity-70" />
+                    </div>
+                </div>
             </div>
 
             {loading ? (

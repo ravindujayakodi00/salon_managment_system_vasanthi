@@ -56,7 +56,7 @@ export const pettyCashService = {
     /**
      * Get all transactions with pagination (both petty cash and expenses)
      */
-    async getTransactions(page = 0, limit = 100, entryType?: 'petty_cash' | 'expense', branchId?: string | null) {
+    async getTransactions(page = 0, limit = 100, entryType?: 'petty_cash' | 'expense', branchId?: string | null, startDate?: string, endDate?: string) {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();
@@ -78,6 +78,14 @@ export const pettyCashService = {
 
         if (branchId) {
             query = query.eq('branch_id', branchId);
+        }
+
+        if (startDate) {
+            query = query.gte('created_at', `${startDate}T00:00:00`);
+        }
+
+        if (endDate) {
+            query = query.lte('created_at', `${endDate}T23:59:59`);
         }
 
         const { data, error, count } = await query;
