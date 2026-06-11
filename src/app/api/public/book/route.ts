@@ -417,6 +417,12 @@ export async function POST(request: NextRequest) {
         // SEND BOOKING CONFIRMATION NOTIFICATIONS
         // ============================================
         const shortDate = new Date(appointment.date + 'T00:00:00').toLocaleDateString();
+        const formattedDate = new Date(appointment.date + 'T00:00:00').toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space');
 
         try {
             const { createTextLkService } = await import('@/services/textlk');
