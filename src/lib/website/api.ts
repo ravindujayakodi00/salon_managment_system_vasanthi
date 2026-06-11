@@ -637,6 +637,8 @@ export async function createRandomBooking(
     date: string;
     time: string;
     status: string;
+    organizationId: string;
+    stylistId: string;
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
@@ -777,6 +779,8 @@ export async function createRandomBooking(
         date: newAppointment.appointment_date,
         time: startDisp,
         status: newAppointment.status,
+        organizationId: ORG_ID || organizationId,
+        stylistId: selected.id,
         service: {
             name: service.name,
             duration: service.duration,

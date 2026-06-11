@@ -441,6 +441,8 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
             const authClient = getAuthenticatedClient();
             const results: { date: string; time: string; serviceName: string; price: number }[] = [];
+            let organizationId = '';
+            const stylistIds: string[] = [];
 
             // Submit each appointment separately using random stylist allocation
             for (const booking of cart) {
@@ -465,22 +467,30 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     serviceName: booking.serviceName,
                     price: booking.servicePrice,
                 });
+                if (result.organizationId) organizationId = result.organizationId;
+                if (result.stylistId) stylistIds.push(result.stylistId);
             }
 
             // Send confirmation SMS with all appointments
             try {
-                await fetch('/api/sms/confirmation', {
+                const smsPayload = {
+                    phone: customer.phone,
+                    customerName: customer.name,
+                    appointments: results,
+                    totalPrice,
+                    organizationId,
+                    stylistIds,
+                };
+                console.log('Sending SMS payload:', smsPayload);
+                const smsRes = await fetch('/api/sms/confirmation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: customer.phone,
-                        appointments: results,
-                        totalPrice,
-                    }),
+                    body: JSON.stringify(smsPayload),
                 });
+                const smsResult = await smsRes.json();
+                console.log('SMS API response:', smsResult);
             } catch (smsErr) {
                 console.error('Failed to send confirmation SMS:', smsErr);
-                // Don't fail the booking if SMS fails
             }
 
             // Show success message on screen

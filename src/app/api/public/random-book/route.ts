@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         // Get all stylists who can perform this service
         const { data: qualifiedStylists, error: qualifiedError } = await supabase
             .from('staff')
-            .select('id, name, branch_id, specializations, working_days, working_hours, is_emergency_unavailable')
+            .select('id, name, phone, branch_id, specializations, working_days, working_hours, is_emergency_unavailable')
             .eq('system_role', 'Stylist')
             .eq('is_active', true)
             .eq('is_emergency_unavailable', false)
@@ -334,33 +334,56 @@ export async function POST(request: NextRequest) {
         // ============================================
         // SEND BOOKING CONFIRMATION NOTIFICATIONS
         // ============================================
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                process.env.NEXT_PUBLIC_SITE_URL || 'https://www.salonflow.space');
-        const formattedDate = new Date(appointment.date).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+        const shortDate = new Date(appointment.date + 'T00:00:00').toLocaleDateString();
+        const formattedDate = new Date(appointment.date + 'T00:00:00').toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Send SMS confirmation
-        if (customer.phone) {
-            try {
-                const { createTextLkService } = await import('@/services/textlk');
-                const apiKey = process.env.TEXT_LK_API_KEY;
-                const senderId = process.env.TEXT_LK_SENDER_ID;
+        try {
+            const { createTextLkService } = await import('@/services/textlk');
+            const apiKey = process.env.TEXT_LK_API_KEY;
+            const senderId = process.env.TEXT_LK_SENDER_ID;
 
-                if (apiKey && senderId) {
-                    const textlk = createTextLkService(apiKey, senderId);
-                    const smsMessage = `✅ Booking Confirmed!\n\n📅 ${formattedDate}\n⏰ ${appointment.time}\n💇 ${service.name}\n👤 Stylist: ${stylist.name}\n\nThank you for choosing our salon!`;
-                    await textlk.sendSMS(customer.phone, smsMessage);
-                } else {
-                    console.error('❌ SMS config missing: TEXT_LK_API_KEY or TEXT_LK_SENDER_ID');
+            if (apiKey && senderId) {
+                const textlk = createTextLkService(apiKey, senderId);
+
+                // Customer SMS
+                if (customer.phone) {
+                    await textlk.sendSMS(customer.phone,
+                        `Appointment Confirmed! ${service.name} on ${shortDate} at ${appointment.time}. See you soon! - Vasanthi Salon`
+                    );
+                    console.log('SMS sent to customer:', customer.name, customer.phone);
                 }
-            } catch (smsError) {
-                console.error('Failed to send SMS confirmation:', smsError);
+
+                // Stylist SMS
+                if (stylist?.phone) {
+                    await textlk.sendSMS(stylist.phone,
+                        `New Appointment! Customer: ${customer.name}, ${service.name} on ${shortDate} at ${appointment.time} (${service.duration} mins).`
+                    );
+                    console.log('SMS sent to stylist:', stylist.name, stylist.phone);
+                }
+
+                // Manager SMS
+                const { data: managers } = await supabase
+                    .from('staff')
+                    .select('name, phone')
+                    .eq('system_role', 'Manager')
+                    .eq('is_active', true)
+                    .eq('organization_id', organizationId);
+
+                for (const manager of managers || []) {
+                    if (manager.phone) {
+                        await textlk.sendSMS(manager.phone,
+                            `New Booking! ${customer.name} booked ${service.name} with ${stylist.name} on ${shortDate} at ${appointment.time}.`
+                        );
+                        console.log('SMS sent to manager:', manager.name, manager.phone);
+                    }
+                }
+            } else {
+                console.error('SMS config missing: TEXT_LK_API_KEY or TEXT_LK_SENDER_ID');
             }
+        } catch (smsError) {
+            console.error('Failed to send booking SMS:', smsError);
         }
 
         // Send Email confirmation

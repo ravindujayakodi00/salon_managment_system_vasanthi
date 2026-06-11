@@ -133,83 +133,20 @@ export async function POST(request: NextRequest) {
                     : `${customer?.name || 'Customer'} booked ${appointments.length} appointments on ${shortDate}.`
             };
 
-            // Send ONE consolidated SMS to customer
+            // Send ONE consolidated SMS to customer only
             if (customer?.phone) {
                 const msg = appointments.length === 1
-                    ? `✅ Appointment Confirmed! ${appointmentsList[0]} on ${shortDate}. See you soon! - ${SALON_NAME}`
-                    : `✅ ${appointments.length} Appointments Confirmed for ${shortDate}:\n${appointmentsList.map((apt, i) => `${i + 1}. ${apt}`).join('\n')}\nSee you soon! - ${SALON_SHORT_NAME}`;
+                    ? `Appointment Confirmed! ${appointmentsList[0]} on ${shortDate}. See you soon! - ${SALON_NAME}`
+                    : `${appointments.length} Appointments Confirmed for ${shortDate}:\n${appointmentsList.map((apt, i) => `${i + 1}. ${apt}`).join('\n')}\nSee you soon! - ${SALON_SHORT_NAME}`;
 
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
-            }
-
-            // Group appointments by stylist and send ONE SMS per stylist
-            const appointmentsByStylist = new Map<string, any[]>();
-            appointments.forEach(apt => {
-                const stylist = apt.stylist as any;
-                if (stylist?.id) {
-                    if (!appointmentsByStylist.has(stylist.id)) {
-                        appointmentsByStylist.set(stylist.id, []);
-                    }
-                    appointmentsByStylist.get(stylist.id)!.push(apt);
-                }
-            });
-
-            // Send consolidated SMS to each stylist
-            for (const [stylistId, stylistAppts] of appointmentsByStylist) {
-                const stylist = stylistAppts[0].stylist as any;
-                if (stylist?.phone) {
-                    const aptDetails = stylistAppts.map((apt: any) => {
-                        const serviceNames = apt.services
-                            ?.map((id: string) => servicesMap.get(id))
-                            .filter(Boolean)
-                            .join(', ') || 'Service';
-                        return `${serviceNames} at ${apt.start_time} (${apt.duration} mins)`;
-                    });
-
-                    const msg = stylistAppts.length === 1
-                        ? `📅 New Appointment! Customer: ${customer?.name || 'Customer'}, ${aptDetails[0]} on ${shortDate}.`
-                        : `📅 ${stylistAppts.length} New Appointments with ${customer?.name || 'Customer'} on ${shortDate}:\n${aptDetails.map((d: any, i: number) => `${i + 1}. ${d}`).join('\n')}`;
-
-                    const result = await textlk.sendSMS(stylist.phone, msg);
-                    results.stylists.push({ name: stylist.name, result });
-                }
-            }
-
-            // Send ONE consolidated SMS to managers
-            const { data: managers } = await supabase
-                .from('staff')
-                .select('id, name, phone')
-                .eq('system_role', 'Manager')
-                .eq('is_active', true)
-                .eq('organization_id', organizationId);
-
-            if (managers && managers.length > 0) {
-                const aptSummary = appointments.map(apt => {
-                    const stylist = apt.stylist as any;
-                    const serviceNames = apt.services
-                        ?.map((id: string) => servicesMap.get(id))
-                        .filter(Boolean)
-                        .join(', ') || 'Service';
-                    return `${serviceNames} at ${apt.start_time} with ${stylist?.name}`;
-                });
-
-                const managerMsg = appointments.length === 1
-                    ? `📅 New Booking! ${customer?.name || 'Customer'} booked ${aptSummary[0]} on ${shortDate}. - ${SALON_SHORT_NAME}`
-                    : `📅 ${appointments.length} New Bookings! ${customer?.name || 'Customer'} on ${shortDate}:\n${aptSummary.map((s, i) => `${i + 1}. ${s}`).join('\n')} - ${SALON_SHORT_NAME}`;
-
-                for (const manager of managers) {
-                    if (manager.phone) {
-                        const result = await textlk.sendSMS(manager.phone, managerMsg);
-                        results.managers.push({ name: manager.name, result });
-                    }
-                }
+                console.log('SMS sent to customer:', customer.name, customer.phone);
             }
 
         } else if (type === 'reschedule') {
             // Reschedule only works for single appointment currently
             const appointment = appointments[0];
-            const stylist = appointment.stylist as any;
             const serviceNames = appointment.services
                 ?.map((id: string) => servicesMap.get(id))
                 .filter(Boolean)
@@ -225,38 +162,14 @@ export async function POST(request: NextRequest) {
                 message: `${customer?.name || 'Customer'} rescheduled from ${oldDateStr} ${oldTimeStr} to ${shortDate} at ${appointment.start_time}.`
             };
 
-            // Customer SMS
+            // Customer SMS only
             if (customer?.phone) {
-                const msg = `🔄 Appointment Rescheduled! Your ${serviceNames} appointment has been moved to ${shortDate} at ${appointment.start_time}. See you then! - ${SALON_SHORT_NAME}`;
+                const msg = `Appointment Rescheduled! Your ${serviceNames} appointment has been moved to ${shortDate} at ${appointment.start_time}. See you then! - ${SALON_SHORT_NAME}`;
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
+                console.log('Reschedule SMS sent to customer:', customer.name, customer.phone);
             }
 
-            // Stylist SMS  
-            if (stylist?.phone) {
-                const msg = `🔄 Appointment Updated! ${customer?.name || 'Customer'}'s ${serviceNames} rescheduled to ${shortDate} at ${appointment.start_time}. Duration: ${appointment.duration} mins.`;
-                const result = await textlk.sendSMS(stylist.phone, msg);
-                results.stylists.push({ name: stylist.name, result });
-            }
-
-            // Manager SMS
-            const { data: managers } = await supabase
-                .from('staff')
-                .select('id, name, phone')
-                .eq('system_role', 'Manager')
-                .eq('is_active', true)
-                .eq('organization_id', organizationId);
-
-            if (managers && managers.length > 0) {
-                const managerMsg = `🔄 Appointment Rescheduled! ${customer?.name || 'Customer'}'s ${serviceNames} moved from ${oldDateStr} ${oldTimeStr} to ${shortDate} ${appointment.start_time}. - ${SALON_SHORT_NAME}`;
-
-                for (const manager of managers) {
-                    if (manager.phone) {
-                        const result = await textlk.sendSMS(manager.phone, managerMsg);
-                        results.managers.push({ name: manager.name, result });
-                    }
-                }
-            }
         } else if (type === 'cancel') {
             // In-app cancellation notification (external notification already handled elsewhere)
             const appointment = appointments[0];
