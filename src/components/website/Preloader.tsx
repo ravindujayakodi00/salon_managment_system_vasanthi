@@ -35,7 +35,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
   if (!isMounted) {
     return (
       <div className="fixed inset-0 z-[9999] bg-[var(--t-bg)] flex items-center justify-center">
-        <Image src="/new-light-logo.png" alt={themeContent.salonName} width={160} height={160} className="w-auto" priority />
+        <Image src="/new-white-logo.png" alt={themeContent.salonName} width={160} height={160} className="w-auto" priority />
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       <div className="flex flex-col items-center gap-10 w-full max-w-[280px] px-8">
         {/* Logo */}
         <Image
-          src="/new-light-logo.png"
+          src="/new-white-logo.png"
           alt={themeContent.salonName}
           width={160} height={160}
           className="w-auto"

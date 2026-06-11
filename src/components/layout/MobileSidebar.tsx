@@ -87,7 +87,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                                 <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                        src={logoUrl || '/new-light-logo.png'}
+                                        src={logoUrl || '/new-white-logo.png'}
                                         alt=""
                                         className="h-full w-full object-contain"
                                     />

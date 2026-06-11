@@ -35,7 +35,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <Image
-              src="/new-light-logo.png"
+              src="/new-white-logo.png"
               alt={salonName}
               width={52}
               height={52}

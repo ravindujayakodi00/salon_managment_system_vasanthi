@@ -89,7 +89,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               <div className="flex justify-center">
                 <Link href="/">
                   <Image
-                    src="/new-light-logo.png"
+                    src="/new-white-logo.png"
                     alt={themeContent.salonName}
                     width={70}
                     height={70}
@@ -136,7 +136,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               {/* Logo centered — always goes to / */}
               <Link href="/" className="absolute left-1/2 -translate-x-1/2">
                 <Image
-                  src="/new-light-logo.png"
+                  src="/new-white-logo.png"
                   alt={themeContent.salonName}
                   width={200}
                   height={200}

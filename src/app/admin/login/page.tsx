@@ -96,7 +96,7 @@ export default function LoginPage() {
                         transition={{ delay: 0.1, type: 'spring' }}
                         className="inline-flex items-center justify-center mb-4"
                     >
-                        <Image src="/new-light-logo.png" alt="Salon Logo" height={80} width={80} className="object-contain" priority />
+                        <Image src="/new-white-logo.png" alt="Salon Logo" height={80} width={80} className="object-contain" priority />
                     </motion.div>
                     <p className="text-primary-600 dark:text-primary-100">Professional Care. Personal Attention</p>
                 </div>
