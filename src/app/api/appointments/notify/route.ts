@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createTextLkService } from '@/services/textlk';
-import {SALON_NAME, SALON_SHORT_NAME} from '@/config/salon';
+import { SALON_NAME } from '@/config/salon';
 
 // Use Service Role Key for reliable server-side operations
 const supabase = createClient(
@@ -93,8 +93,18 @@ export async function POST(request: NextRequest) {
         const customer = appointments[0].customer as any;
         const baseBranchId = appointments[0]?.branch_id as string | null;
 
-        // In-app notifications payload (DB-backed)
-        let inAppNotification: { type: string; title: string; message: string } | null = null;
+        // Fetch branch name and address for template variables
+        let branchName = '';
+        let branchAddress = '';
+        if (baseBranchId) {
+            const { data: branchData } = await supabase
+                .from('branches')
+                .select('name, address')
+                .eq('id', baseBranchId)
+                .single();
+            branchName = branchData?.name || '';
+            branchAddress = branchData?.address || '';
+        }
 
         // Initialize SMS service
         const apiKey = process.env.TEXT_LK_API_KEY;
@@ -111,33 +121,65 @@ export async function POST(request: NextRequest) {
         const textlk = createTextLkService(apiKey, senderId);
         const results: any = { customer: null, stylists: [], managers: [] };
 
+        // Helper: replace {variable} placeholders
+        function replaceVars(template: string, vars: Record<string, string>): string {
+            return Object.entries(vars).reduce(
+                (msg, [key, val]) => msg.replace(new RegExp(`\\{${key}\\}`, 'g'), val),
+                template
+            );
+        }
+
         if (type === 'new') {
-            // Consolidate appointment details for customer
             const appointmentsList = appointments.map(apt => {
-                const stylist = apt.stylist as any;
                 const serviceNames = apt.services
                     ?.map((id: string) => servicesMap.get(id))
                     .filter(Boolean)
                     .join(', ') || 'Service';
-
                 return `${serviceNames} at ${apt.start_time}`;
             });
 
             const shortDate = new Date(appointments[0].appointment_date).toLocaleDateString();
+            const firstServiceName = appointments[0].services?.length
+                ? (servicesMap.get(appointments[0].services[0]) || 'Service')
+                : 'Service';
 
-            inAppNotification = {
-                type: 'AppointmentNew',
-                title: appointments.length === 1 ? 'New appointment booked' : 'New appointments booked',
-                message: appointments.length === 1
-                    ? `${customer?.name || 'Customer'} booked ${appointmentsList[0]} on ${shortDate}.`
-                    : `${customer?.name || 'Customer'} booked ${appointments.length} appointments on ${shortDate}.`
-            };
-
-            // Send ONE consolidated SMS to customer only
             if (customer?.phone) {
-                const msg = appointments.length === 1
-                    ? `Appointment Confirmed! ${appointmentsList[0]} on ${shortDate}. See you soon! - ${SALON_NAME}`
-                    : `${appointments.length} Appointments Confirmed for ${shortDate}:\n${appointmentsList.map((apt, i) => `${i + 1}. ${apt}`).join('\n')}\nSee you soon! - ${SALON_SHORT_NAME}`;
+                // Try to use the template from notification_templates
+                const { data: tmpl } = await supabase
+                    .from('notification_templates')
+                    .select('message')
+                    .eq('organization_id', organizationId)
+                    .eq('type', 'appointment_confirmation')
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                let msg: string;
+                if (tmpl?.message) {
+                    const vars: Record<string, string> = {
+                        customer_name: customer.name || 'Customer',
+                        date: shortDate,
+                        time: appointments[0].start_time || '',
+                        service: appointments.length === 1
+                            ? firstServiceName
+                            : `${appointments.length} services`,
+                        stylist: (appointments[0].stylist as any)?.name || '',
+                        salon_name: SALON_NAME,
+                        branch: branchName,
+                        address: branchAddress
+                    };
+                    msg = replaceVars(tmpl.message, vars);
+                    console.log('SMS built from notification_templates template');
+                } else {
+                    // Fallback message
+                    const locationLine = branchName
+                        ? `Location: ${branchName}${branchAddress ? ' - ' + branchAddress : ''}`
+                        : '';
+                    const details = appointments.length === 1
+                        ? `Date: ${shortDate}\nTime: ${appointments[0].start_time || ''}\n${locationLine}`
+                        : appointmentsList.map((apt, i) => `${i + 1}. ${apt}`).join('\n') + `\n${locationLine}`;
+                    msg = `Hello ${customer.name || 'Customer'},\nYour session at ${SALON_NAME} is officially confirmed.\n\nAppointment Details:\n${details}\n\nPlease arrive on time. We look forward to welcoming you! - ${SALON_NAME}`;
+                    console.log('No active appointment_confirmation template found — using fallback message');
+                }
 
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
@@ -145,7 +187,6 @@ export async function POST(request: NextRequest) {
             }
 
         } else if (type === 'reschedule') {
-            // Reschedule only works for single appointment currently
             const appointment = appointments[0];
             const serviceNames = appointment.services
                 ?.map((id: string) => servicesMap.get(id))
@@ -153,87 +194,42 @@ export async function POST(request: NextRequest) {
                 .join(', ') || 'Services';
             const shortDate = new Date(appointment.appointment_date).toLocaleDateString();
 
-            const oldDateStr = oldDate ? new Date(oldDate).toLocaleDateString() : 'previous date';
-            const oldTimeStr = oldTime || 'previous time';
-
-            inAppNotification = {
-                type: 'AppointmentRescheduled',
-                title: 'Appointment rescheduled',
-                message: `${customer?.name || 'Customer'} rescheduled from ${oldDateStr} ${oldTimeStr} to ${shortDate} at ${appointment.start_time}.`
-            };
-
-            // Customer SMS only
             if (customer?.phone) {
-                const msg = `Appointment Rescheduled! Your ${serviceNames} appointment has been moved to ${shortDate} at ${appointment.start_time}. See you then! - ${SALON_SHORT_NAME}`;
+                // Try to use appointment_confirmation template for reschedule too
+                const { data: tmpl } = await supabase
+                    .from('notification_templates')
+                    .select('message')
+                    .eq('organization_id', organizationId)
+                    .eq('type', 'appointment_confirmation')
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                let msg: string;
+                if (tmpl?.message) {
+                    const vars: Record<string, string> = {
+                        customer_name: customer.name || 'Customer',
+                        date: shortDate,
+                        time: appointment.start_time || '',
+                        service: serviceNames,
+                        stylist: (appointment.stylist as any)?.name || '',
+                        salon_name: SALON_NAME,
+                        branch: branchName,
+                        address: branchAddress
+                    };
+                    msg = replaceVars(tmpl.message, vars);
+                    console.log('Reschedule SMS built from notification_templates template');
+                } else {
+                    const locationLine = branchName
+                        ? `Location: ${branchName}${branchAddress ? ' - ' + branchAddress : ''}`
+                        : '';
+                    msg = `Hello ${customer.name || 'Customer'},\nYour session at ${SALON_NAME} is officially confirmed.\n\nAppointment Details:\nDate: ${shortDate}\nTime: ${appointment.start_time || ''}\n${locationLine}\n\nPlease arrive on time. We look forward to welcoming you! - ${SALON_NAME}`;
+                    console.log('No active appointment_confirmation template found — using fallback reschedule message');
+                }
+
                 const result = await textlk.sendSMS(customer.phone, msg);
                 results.customer = result;
                 console.log('Reschedule SMS sent to customer:', customer.name, customer.phone);
             }
-
-        } else if (type === 'cancel') {
-            // In-app cancellation notification (external notification already handled elsewhere)
-            const appointment = appointments[0];
-            const shortDate = new Date(appointment.appointment_date).toLocaleDateString();
-            const appointmentServices = (appointment.services || [])
-                .map((id: string) => servicesMap.get(id))
-                .filter(Boolean)
-                .join(', ') || 'Service';
-
-            inAppNotification = {
-                type: 'AppointmentCancelled',
-                title: 'Appointment cancelled',
-                message: `${customer?.name || 'Customer'} cancelled ${appointmentServices} on ${shortDate} at ${appointment.start_time}.`
-            };
-        }
-
-        // Persist DB-backed in-app notifications for all active staff in this branch.
-        // We never fail the whole request if in-app insert fails (SMS might still be useful).
-        try {
-            if (inAppNotification && baseBranchId) {
-                const { data: staffRecipients, error: staffRecipientsError } = await supabase
-                    .from('staff')
-                    .select('id')
-                    .eq('branch_id', baseBranchId)
-                    .eq('organization_id', organizationId)
-                    .eq('is_active', true);
-
-                if (staffRecipientsError) {
-                    console.error('In-app notification recipient fetch failed:', staffRecipientsError);
-                } else if (staffRecipients && staffRecipients.length > 0) {
-                    const notificationInsert = await supabase
-                        .from('in_app_notifications')
-                        .insert({
-                            type: inAppNotification.type,
-                            title: inAppNotification.title,
-                            message: inAppNotification.message,
-                            branch_id: baseBranchId,
-                            organization_id: organizationId,
-                            appointment_id: appointments.length === 1 ? appointments[0].id : null,
-                            metadata: {
-                                appointmentIds: idsToProcess
-                            }
-                        })
-                        .select('id')
-                        .single();
-
-                    if (!notificationInsert?.data?.id) {
-                        // supabase-js returns { data, error } - support both shapes
-                        console.error('In-app notification insert returned no id:', notificationInsert);
-                    } else {
-                        const notificationId = notificationInsert.data.id;
-                        await supabase
-                            .from('in_app_notification_recipients')
-                            .insert(
-                                (staffRecipients || []).map((s: any) => ({
-                                    notification_id: notificationId,
-                                    staff_id: s.id
-                                }))
-                            );
-                    }
-                }
-            }
-        } catch (inAppError) {
-            console.error('Failed to persist in-app notifications:', inAppError);
         }
 
         return NextResponse.json({

@@ -9,6 +9,7 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
 import { notificationsService } from '@/services/notifications';
 import { supabase } from '@/lib/supabase';
+import { SALON_NAME } from '@/config/salon';
 
 export default function NotificationsPage() {
     const { hasRole, user } = useAuth();
@@ -30,7 +31,8 @@ export default function NotificationsPage() {
         date: new Date().toLocaleDateString(),
         time: '10:00 AM',
         service: 'Haircut',
-        stylist: 'Jane Smith'
+        stylist: 'Jane Smith',
+        salon_name: SALON_NAME
     });
 
     useEffect(() => {
@@ -472,10 +474,10 @@ export default function NotificationsPage() {
                             onChange={(e) => setEditingTemplate({ ...editingTemplate, message: e.target.value })}
                             rows={6}
                             className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none text-gray-900 dark:text-white"
-                            placeholder="Hi {customer_name}, your appointment for {service} is confirmed on {date} at {time} with {stylist}. See you soon!"
+                            placeholder="Hi {customer_name}, your appointment for {service} is confirmed on {date} at {time} with {stylist} at {salon_name}. See you soon!"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            <strong>Available variables:</strong> {'{customer_name}'}, {'{date}'}, {'{time}'}, {'{service}'}, {'{stylist}'}
+                            <strong>Available variables:</strong> {'{customer_name}'}, {'{date}'}, {'{time}'}, {'{service}'}, {'{stylist}'}, {'{salon_name}'}, {'{branch}'}, {'{address}'}
                         </p>
                     </div>
 

@@ -25,10 +25,11 @@ export default function MapContactSection() {
   }, []);
 
   const infoBlocks = [
-    { label: 'Address', lines: contact.address },
-    { label: 'Phone',   lines: contact.phones  },
-    { label: 'Email',   lines: contact.emails  },
-    { label: 'Hours',   lines: contact.hours   },
+    { label: 'Address 1', lines: contact.address1 },
+    { label: 'Address 2', lines: contact.address2 },
+    { label: 'Phone',     lines: contact.phones   },
+    { label: 'Email',     lines: contact.emails   },
+    { label: 'Hours',     lines: contact.hours    },
   ];
 
   return (
@@ -83,7 +84,7 @@ export default function MapContactSection() {
             {infoBlocks.map((block, i) => (
               <div
                 key={i}
-                className={`p-7 lg:p-9 border-[var(--t-border)] ${i % 2 === 0 ? 'border-r' : ''} ${i < 2 ? 'border-b' : ''}`}
+                className={`p-7 lg:p-9 border-[var(--t-border)] ${i % 2 === 0 ? 'border-r' : ''} ${i < 4 ? 'border-b' : ''}`}
               >
                 <p className="t-label text-[var(--t-accent-2)] mb-4 tracking-[0.35em]">
                   {block.label}

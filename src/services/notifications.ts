@@ -21,6 +21,9 @@ interface TemplateVariables {
     time?: string;
     service?: string;
     stylist?: string;
+    salon_name?: string;
+    branch?: string;
+    address?: string;
     [key: string]: string | undefined;
 }
 
@@ -343,10 +346,11 @@ export const notificationsService = {
                 };
             }
 
-            // Replace variables
-            const message = this.replaceVariables(template.message, variables);
+            // Replace variables (always inject salon_name)
+            const allVariables = { salon_name: SALON_NAME, ...variables };
+            const message = this.replaceVariables(template.message, allVariables);
             const subject = template.subject
-                ? this.replaceVariables(template.subject, variables)
+                ? this.replaceVariables(template.subject, allVariables)
                 : `Notification from ${SALON_NAME}`;
 
             const results: any = {
