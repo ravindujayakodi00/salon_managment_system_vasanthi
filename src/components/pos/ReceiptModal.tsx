@@ -38,38 +38,48 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
         const printContent = receiptRef.current;
         if (!printContent) return;
 
-        const printWindow = window.open('', '_blank', 'width=400,height=600');
-        if (!printWindow) return;
+        // Remove any stale iframe from a previous print
+        const existing = document.getElementById('receipt-print-iframe');
+        if (existing) existing.remove();
 
-        printWindow.document.write(`<!DOCTYPE html>
+        // Use a hidden iframe instead of window.open() — avoids popup blocking
+        // on iOS Safari, Android Chrome, and all tablet browsers
+        const iframe = document.createElement('iframe');
+        iframe.id = 'receipt-print-iframe';
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.style.cssText = 'position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;border:none;visibility:hidden;';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+        if (!doc) { iframe.remove(); return; }
+
+        doc.open();
+        doc.write(`<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Receipt</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; color: #000 !important; border-color: #555 !important; }
   body {
     font-family: Arial, sans-serif;
     font-size: 13px;
-    color: #000;
-    background: #fff;
+    background: #fff !important;
+    color: #000 !important;
     padding: 16px;
+    width: 100%;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   img { max-width: 100%; display: block; }
-  /* Force ALL text to black — no light grays on paper */
-  * { color: #000 !important; border-color: #000 !important; }
   .text-center { text-align: center; }
-  .text-sm { font-size: 12px; }
-  .text-xs { font-size: 11px; }
-  .text-lg { font-size: 16px; }
-  .font-bold { font-weight: 700; }
+  .text-sm   { font-size: 12px; }
+  .text-xs   { font-size: 11px; }
+  .text-lg   { font-size: 16px; }
+  .font-bold   { font-weight: 700; }
   .font-medium { font-weight: 600; }
-  .font-mono { font-family: monospace; }
-  .text-gray-500, .text-gray-600 { color: #000 !important; }
-  .text-success-600 { color: #000 !important; }
+  .font-mono   { font-family: monospace; }
   .mb-1 { margin-bottom: 4px; }
   .mb-3 { margin-bottom: 12px; }
   .mb-4 { margin-bottom: 16px; }
@@ -80,22 +90,20 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
   .pt-2 { padding-top: 8px; }
   .pt-4 { padding-top: 16px; }
   .pb-4 { padding-bottom: 16px; }
-  .p-4 { padding: 16px; }
+  .p-4  { padding: 16px; }
   .h-16 { height: 64px; }
   .mx-auto { margin-left: auto; margin-right: auto; }
   .object-contain { object-fit: contain; }
   .space-y-2 > * + * { margin-top: 8px; }
   .flex { display: flex; }
   .justify-between { justify-content: space-between; }
-  .border-b { border-bottom: 1px solid #000; }
-  .border-t { border-top: 1px solid #000; }
+  .border-b { border-bottom: 1px solid #555; }
+  .border-t { border-top: 1px solid #555; }
   .border-dashed { border-style: dashed; }
-  .border-gray-200 { border-color: #000; }
-  .border-gray-300 { border-color: #000; }
   .tracking-wide { letter-spacing: 0.025em; }
+  @page { size: auto; margin: 8mm; }
   @media print {
     body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    @page { margin: 8mm; }
   }
 </style>
 </head>
@@ -103,13 +111,24 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
 ${printContent.innerHTML}
 </body>
 </html>`);
+        doc.close();
 
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 300);
+        const win = iframe.contentWindow;
+        if (!win) { iframe.remove(); return; }
+
+        const doPrint = () => {
+            win.focus();
+            win.print();
+            // Remove iframe after print dialog is dismissed
+            setTimeout(() => iframe.remove(), 1000);
+        };
+
+        // Wait for all resources (logo image etc.) to finish loading before printing
+        if (doc.readyState === 'complete') {
+            setTimeout(doPrint, 150);
+        } else {
+            iframe.onload = () => setTimeout(doPrint, 150);
+        }
     };
 
     if (!invoice) return null;
