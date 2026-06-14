@@ -61,7 +61,7 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Receipt</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; color: #000 !important; border-color: #555 !important; }
+  * { box-sizing: border-box; margin: 0; padding: 0; color: #000 !important; }
   body {
     font-family: Arial, sans-serif;
     font-size: 13px;
@@ -99,7 +99,8 @@ export default function ReceiptModal({ isOpen, onClose, invoice }: ReceiptModalP
   .justify-between { justify-content: space-between; }
   .border-b { border-bottom: 1px solid #555; }
   .border-t { border-top: 1px solid #555; }
-  .border-dashed { border-style: dashed; }
+  .border-b.border-dashed { border-bottom: 1px dashed #555; border-top: none; border-left: none; border-right: none; }
+  .border-t.border-dashed { border-top: 1px dashed #555; border-bottom: none; border-left: none; border-right: none; }
   .tracking-wide { letter-spacing: 0.025em; }
   @page { size: auto; margin: 8mm; }
   @media print {
