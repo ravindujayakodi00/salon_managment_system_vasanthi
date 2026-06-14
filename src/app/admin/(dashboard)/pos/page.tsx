@@ -30,6 +30,7 @@ import { useWorkspace } from '@/lib/workspace';
 import { useToast } from '@/context/ToastContext';
 import { sendEmailFromServer } from '@/lib/email-server';
 import { generateReceiptEmail } from '@/lib/email-templates';
+import { SALON_NAME } from '@/config/salon';
 
 export default function POSPage() {
     const { user } = useAuth();
@@ -790,6 +791,26 @@ export default function POSPage() {
                 } catch (emailError: any) {
                     console.error('Error sending receipt email:', emailError);
                     // Don't block payment completion if email fails
+                }
+            }
+
+            // Send thank-you SMS to customer after payment
+            if (selectedCustomer?.phone) {
+                try {
+                    const msg = `Thank you for spending your time with us today, ${selectedCustomer.name}.\n\nWe would love to hear your feedback!\nIf you were happy with our service, we would truly appreciate a quick review on Google to help us grow.\nFor any complaints or concerns, WhatsApp us on 0776300577.\n\nWe look forward to welcoming you back soon.\n\n- ${SALON_NAME}`;
+                    const smsRes = await fetch('/api/send-sms', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ to: selectedCustomer.phone, message: msg })
+                    });
+                    const smsResult = await smsRes.json();
+                    if (smsResult.success) {
+                        console.log('Thank-you SMS sent to:', selectedCustomer.name, selectedCustomer.phone);
+                    } else {
+                        console.error('Thank-you SMS failed:', smsResult.error);
+                    }
+                } catch (smsError) {
+                    console.error('Thank-you SMS error:', smsError);
                 }
             }
 
