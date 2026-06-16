@@ -48,14 +48,8 @@ export default function VideoScroller() {
             rafRef.current = requestAnimationFrame(smoothSeek);
         };
 
-        // Mobile: just autoplay and loop — no scroll scrubbing
-        if (isMobile) {
-            video.loop  = true;
-            video.muted = true;
-            video.play().catch(() => {});
-            setIsVideoReady(true);
-            return;
-        }
+        // Mobile: video is not rendered — nothing to do
+        if (isMobile) return;
 
         // Desktop: scroll-controlled seek
         const initVideo = () => {
@@ -132,16 +126,20 @@ export default function VideoScroller() {
             className="fixed inset-0 w-full h-full -z-10 overflow-hidden bg-[#1E1813]"
             suppressHydrationWarning
         >
-            {/* Video Background */}
-            <video
-                ref={videoRef}
-                src="/videos/bg.mp4"
-                muted
-                playsInline
-                preload="auto"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoReady ? 'opacity-60' : 'opacity-0'}`}
-                suppressHydrationWarning
-            />
+            {/* Video Background — desktop only. On mobile the video is never loaded
+                to avoid crashing low-memory devices (preload="auto" on a large
+                video exhausts RAM on phones and causes the tab to crash). */}
+            {!isMobile && (
+                <video
+                    ref={videoRef}
+                    src="/videos/bg.mp4"
+                    muted
+                    playsInline
+                    preload="auto"
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoReady ? 'opacity-60' : 'opacity-0'}`}
+                    suppressHydrationWarning
+                />
+            )}
 
             {/* Gradient overlays - always visible */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70 pointer-events-none" />
