@@ -9,26 +9,20 @@ const { gallery } = themeContent;
 
 function AutoPlayVideo({ src, className }: { src: string; className: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-  }, []);
-
-  useEffect(() => {
-    // Never autoplay video on mobile — it consumes too much memory
-    // and causes the iOS Safari WebContent process to be killed (OOM crash)
-    if (isMobile) return;
-
     const video = videoRef.current;
     if (!video) return;
 
+    // Chrome bug: muted attribute doesn't always set the muted property
     video.muted = true;
 
     const tryPlay = () => { video.play().catch(() => {}); };
 
+    // Play as soon as the browser has enough data (covers iOS Safari)
     video.addEventListener('canplay', tryPlay);
 
+    // Also play when scrolled into view in case it was loaded off-screen
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -41,18 +35,14 @@ function AutoPlayVideo({ src, className }: { src: string; className: string }) {
     );
     observer.observe(video);
 
+    // Attempt immediately in case already loaded
     tryPlay();
 
     return () => {
       video.removeEventListener('canplay', tryPlay);
       observer.disconnect();
     };
-  }, [isMobile]);
-
-  // On mobile show a static dark placeholder instead of loading the video
-  if (isMobile) {
-    return <div className={className} style={{ background: '#1a1d17' }} />;
-  }
+  }, []);
 
   return (
     <video
