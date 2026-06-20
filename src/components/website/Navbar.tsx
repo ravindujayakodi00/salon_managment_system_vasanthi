@@ -69,10 +69,10 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
           <div className={`transition-all duration-300 ${isScrolled || alwaysVisible ? 'py-4' : 'py-6'}`}>
 
             {/* ── DESKTOP: 3-column centered layout ── */}
-            <div className="hidden lg:grid lg:grid-cols-3 items-center">
+            <div className="hidden lg:grid lg:grid-cols-3 items-end">
 
               {/* Left links */}
-              <div className="flex items-center gap-8">
+              <div className="flex items-end gap-8">
                 {navLinks.slice(0, 3).map(link => {
                   const cls = `t-nav-link transition-colors duration-200 ${
                     onHero
@@ -100,7 +100,7 @@ export default function Navbar({ alwaysVisible = false }: NavbarProps) {
               </div>
 
               {/* Right links */}
-              <div className="flex items-center justify-end gap-8">
+              <div className="flex items-end justify-end gap-8">
                 {navLinks.slice(3).map(link => {
                   const cls = `t-nav-link transition-colors duration-200 ${
                     onHero

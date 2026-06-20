@@ -40,7 +40,7 @@ export default function TestimonialsSection() {
       <div className="max-w-screen-xl mx-auto px-6 lg:px-12">
 
         {/* Label */}
-        <p className="t-script text-[var(--t-accent-2)] mb-8 lg:mb-10" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>
+        <p className="t-body text-base font-normal uppercase tracking-[0.3em] text-[var(--t-accent-2)] mb-8 lg:mb-10">
           {testimonials.label}
         </p>
 

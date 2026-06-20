@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Montserrat, Cormorant_Garamond, Pinyon_Script } from 'next/font/google';
+import { Montserrat, Montserrat_Alternates, Cormorant_Garamond, Pinyon_Script } from 'next/font/google';
 import './website-globals.css';
 import WebsiteProviders from '@/components/website/Providers';
 import SmoothScroller from '@/components/website/SmoothScroller';
@@ -18,6 +18,14 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-display',
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
+
+const montserratAlternates = Montserrat_Alternates({
+  variable: '--font-alt',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
   style: ['normal', 'italic'],
   display: 'swap',
 });
@@ -41,7 +49,7 @@ export const metadata: Metadata = {
 export default function WebsiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${montserrat.variable} ${cormorant.variable} ${pinyonScript.variable} website-font-scope antialiased overflow-x-hidden`}
+      className={`${montserrat.variable} ${montserratAlternates.variable} ${cormorant.variable} ${pinyonScript.variable} website-font-scope antialiased overflow-x-hidden`}
     >
       <WebsiteProviders>
         <SmoothScroller />

@@ -51,7 +51,7 @@ export default function MapContactSection() {
 
         {/* Header */}
         <div className={`mb-8 lg:mb-12 transition-all duration-800 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>{contact.label}</p>
+          <p className="t-body text-base font-normal uppercase tracking-[0.3em] text-[var(--t-accent-2)] mb-2">{contact.label}</p>
         </div>
 
         {/* Map + info grid */}

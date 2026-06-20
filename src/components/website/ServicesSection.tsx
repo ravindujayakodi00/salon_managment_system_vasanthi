@@ -44,7 +44,7 @@ export default function ServicesSection() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 lg:mb-12 gap-6">
           <div>
-            <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>
+            <p className="t-body text-base font-normal uppercase tracking-[0.3em] text-[var(--t-accent-2)] mb-2">
               {services.label}
             </p>
           </div>

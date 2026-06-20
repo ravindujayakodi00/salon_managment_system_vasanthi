@@ -93,7 +93,7 @@ export default function GallerySection() {
     >
       {/* Header */}
       <div ref={titleRef} className="max-w-screen-xl mx-auto px-6 lg:px-12 mb-8 lg:mb-10">
-        <p className="t-script text-[var(--t-accent-2)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)' }}>{gallery.label}</p>
+        <p className="t-body text-base font-normal uppercase tracking-[0.3em] text-[var(--t-accent-2)] mb-2">{gallery.label}</p>
         <h2 className="t-display font-light italic text-[var(--t-text)] mt-1 mb-4" style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.8rem)' }}>
           {gallery.heading}
         </h2>

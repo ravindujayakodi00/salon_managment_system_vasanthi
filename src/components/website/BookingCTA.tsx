@@ -50,7 +50,7 @@ export default function BookingCTA() {
       </div>
 
       <div className="cta-content relative z-10 max-w-screen-xl mx-auto px-6 lg:px-12 text-center">
-        <p className="t-script text-[var(--t-accent-2)] mb-5" style={{ fontSize: '1.2rem' }}>
+        <p className="t-body text-base font-normal uppercase tracking-[0.3em] text-[var(--t-accent-2)] mb-5">
           {cta.label}
         </p>
         <h2

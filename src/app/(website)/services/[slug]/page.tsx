@@ -65,7 +65,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 >
                   {s.title}
                   <br />
-                  <em className="t-script font-normal text-[var(--t-accent)]" style={{ fontSize: 'clamp(2.6rem, 5.5vw, 4.6rem)' }}>
+                  <em className="t-body font-light italic text-[var(--t-accent)]" style={{ fontSize: '2.5rem' }}>
                     at {SALON_OWNER_FIRST}&apos;s
                   </em>
                 </h1>

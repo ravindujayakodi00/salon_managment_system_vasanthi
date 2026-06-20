@@ -28,6 +28,7 @@
   /* Fallback font stacks (overridden by .website-font-scope below) */
   --t-font-display: "Cormorant Garamond", Georgia, serif;
   --t-font-body:    "Montserrat", "Helvetica Neue", sans-serif;
+  --t-font-alt:     "Montserrat Alternates", "Montserrat", sans-serif;
   --t-font-script:  "Pinyon Script", cursive;
 }
 
@@ -38,6 +39,7 @@
 .website-font-scope {
   --t-font-display: var(--font-display, "Cormorant Garamond", Georgia, serif);
   --t-font-body:    var(--font-body, "Montserrat", "Helvetica Neue", sans-serif);
+  --t-font-alt:     var(--font-alt, "Montserrat Alternates", "Montserrat", sans-serif);
   --t-font-script:  var(--font-script, "Pinyon Script", cursive);
   font-family: var(--t-font-body);
   /* No background-color here — VideoScroller (fixed, z-index:-10) must
@@ -76,6 +78,7 @@
 /* Display serif font */
 .t-display { font-family: var(--t-font-display); }
 .t-body    { font-family: var(--t-font-body); }
+.t-alt     { font-family: var(--t-font-alt); }
 .t-script  { font-family: var(--t-font-script); }
 
 /* Navbar links — Cormorant italic, elegant spacing */
