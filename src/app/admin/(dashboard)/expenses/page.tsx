@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Wallet, TrendingUp, TrendingDown, Receipt, ReceiptText, ArrowDownCircle } from 'lucide-react';
+import { Plus, Minus, Wallet, TrendingUp, TrendingDown, Receipt, ReceiptText, ArrowDownCircle, Pencil } from 'lucide-react';
 import { pettyCashService, PettyCashTransaction, ExpenseCategory } from '@/services/petty-cash';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
@@ -56,7 +56,14 @@ export default function ExpensesPage() {
 
     const [processing, setProcessing] = useState(false);
 
+    // Edit modal state
+    const [editingTxn, setEditingTxn] = useState<PettyCashTransaction | null>(null);
+    const [editAmount, setEditAmount] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+    const [editCategoryId, setEditCategoryId] = useState('');
+
     const canAddCash = user?.systemRole === 'Owner' || user?.systemRole === 'Manager';
+    const canEdit = user?.systemRole === 'Owner' || user?.systemRole === 'Manager';
 
     useEffect(() => {
         fetchData();
@@ -212,6 +219,43 @@ export default function ExpensesPage() {
         }
     };
 
+    const openEdit = (txn: PettyCashTransaction) => {
+        setEditingTxn(txn);
+        setEditAmount(String(txn.amount));
+        setEditDescription(txn.description);
+        setEditCategoryId(txn.expense_category_id || '');
+        if (txn.entry_type === 'expense' && expenseCategories.length === 0) {
+            pettyCashService.getExpenseCategories().then(cats => setExpenseCategories(cats));
+        }
+    };
+
+    const handleEditSave = async () => {
+        if (!editingTxn) return;
+        const amt = parseFloat(editAmount);
+        if (!amt || amt <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+        try {
+            setProcessing(true);
+            if (editingTxn.entry_type === 'expense') {
+                if (!editCategoryId) { showToast('Please select a category', 'error'); return; }
+                const category = expenseCategories.find(c => c.id === editCategoryId);
+                const desc = editDescription.trim()
+                    ? `${category?.name} — ${editDescription.trim()}`
+                    : category?.name || editDescription;
+                await pettyCashService.updateExpense(editingTxn.id, amt, desc, editCategoryId);
+            } else {
+                await pettyCashService.updatePettyCashEntry(editingTxn.id, amt, editDescription, editingTxn.branch_id);
+            }
+            showToast('Updated successfully', 'success');
+            setEditingTxn(null);
+            fetchData();
+        } catch (error: any) {
+            showToast(error.message || 'Failed to update', 'error');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const applyPreset = (preset: typeof PRESETS[0]) => {
         setActivePreset(preset.label);
         setDateRange(preset.getRange());
@@ -356,6 +400,8 @@ export default function ExpensesPage() {
                                 formatCurrency={formatCurrency}
                                 formatDateTime={formatDateTime}
                                 showBalance={false}
+                                canEdit={canEdit}
+                                onEdit={openEdit}
                             />
                         </motion.div>
                     )}
@@ -394,6 +440,8 @@ export default function ExpensesPage() {
                                 formatCurrency={formatCurrency}
                                 formatDateTime={formatDateTime}
                                 showBalance={true}
+                                canEdit={canEdit}
+                                onEdit={openEdit}
                             />
                         </motion.div>
                     )}
@@ -514,6 +562,59 @@ export default function ExpensesPage() {
                 </div>
             </Modal>
 
+            {/* ── Edit Modal ── */}
+            <Modal isOpen={!!editingTxn} onClose={() => setEditingTxn(null)} title={editingTxn?.entry_type === 'expense' ? 'Edit Expense' : 'Edit Petty Cash Entry'}>
+                <div className="space-y-4">
+                    {editingTxn?.entry_type === 'expense' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expense Category</label>
+                            <select
+                                value={editCategoryId}
+                                onChange={(e) => setEditCategoryId(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
+                            >
+                                <option value="">Select category...</option>
+                                {expenseCategories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (Rs)</label>
+                        <Input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            placeholder="0"
+                            min="0"
+                            step="100"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Description {editingTxn?.entry_type === 'expense' && <span className="text-gray-400 font-normal">(optional)</span>}
+                        </label>
+                        <Input
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            placeholder="Description..."
+                        />
+                    </div>
+                    {editingTxn?.entry_type === 'petty_cash' && editAmount && (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                                Changing this amount will recalculate the balance chain for all subsequent petty cash entries.
+                            </p>
+                        </div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                        <Button onClick={handleEditSave} isLoading={processing} className="flex-1">Save Changes</Button>
+                        <Button onClick={() => setEditingTxn(null)} variant="outline" className="flex-1">Cancel</Button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* ── Record Petty Cash Modal ── */}
             <Modal isOpen={showPettyCashModal} onClose={() => setShowPettyCashModal(false)} title="Record Petty Cash">
                 <div className="space-y-4">
@@ -581,11 +682,15 @@ function TransactionsTable({
     formatCurrency,
     formatDateTime,
     showBalance,
+    canEdit,
+    onEdit,
 }: {
     transactions: PettyCashTransaction[];
     formatCurrency: (n: number) => string;
     formatDateTime: (s: string) => string;
     showBalance: boolean;
+    canEdit?: boolean;
+    onEdit?: (txn: PettyCashTransaction) => void;
 }) {
     return (
         <motion.div
@@ -607,6 +712,7 @@ function TransactionsTable({
                                 <th className="hidden md:table-cell pb-3 pr-4 text-sm font-medium text-gray-500 dark:text-gray-400">Balance After</th>
                             )}
                             <th className="hidden lg:table-cell pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Recorded By</th>
+                            {canEdit && <th className="pb-3"></th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -644,6 +750,17 @@ function TransactionsTable({
                                 <td className="hidden lg:table-cell py-4 text-sm text-gray-600 dark:text-gray-400">
                                     {txn.profiles?.name || 'Unknown'}
                                 </td>
+                                {canEdit && (
+                                    <td className="py-4 pl-2">
+                                        <button
+                                            onClick={() => onEdit?.(txn)}
+                                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

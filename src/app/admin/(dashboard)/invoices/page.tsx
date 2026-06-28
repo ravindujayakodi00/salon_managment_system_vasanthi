@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Receipt, Banknote, CreditCard, Building, ChevronDown, Printer } from 'lucide-react';
+import { Receipt, Banknote, CreditCard, Building, ChevronDown, Printer, Pencil, Trash2, Plus, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 import { invoicesService } from '@/services/invoices';
 import { formatCurrency } from '@/lib/utils';
 import { calculatePaymentTotals } from '@/lib/payment-utils';
 import ReceiptModal from '@/components/pos/ReceiptModal';
+import Modal from '@/components/shared/Modal';
+import Button from '@/components/shared/Button';
+import { supabase } from '@/lib/supabase';
+import { servicesService } from '@/services/services';
 
 function localDateStr(d: Date) { const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}`; }
 function todayStr() { return localDateStr(new Date()); }
@@ -49,6 +53,123 @@ export default function InvoicesPage() {
     const [receiptInvoice, setReceiptInvoice] = useState<any>(null);
 
     const isOwner = hasRole(['Owner', 'Manager', 'Receptionist']);
+    const canEdit = hasRole(['Owner', 'Manager']);
+
+    // Edit invoice state
+    const [editingInvoice, setEditingInvoice] = useState<any>(null);
+    const [editItems, setEditItems] = useState<any[]>([]);
+    const [editDiscount, setEditDiscount] = useState('');
+    const [editPaymentMethod, setEditPaymentMethod] = useState('Cash');
+    const [editSplitPayments, setEditSplitPayments] = useState<Record<string, string>>({ Cash: '', Card: '', BankTransfer: '' });
+    const [editUseSplit, setEditUseSplit] = useState(false);
+    const [editSaving, setEditSaving] = useState(false);
+    const [staffList, setStaffList] = useState<any[]>([]);
+    const [servicesList, setServicesList] = useState<any[]>([]);
+    const [newItemServiceId, setNewItemServiceId] = useState('');
+    const [newItemName, setNewItemName] = useState('');
+    const [newItemPrice, setNewItemPrice] = useState('');
+    const [newItemQty, setNewItemQty] = useState('1');
+    const [newItemStylistId, setNewItemStylistId] = useState('');
+
+    // Delete state
+    const [deletingInvoice, setDeletingInvoice] = useState<any>(null);
+    const [deleteConfirming, setDeleteConfirming] = useState(false);
+
+    const openEditInvoice = async (inv: any) => {
+        setEditingInvoice(inv);
+        setEditItems((inv.items || []).map((item: any) => ({ ...item })));
+        setEditDiscount(String(inv.discount ?? 0));
+        setEditPaymentMethod(inv.payment_method ?? 'Cash');
+        setNewItemServiceId(''); setNewItemName(''); setNewItemPrice(''); setNewItemQty('1'); setNewItemStylistId('');
+        const breakdown = inv.payment_breakdown;
+        if (breakdown && breakdown.length > 1) {
+            setEditUseSplit(true);
+            const sp: Record<string, string> = { Cash: '', Card: '', BankTransfer: '' };
+            breakdown.forEach((b: any) => { sp[b.method] = String(b.amount); });
+            setEditSplitPayments(sp);
+        } else {
+            setEditUseSplit(false);
+            setEditSplitPayments({ Cash: '', Card: '', BankTransfer: '' });
+        }
+        // Fetch staff and services in parallel
+        const [{ data: staffData }, servicesData] = await Promise.all([
+            supabase.from('staff').select('id, name, system_role, commission').eq('is_active', true).eq('system_role', 'Stylist').order('name'),
+            servicesService.getServices(true),
+        ]);
+        setStaffList(staffData || []);
+        setServicesList(servicesData || []);
+    };
+
+    const addNewItem = () => {
+        if (!newItemName.trim() || !newItemPrice) return;
+        const stylist = staffList.find(s => s.id === newItemStylistId);
+        setEditItems(prev => [...prev, {
+            type: 'manual',
+            serviceId: newItemServiceId || undefined,
+            description: newItemName.trim(),
+            name: newItemName.trim(),
+            price: parseFloat(newItemPrice) || 0,
+            quantity: parseInt(newItemQty) || 1,
+            stylistId: newItemStylistId || undefined,
+            stylistName: stylist?.name || undefined,
+        }]);
+        setNewItemServiceId(''); setNewItemName(''); setNewItemPrice(''); setNewItemQty('1'); setNewItemStylistId('');
+    };
+
+    const removeItem = (index: number) => {
+        setEditItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const editSubtotal = editItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1), 0);
+    const editTotal = Math.max(0, editSubtotal - (parseFloat(editDiscount) || 0));
+
+    const handleEditSave = async () => {
+        if (!editingInvoice) return;
+        if (editItems.length === 0) { alert('Invoice must have at least one item'); return; }
+        try {
+            setEditSaving(true);
+            const breakdown = editUseSplit
+                ? ['Cash', 'Card', 'BankTransfer']
+                    .map(m => ({ method: m, amount: parseFloat(editSplitPayments[m] || '0') }))
+                    .filter(b => b.amount > 0)
+                : null;
+
+            await invoicesService.updateInvoice(editingInvoice.id, {
+                items: editItems.map(item => ({
+                    ...item,
+                    price: parseFloat(item.price) || 0,
+                    quantity: parseInt(item.quantity) || 1,
+                })),
+                subtotal: editSubtotal,
+                discount: parseFloat(editDiscount) || 0,
+                total: editTotal,
+                payment_method: editPaymentMethod,
+                payment_breakdown: breakdown,
+            });
+            setEditingInvoice(null);
+            fetchInvoices(0, true);
+        } catch (error: any) {
+            console.error('Error updating invoice:', error);
+            alert(error.message || 'Failed to update invoice');
+        } finally {
+            setEditSaving(false);
+        }
+    };
+
+    const handleDeleteInvoice = async () => {
+        if (!deletingInvoice) return;
+        try {
+            setDeleteConfirming(true);
+            await invoicesService.deleteInvoice(deletingInvoice.id);
+            setDeletingInvoice(null);
+            fetchInvoices(0, true);
+        } catch (error: any) {
+            console.error('Error deleting invoice:', error);
+            alert(error.message || 'Failed to delete invoice');
+        } finally {
+            setDeleteConfirming(false);
+        }
+    };
 
     useEffect(() => {
         setPage(0);
@@ -273,13 +394,33 @@ export default function InvoicesPage() {
                                             {formatCurrency(inv.total)}
                                         </td>
                                         <td className="py-3 px-3 text-right">
-                                            <button
-                                                onClick={() => setReceiptInvoice(inv)}
-                                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                                title="Print receipt"
-                                            >
-                                                <Printer className="h-4 w-4" />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={() => openEditInvoice(inv)}
+                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+                                                        title="Edit invoice"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={() => setDeletingInvoice(inv)}
+                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                                                        title="Delete invoice"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => setReceiptInvoice(inv)}
+                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                                    title="Print receipt"
+                                                >
+                                                    <Printer className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -317,6 +458,292 @@ export default function InvoicesPage() {
                     </div>
                 )}
             </div>
+
+            {/* ── Delete Confirmation Modal ── */}
+            <Modal isOpen={!!deletingInvoice} onClose={() => setDeletingInvoice(null)} title="Delete Invoice">
+                <div className="space-y-4">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">
+                        Are you sure you want to delete invoice <span className="font-mono font-semibold">{deletingInvoice?.invoice_number?.slice(-12)}</span>?
+                    </p>
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                        <p className="text-xs text-red-700 dark:text-red-400">
+                            This will permanently delete the invoice and all related staff earnings. This cannot be undone.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                        <Button onClick={handleDeleteInvoice} isLoading={deleteConfirming} className="flex-1 !bg-red-600 hover:!bg-red-700">
+                            Delete
+                        </Button>
+                        <Button onClick={() => setDeletingInvoice(null)} variant="outline" className="flex-1">Cancel</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Edit Invoice Modal ── */}
+            <Modal isOpen={!!editingInvoice} onClose={() => setEditingInvoice(null)} title={`Edit Invoice ${editingInvoice?.invoice_number?.slice(-12) ?? ''}`} size="xl">
+                <div className="space-y-6">
+
+                    {/* ── Services / Items ── */}
+                    <div>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Services / Items</p>
+                        {editItems.length === 0 && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">No items — add one below.</p>
+                        )}
+                        <div className="space-y-3">
+                            {editItems.map((item, i) => (
+                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+                                    {/* Row 1: Service name + remove */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Service</label>
+                                            <select
+                                                value={item.serviceId || ''}
+                                                onChange={e => {
+                                                    const svc = servicesList.find(s => s.id === e.target.value);
+                                                    const updated = [...editItems];
+                                                    updated[i] = {
+                                                        ...updated[i],
+                                                        serviceId: e.target.value || undefined,
+                                                        description: svc?.name || updated[i].description,
+                                                        name: svc?.name || updated[i].name,
+                                                        price: svc ? svc.price : updated[i].price,
+                                                    };
+                                                    setEditItems(updated);
+                                                }}
+                                                className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            >
+                                                <option value="">{item.description || item.name || 'Select service...'}</option>
+                                                {servicesList.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name} — Rs {(s.price ?? 0).toLocaleString()}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <button
+                                            onClick={() => removeItem(i)}
+                                            className="mt-5 p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
+                                            title="Remove item"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    {/* Row 2: Stylist + Price + Qty + Line total */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Stylist</label>
+                                            <select
+                                                value={item.stylistId || ''}
+                                                onChange={e => {
+                                                    const s = staffList.find(st => st.id === e.target.value);
+                                                    const updated = [...editItems];
+                                                    updated[i] = { ...updated[i], stylistId: e.target.value || undefined, stylistName: s?.name || undefined };
+                                                    setEditItems(updated);
+                                                }}
+                                                className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            >
+                                                <option value="">No stylist</option>
+                                                {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Price (Rs)</label>
+                                            <input
+                                                type="number"
+                                                value={item.price}
+                                                onChange={e => {
+                                                    const updated = [...editItems];
+                                                    updated[i] = { ...updated[i], price: e.target.value };
+                                                    setEditItems(updated);
+                                                }}
+                                                className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Qty</label>
+                                            <input
+                                                type="number"
+                                                value={item.quantity}
+                                                onChange={e => {
+                                                    const updated = [...editItems];
+                                                    updated[i] = { ...updated[i], quantity: e.target.value };
+                                                    setEditItems(updated);
+                                                }}
+                                                className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                min="1"
+                                            />
+                                        </div>
+                                        <div className="flex items-end">
+                                            <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-semibold text-gray-900 dark:text-white text-right">
+                                                {formatCurrency((parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Add Service ── */}
+                    <div className="border border-dashed border-primary-300 dark:border-primary-700 rounded-xl p-4 space-y-3 bg-primary-50/40 dark:bg-primary-900/10">
+                        <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">+ Add Service</p>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Service</label>
+                                    <select
+                                        value={newItemServiceId}
+                                        onChange={e => {
+                                            const svc = servicesList.find(s => s.id === e.target.value);
+                                            setNewItemServiceId(e.target.value);
+                                            if (svc) {
+                                                setNewItemName(svc.name);
+                                                setNewItemPrice(String(svc.price ?? ''));
+                                            } else {
+                                                setNewItemName('');
+                                                setNewItemPrice('');
+                                            }
+                                        }}
+                                        className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">Select service...</option>
+                                        {servicesList.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} — Rs {(s.price ?? 0).toLocaleString()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Stylist</label>
+                                    <select
+                                        value={newItemStylistId}
+                                        onChange={e => setNewItemStylistId(e.target.value)}
+                                        className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">No stylist</option>
+                                        {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-end">
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Price (Rs)</label>
+                                    <input
+                                        type="number"
+                                        value={newItemPrice}
+                                        onChange={e => setNewItemPrice(e.target.value)}
+                                        placeholder="0"
+                                        className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        min="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Qty</label>
+                                    <input
+                                        type="number"
+                                        value={newItemQty}
+                                        onChange={e => setNewItemQty(e.target.value)}
+                                        className="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        min="1"
+                                    />
+                                </div>
+                                <div className="col-span-2 sm:col-span-1">
+                                    <button
+                                        onClick={addNewItem}
+                                        disabled={!newItemServiceId || !newItemPrice}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <Plus className="h-4 w-4" /> Add Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Discount + Totals ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discount (Rs)</label>
+                            <input
+                                type="number"
+                                value={editDiscount}
+                                onChange={e => setEditDiscount(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                min="0"
+                            />
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-1 text-sm">
+                            <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                                <span>Subtotal</span><span>{formatCurrency(editSubtotal)}</span>
+                            </div>
+                            {(parseFloat(editDiscount) || 0) > 0 && (
+                                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                                    <span>Discount</span><span>- {formatCurrency(parseFloat(editDiscount))}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-700 pt-1 mt-1">
+                                <span>Total</span><span>{formatCurrency(editTotal)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Payment Method ── */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Method</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                            {['Cash', 'Card', 'BankTransfer'].map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => { setEditPaymentMethod(m); setEditUseSplit(false); }}
+                                    className={`py-2.5 text-sm rounded-lg border transition-colors ${
+                                        editPaymentMethod === m && !editUseSplit
+                                            ? 'bg-primary-600 text-white border-primary-600'
+                                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    {m === 'BankTransfer' ? 'Bank Transfer' : m}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setEditUseSplit(s => !s)}
+                                className={`py-2.5 text-sm rounded-lg border transition-colors ${
+                                    editUseSplit
+                                        ? 'bg-purple-600 text-white border-purple-600'
+                                        : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                Split
+                            </button>
+                        </div>
+                        {editUseSplit && (
+                            <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                {['Cash', 'Card', 'BankTransfer'].map(m => (
+                                    <div key={m} className="flex items-center gap-3">
+                                        <span className="text-sm text-gray-600 dark:text-gray-400 w-28 shrink-0">{m}</span>
+                                        <input
+                                            type="number"
+                                            value={editSplitPayments[m]}
+                                            onChange={e => setEditSplitPayments(prev => ({ ...prev, [m]: e.target.value }))}
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            placeholder="0"
+                                            min="0"
+                                        />
+                                    </div>
+                                ))}
+                                {(() => {
+                                    const splitTotal = ['Cash', 'Card', 'BankTransfer'].reduce((s, m) => s + (parseFloat(editSplitPayments[m] || '0')), 0);
+                                    return Math.abs(splitTotal - editTotal) > 0.01 ? (
+                                        <p className="text-xs text-red-500 mt-1">Split total {formatCurrency(splitTotal)} must equal invoice total {formatCurrency(editTotal)}</p>
+                                    ) : null;
+                                })()}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                        <Button onClick={handleEditSave} isLoading={editSaving} className="flex-1">Save Changes</Button>
+                        <Button onClick={() => setEditingInvoice(null)} variant="outline" className="flex-1">Cancel</Button>
+                    </div>
+                </div>
+            </Modal>
 
             <ReceiptModal
                 isOpen={!!receiptInvoice}

@@ -194,6 +194,74 @@ export const pettyCashService = {
     },
 
     /**
+     * Update an expense entry (entry_type='expense' — no balance impact)
+     */
+    async updateExpense(
+        id: string,
+        amount: number,
+        description: string,
+        expenseCategoryId: string
+    ) {
+        const organizationId = await getCurrentOrganizationId();
+        const { error } = await supabase
+            .from('petty_cash_transactions')
+            .update({ amount, description, expense_category_id: expenseCategoryId })
+            .eq('id', id)
+            .eq('organization_id', organizationId);
+        if (error) throw error;
+    },
+
+    /**
+     * Update a petty cash entry (entry_type='petty_cash') and recalculate the balance chain
+     */
+    async updatePettyCashEntry(
+        id: string,
+        newAmount: number,
+        description: string,
+        branchId: string
+    ) {
+        const organizationId = await getCurrentOrganizationId();
+
+        const { data: txn, error: fetchError } = await supabase
+            .from('petty_cash_transactions')
+            .select('*')
+            .eq('id', id)
+            .eq('organization_id', organizationId)
+            .single();
+        if (fetchError) throw fetchError;
+
+        const balanceDelta = txn.type === 'deposit'
+            ? newAmount - txn.amount
+            : txn.amount - newAmount;
+
+        // Fetch this entry + all subsequent petty_cash entries for the branch
+        const { data: chain, error: chainError } = await supabase
+            .from('petty_cash_transactions')
+            .select('id, balance_after')
+            .eq('organization_id', organizationId)
+            .eq('entry_type', 'petty_cash')
+            .eq('branch_id', branchId)
+            .gte('created_at', txn.created_at)
+            .order('created_at', { ascending: true });
+        if (chainError) throw chainError;
+
+        for (const entry of chain || []) {
+            const updateData: Record<string, unknown> = {
+                balance_after: entry.balance_after + balanceDelta,
+            };
+            if (entry.id === id) {
+                updateData.amount = newAmount;
+                updateData.description = description;
+            }
+            await supabase
+                .from('petty_cash_transactions')
+                .update(updateData)
+                .eq('id', entry.id)
+                .eq('organization_id', organizationId);
+        }
+    },
+
+    /**
      * Delete transaction (Owner/Manager only)
      */
     async deleteTransaction(id: string) {

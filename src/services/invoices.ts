@@ -280,6 +280,110 @@ export const invoicesService = {
     },
 
     /**
+     * Update an existing invoice and recalculate staff_earnings
+     */
+    async updateInvoice(
+        invoiceId: string,
+        updates: {
+            items: any[];
+            subtotal: number;
+            discount: number;
+            total: number;
+            payment_method: string;
+            payment_breakdown?: Array<{ method: string; amount: number }> | null;
+        }
+    ) {
+        const organizationId = await getCurrentOrganizationId();
+
+        let paymentBreakdownToStore: Array<{ method: string; amount: number }> | null = null;
+        if (updates.payment_breakdown && updates.payment_breakdown.length > 0) {
+            const cleaned = updates.payment_breakdown.filter(p => p.amount > 0.001);
+            if (cleaned.length > 1) {
+                const breakdownTotal = cleaned.reduce((sum, p) => sum + p.amount, 0);
+                if (Math.abs(breakdownTotal - updates.total) > 0.01) {
+                    throw new Error('Payment breakdown total does not match invoice total');
+                }
+                paymentBreakdownToStore = cleaned;
+            }
+        }
+
+        const { data: updatedInvoice, error } = await supabase
+            .from('invoices')
+            .update({
+                items: updates.items,
+                subtotal: updates.subtotal,
+                discount: updates.discount,
+                total: updates.total,
+                payment_method: updates.payment_method,
+                payment_breakdown: paymentBreakdownToStore,
+            })
+            .eq('id', invoiceId)
+            .eq('organization_id', organizationId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Recalculate earnings
+        const appointmentIds = [...new Set(
+            updates.items
+                .filter((item: any) => item.appointmentId)
+                .map((item: any) => item.appointmentId as string)
+        )];
+
+        const walkInAttributed = updates.items.filter((item: any) =>
+            (item.type === 'walk-in-service' || item.type === 'manual') && item.stylistId
+        );
+
+        if (appointmentIds.length > 0) {
+            await earningsService.updateEarningsForMultipleAppointments(
+                appointmentIds,
+                updates.items,
+                invoiceId
+            );
+        } else if (walkInAttributed.length > 0) {
+            await earningsService.updateEarningsForWalkIn(
+                invoiceId,
+                updates.items,
+                updatedInvoice.created_at
+            );
+        } else {
+            // Product-only invoice — no earnings
+            await supabase
+                .from('staff_earnings')
+                .delete()
+                .eq('invoice_id', invoiceId)
+                .eq('organization_id', organizationId);
+        }
+
+        return updatedInvoice;
+    },
+
+    /**
+     * Delete an invoice and all related staff_earnings rows
+     */
+    async deleteInvoice(invoiceId: string) {
+        const organizationId = await getCurrentOrganizationId();
+
+        // Delete staff_earnings first (FK reference to invoice)
+        const { error: earningsError } = await supabase
+            .from('staff_earnings')
+            .delete()
+            .eq('invoice_id', invoiceId)
+            .eq('organization_id', organizationId);
+
+        if (earningsError) throw earningsError;
+
+        const { error } = await supabase
+            .from('invoices')
+            .delete()
+            .eq('id', invoiceId)
+            .eq('organization_id', organizationId);
+
+        if (error) throw error;
+    },
+
+    /**
      * Increment promo code usage
      */
     async incrementPromoUsage(code: string) {
