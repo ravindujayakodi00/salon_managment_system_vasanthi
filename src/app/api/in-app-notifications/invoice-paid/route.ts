@@ -34,11 +34,11 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json().catch(() => ({}));
-        const { invoiceId, branchId, customerId, total } = body || {};
+        const { invoiceId } = body || {};
 
-        if (!invoiceId || !branchId || !customerId || total === undefined) {
+        if (!invoiceId || typeof invoiceId !== 'string') {
             return NextResponse.json(
-                { success: false, error: 'invoiceId, branchId, customerId, total are required' },
+                { success: false, error: 'invoiceId is required' },
                 { status: 400 }
             );
         }
@@ -47,16 +47,46 @@ export async function POST(request: NextRequest) {
             auth: { persistSession: false, autoRefreshToken: false }
         });
 
+        const { data: callerProfile, error: callerProfileError } = await supabaseAdmin
+            .from('profiles')
+            .select('organization_id, system_role, branch_id, is_active')
+            .eq('id', authedProfileId)
+            .maybeSingle();
+
+        if (
+            callerProfileError ||
+            !callerProfile?.organization_id ||
+            callerProfile.is_active !== true
+        ) {
+            return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+        }
+
         const { data: invoiceRow, error: invoiceLookupError } = await supabaseAdmin
             .from('invoices')
-            .select('organization_id')
+            .select('organization_id, branch_id, customer_id, total')
             .eq('id', invoiceId)
-            .single();
+            .eq('organization_id', callerProfile.organization_id)
+            .maybeSingle();
 
-        if (invoiceLookupError || !invoiceRow?.organization_id) {
+        if (
+            invoiceLookupError ||
+            !invoiceRow?.organization_id ||
+            !invoiceRow.branch_id ||
+            !invoiceRow.customer_id
+        ) {
             return NextResponse.json(
-                { success: false, error: invoiceLookupError?.message || 'Invoice not found' },
+                { success: false, error: 'Invoice not found in your organization' },
                 { status: 404 }
+            );
+        }
+
+        const branchId = invoiceRow.branch_id;
+        const customerId = invoiceRow.customer_id;
+
+        if (callerProfile.system_role !== 'Owner' && callerProfile.branch_id !== branchId) {
+            return NextResponse.json(
+                { success: false, error: 'Forbidden: invoice belongs to another branch' },
+                { status: 403 }
             );
         }
 
@@ -87,7 +117,7 @@ export async function POST(request: NextRequest) {
         }
 
         const title = 'Invoice paid';
-        const message = `${customer.name} paid Rs ${Number(total).toLocaleString()}.`;
+        const message = `${customer.name} paid Rs ${Number(invoiceRow.total).toLocaleString()}.`;
 
         // All active staff in the branch
         const { data: staffRecipients, error: recipientsError } = await supabaseAdmin
@@ -156,4 +186,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-

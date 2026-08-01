@@ -631,7 +631,7 @@ export async function createRandomBooking(
         customer: BookingRequest['customer'];
         appointment: Omit<BookingRequest['appointment'], 'stylist_id'> & { branch_id?: string };
     },
-    authClient?: any
+    accessToken?: string
 ): Promise<{
     appointmentId: string;
     date: string;
@@ -642,154 +642,36 @@ export async function createRandomBooking(
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
-    const client = authClient || supabase;
-
-    // 1. Get service details
-    const { data: serviceData, error: serviceError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', booking.appointment.service_id)
-        .eq('organization_id', ORG_ID)
-        .single();
-
-    if (serviceError || !serviceData) {
-        throw new Error('Service not found');
+    if (!accessToken) {
+        throw new Error('OTP authentication is required before booking.');
     }
 
-    const service = serviceData as DbService;
-
-    // 2. Get all qualified stylists available on this date, filtered by branch if provided
-    const stylists = await fetchStylistsForService(booking.appointment.service_id, booking.appointment.date, booking.appointment.branch_id);
-
-    if (stylists.length === 0) {
-        throw new Error('No stylists available for this service on this date');
+    const organizationSlug =
+        process.env.NEXT_PUBLIC_ORGANIZATION_SLUG ||
+        process.env.NEXT_PUBLIC_ORGANIZATION_ID;
+    if (!organizationSlug) {
+        throw new Error('Organization is not configured.');
     }
 
-    // 3. Find which stylists are free at the requested time
-    const freeStylists: Stylist[] = [];
-
-    await Promise.all(
-        stylists.map(async (stylist) => {
-            const response = await fetchTimeSlots(stylist.id, booking.appointment.date, service.duration);
-            const slot = response.slots.find((s: TimeSlot) => s.time === booking.appointment.time && s.available);
-            if (slot) freeStylists.push(stylist);
-        })
-    );
-
-    if (freeStylists.length === 0) {
-        throw new Error('No stylists available at this time slot');
-    }
-
-    // 4. Pick a random free stylist
-    const selected = freeStylists[Math.floor(Math.random() * freeStylists.length)];
-
-    // 5. Get branch and organization_id from the selected stylist
-    const { data: stylistRecord } = await supabase
-        .from('staff')
-        .select('branch_id, organization_id')
-        .eq('id', selected.id)
-        .single();
-
-    const organizationId = stylistRecord?.organization_id || ORG_ID;
-    // Prefer the branch explicitly chosen by the customer, then stylist's branch, then org's first branch
-    let branchId = booking.appointment.branch_id || stylistRecord?.branch_id;
-    if (!branchId) {
-        const { data: branchData } = await supabase
-            .from('branches')
-            .select('id')
-            .eq('organization_id', organizationId)
-            .eq('is_active', true)
-            .limit(1)
-            .single();
-        branchId = branchData?.id;
-    }
-
-    if (!branchId) {
-        throw new Error('No active branch found');
-    }
-
-    // 6. Get or create customer (organization_id required)
-    let customerId: string;
-
-    const { data: existingCustomer } = await client
-        .from('customers')
-        .select('id')
-        .eq('phone', booking.customer.phone)
-        .eq('organization_id', ORG_ID)
-        .maybeSingle();
-
-    if (existingCustomer) {
-        customerId = existingCustomer.id;
-        await client.from('customers').update({
-            name: booking.customer.name,
-            email: booking.customer.email || undefined,
-        }).eq('id', customerId);
-    } else {
-        const { data: newCustomer, error: customerError } = await client
-            .from('customers')
-            .insert({
-                name: booking.customer.name,
-                phone: booking.customer.phone,
-                email: booking.customer.email || null,
-                gender: booking.customer.gender || null,
-                is_active: true,
-                organization_id: ORG_ID || organizationId,
-            })
-            .select('id')
-            .single();
-
-        if (customerError || !newCustomer) {
-            throw new Error(`Failed to create customer: ${customerError?.message}`);
-        }
-
-        customerId = newCustomer.id;
-    }
-
-    // 7. Create appointment
-    const timeParts = booking.appointment.time.split(':');
-    const startTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}:00`;
-
-    const { data: newAppointment, error: appointmentError } = await client
-        .from('appointments')
-        .insert({
-            customer_id: customerId,
-            stylist_id: selected.id,
-            branch_id: branchId,
-            organization_id: ORG_ID || organizationId,
-            services: [booking.appointment.service_id],
-            appointment_date: booking.appointment.date,
-            start_time: startTime,
-            duration: service.duration,
-            status: 'Pending',
-            notes: booking.appointment.notes || null,
-        })
-        .select('id, appointment_date, start_time, status')
-        .single();
-
-    if (appointmentError || !newAppointment) {
-        throw new Error(`Failed to create appointment: ${appointmentError?.message}`);
-    }
-
-    const startDisp = typeof newAppointment.start_time === 'string'
-        ? newAppointment.start_time.slice(0, 5)
-        : booking.appointment.time;
-
-    return {
-        appointmentId: newAppointment.id,
-        date: newAppointment.appointment_date,
-        time: startDisp,
-        status: newAppointment.status,
-        organizationId: ORG_ID || organizationId,
-        stylistId: selected.id,
-        service: {
-            name: service.name,
-            duration: service.duration,
-            price: service.price,
+    const response = await fetch('/api/public/random-book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
         },
-        stylist: {
-            name: selected.name,
-        },
-    };
+        body: JSON.stringify({
+            organization_slug: organizationSlug,
+            customer: booking.customer,
+            appointment: booking.appointment,
+        }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.success || !payload?.data) {
+        throw new Error(payload?.error || 'Failed to create appointment.');
+    }
+
+    return payload.data;
 }
 
 // ============================================

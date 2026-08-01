@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 import { randomBytes } from 'crypto';
 import { sendEmailFromServer } from '@/lib/email-server';
 
+const SYSTEM_ROLES = new Set(['Owner', 'Manager', 'Receptionist', 'Stylist']);
+
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -45,10 +47,10 @@ export async function POST(request: NextRequest) {
 
         const { data: callerProfile, error: profileError } = await supabaseAuthed
             .from('profiles')
-            .select('id, system_role, organization_id')
+            .select('id, system_role, organization_id, is_active')
             .eq('id', user.id)
             .single();
-        if (profileError || !callerProfile) {
+        if (profileError || !callerProfile || callerProfile.is_active !== true) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         if (callerProfile.system_role !== 'Owner') {
@@ -77,6 +79,26 @@ export async function POST(request: NextRequest) {
         }
         if (branch.organization_id !== callerProfile.organization_id) {
             return NextResponse.json({ success: false, error: 'Selected branch does not belong to your organization.' }, { status: 403 });
+        }
+
+        if (!SYSTEM_ROLES.has(system_role)) {
+            return NextResponse.json({ success: false, error: 'Invalid system role.' }, { status: 400 });
+        }
+
+        if (org_role_id) {
+            const { data: organizationRole } = await supabaseAdmin
+                .from('organization_roles')
+                .select('system_role')
+                .eq('id', org_role_id)
+                .eq('organization_id', callerProfile.organization_id)
+                .maybeSingle();
+
+            if (!organizationRole) {
+                return NextResponse.json({ success: false, error: 'Selected role does not belong to your organization.' }, { status: 400 });
+            }
+            if (organizationRole.system_role !== system_role) {
+                return NextResponse.json({ success: false, error: 'Selected role does not match the system role.' }, { status: 400 });
+            }
         }
 
         const tempPassword = generatePassword();

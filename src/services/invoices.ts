@@ -89,12 +89,8 @@ export const invoicesService = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${accessToken}`
                     },
-                    body: JSON.stringify({
-                        invoiceId: data.id,
-                        branchId: invoice.branch_id,
-                        customerId: invoice.customer_id,
-                        total: data.total
-                    })
+                    // The server derives tenant, branch, customer, and total from this invoice.
+                    body: JSON.stringify({ invoiceId: data.id })
                 }).catch((e) => {
                     console.error('In-app invoice notification request failed:', e);
                 });

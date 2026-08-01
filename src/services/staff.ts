@@ -161,14 +161,20 @@ export const staffService = {
         working_hours?: { start: string; end: string };
         salary?: number;
         commission?: number;
+        is_active?: boolean;
     }): Promise<{ success: boolean; message: string }> {
         try {
             const organizationId = await getCurrentOrganizationId();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                return { success: false, message: 'You must be signed in to update staff.' };
+            }
 
             const response = await fetch('/api/staff/update', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
                 },
                 body: JSON.stringify({ id, updates, organization_id: organizationId }),
             });
@@ -200,27 +206,10 @@ export const staffService = {
      * Deactivate staff member (soft delete)
      */
     async deactivateStaff(id: string): Promise<{ success: boolean; message: string }> {
-        try {
-            const organizationId = await getCurrentOrganizationId();
-            const { error } = await supabase
-                .from('staff')
-                .update({ is_active: false })
-                .eq('id', id)
-                .eq('organization_id', organizationId);
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                message: 'Staff member deactivated successfully',
-            };
-        } catch (error: any) {
-            console.error('Error deactivating staff:', error);
-            return {
-                success: false,
-                message: error.message || 'Failed to deactivate staff member',
-            };
-        }
+        const result = await this.updateStaff(id, { is_active: false });
+        return result.success
+            ? { success: true, message: 'Staff member deactivated successfully' }
+            : result;
     },
 
     /**

@@ -8,6 +8,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+const configuredOrganizationId = process.env.NEXT_PUBLIC_ORGANIZATION_ID?.trim() || '';
 
 /**
  * POST /api/appointments/notify
@@ -29,6 +30,19 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { type, appointmentId, appointmentIds, oldTime, oldDate, organizationId: bodyOrgId } = body;
 
+        if (!configuredOrganizationId) {
+            return NextResponse.json(
+                { success: false, error: 'Organization is not configured' },
+                { status: 500 }
+            );
+        }
+        if (bodyOrgId && bodyOrgId !== configuredOrganizationId) {
+            return NextResponse.json(
+                { success: false, error: 'Forbidden: organization mismatch' },
+                { status: 403 }
+            );
+        }
+
         // Support both single and batch
         const idsToProcess = appointmentIds || (appointmentId ? [appointmentId] : []);
 
@@ -39,19 +53,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get all appointment details — always filter by organization_id when provided
-        // to prevent cross-tenant data access (service role bypasses RLS)
-        let aptQuery = supabase
+        // This service-role query is always bound to the deployment's organization.
+        const aptQuery = supabase
             .from('appointments')
             .select(`
                 *,
                 customer:customers(*),
                 stylist:staff(*)
             `)
-            .in('id', idsToProcess);
-        if (bodyOrgId) {
-            aptQuery = aptQuery.eq('organization_id', bodyOrgId);
-        }
+            .in('id', idsToProcess)
+            .eq('organization_id', configuredOrganizationId);
         const { data: appointments, error: aptError } = await aptQuery;
 
         if (aptError || !appointments || appointments.length === 0) {
@@ -71,6 +82,12 @@ export async function POST(request: NextRequest) {
             );
         }
         const organizationId = [...orgIds][0]!;
+        if (organizationId !== configuredOrganizationId) {
+            return NextResponse.json(
+                { success: false, error: 'Appointments not found' },
+                { status: 404 }
+            );
+        }
 
         // Collect unique service IDs for all appointments
         const allServiceIds = new Set<string>();
@@ -101,6 +118,7 @@ export async function POST(request: NextRequest) {
                 .from('branches')
                 .select('name, address')
                 .eq('id', baseBranchId)
+                .eq('organization_id', organizationId)
                 .single();
             branchName = branchData?.name || '';
             branchAddress = branchData?.address || '';

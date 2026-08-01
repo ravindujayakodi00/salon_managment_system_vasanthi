@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminClient } from '@/lib/supabase';
+import { getAdminClient } from '@/lib/supabase-admin';
 import { sendEmailFromServer } from '@/lib/email-server';
 import { randomBytes } from 'crypto';
 import { getSupabaseServerClient } from '@/lib/supabase-server';

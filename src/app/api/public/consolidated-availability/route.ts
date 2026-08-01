@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminClient } from '@/lib/supabase';
+import { getAdminClient } from '@/lib/supabase-admin';
 import { resolvePublicOrganizationId, assertBranchInOrganization } from '@/lib/public-tenant';
 
 const supabase = getAdminClient();

@@ -9,6 +9,13 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function formatPhone(phone: string): string {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = `94${cleaned.slice(1)}`;
+    if (!cleaned.startsWith('94')) cleaned = `94${cleaned}`;
+    return cleaned;
+}
+
 /**
  * POST /api/public/random-book
  *
@@ -45,6 +52,24 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const { customer, appointment } = body;
+
+        const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+        if (!token) {
+            return NextResponse.json({ success: false, error: 'OTP authentication is required' }, { status: 401 });
+        }
+
+        const supabaseAuthed = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+        const { data: { user }, error: authError } = await supabaseAuthed.auth.getUser(token);
+        const expectedEmail = customer?.phone
+            ? `${formatPhone(customer.phone)}@phone.salonflow.local`.toLowerCase()
+            : '';
+        if (authError || !user?.email || user.email.toLowerCase() !== expectedEmail) {
+            return NextResponse.json({ success: false, error: 'OTP identity does not match booking phone' }, { status: 403 });
+        }
 
         const orgSlug =
             appointment?.organization_slug ||
@@ -180,6 +205,7 @@ export async function POST(request: NextRequest) {
             .from('appointments')
             .select('stylist_id, start_time, duration')
             .in('stylist_id', availableStylistIds)
+            .eq('organization_id', organizationId)
             .eq('appointment_date', appointment.date)
             .neq('status', 'Cancelled');
 
@@ -266,7 +292,8 @@ export async function POST(request: NextRequest) {
                     email: customer.email || undefined,
                     gender: customer.gender || undefined
                 })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
         } else {
             // Create new customer
             const { data: newCustomer, error: customerError } = await supabase
@@ -318,7 +345,8 @@ export async function POST(request: NextRequest) {
                 start_time: startTime,
                 duration: service.duration,
                 status: 'Pending',
-                notes: appointment.notes || null
+                notes: appointment.notes || null,
+                organization_id: organizationId
             })
             .select('id, appointment_date, start_time, status')
             .single();
@@ -461,6 +489,8 @@ export async function POST(request: NextRequest) {
                 date: newAppointment.appointment_date,
                 time: startDisp,
                 status: newAppointment.status,
+                organizationId,
+                stylistId: selectedStylistId,
                 service: {
                     name: service.name,
                     duration: service.duration,

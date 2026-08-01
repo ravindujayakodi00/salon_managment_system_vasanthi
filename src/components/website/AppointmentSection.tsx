@@ -65,7 +65,7 @@ interface AppointmentSectionProps {
 }
 
 export default function AppointmentSection({ isStandalone = false }: AppointmentSectionProps) {
-    const { setSession, isAuthenticated, getAuthenticatedClient } = useWebsiteAuth();
+    const { session, setSession, isAuthenticated } = useWebsiteAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const sectionRef = useRef<HTMLElement | null>(null);
 
@@ -439,10 +439,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
             setLoading(true);
             setError(null);
 
-            const authClient = getAuthenticatedClient();
             const results: { date: string; time: string; serviceName: string; price: number }[] = [];
-            let organizationId = '';
-            const stylistIds: string[] = [];
 
             // Submit each appointment separately using random stylist allocation
             for (const booking of cart) {
@@ -459,7 +456,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         notes: customer.notes || undefined,
                         branch_id: booking.branchId || selectedBranchId || undefined,
                     }
-                }, authClient);
+                }, session?.access_token);
 
                 results.push({
                     date: result.date,
@@ -467,30 +464,6 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                     serviceName: booking.serviceName,
                     price: booking.servicePrice,
                 });
-                if (result.organizationId) organizationId = result.organizationId;
-                if (result.stylistId) stylistIds.push(result.stylistId);
-            }
-
-            // Send confirmation SMS with all appointments
-            try {
-                const smsPayload = {
-                    phone: customer.phone,
-                    customerName: customer.name,
-                    appointments: results,
-                    totalPrice,
-                    organizationId,
-                    stylistIds,
-                };
-                console.log('Sending SMS payload:', smsPayload);
-                const smsRes = await fetch('/api/sms/confirmation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(smsPayload),
-                });
-                const smsResult = await smsRes.json();
-                console.log('SMS API response:', smsResult);
-            } catch (smsErr) {
-                console.error('Failed to send confirmation SMS:', smsErr);
             }
 
             // Show success message on screen
