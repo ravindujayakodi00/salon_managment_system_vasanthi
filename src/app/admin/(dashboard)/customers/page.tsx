@@ -43,6 +43,7 @@ export default function CustomersPage() {
         phone: c.phone,
         email: c.email,
         gender: c.gender,
+        dateOfBirth: c.date_of_birth,
         totalVisits: c.total_visits || 0,
         totalSpent: c.total_spent || 0,
         lastVisit: c.last_visit,

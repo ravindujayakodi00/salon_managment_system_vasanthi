@@ -30,6 +30,7 @@ describe('Customer Service', () => {
             phone: '0771234567',
             email: 'test@example.com',
             gender: 'Male',
+            dateOfBirth: '1990-05-12',
         };
 
         // Validate required fields
@@ -37,6 +38,7 @@ describe('Customer Service', () => {
         expect(newCustomer.name.length).toBeGreaterThan(0);
         expect(newCustomer.phone).toBeDefined();
         expect(newCustomer.phone.length).toBeGreaterThanOrEqual(9);
+        expect(newCustomer.dateOfBirth).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     test('Phone number validation', () => {

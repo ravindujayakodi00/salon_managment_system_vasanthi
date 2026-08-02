@@ -23,6 +23,7 @@ export default function AddCustomerModal({ isOpen, onClose, onSuccess, customerT
         phone: '',
         email: '',
         gender: 'Female' as 'Male' | 'Female' | 'Other',
+        dateOfBirth: '',
         preferences: ''
     });
 
@@ -33,6 +34,7 @@ export default function AddCustomerModal({ isOpen, onClose, onSuccess, customerT
                 phone: customerToEdit.phone,
                 email: customerToEdit.email || '',
                 gender: customerToEdit.gender || 'Female',
+                dateOfBirth: customerToEdit.dateOfBirth || '',
                 preferences: customerToEdit.preferences || ''
             });
         } else {
@@ -41,6 +43,7 @@ export default function AddCustomerModal({ isOpen, onClose, onSuccess, customerT
                 phone: '',
                 email: '',
                 gender: 'Female',
+                dateOfBirth: '',
                 preferences: ''
             });
         }
@@ -96,6 +99,15 @@ export default function AddCustomerModal({ isOpen, onClose, onSuccess, customerT
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="e.g. jane@example.com"
+                />
+
+                <Input
+                    label={customerToEdit ? 'Date of Birth' : 'Date of Birth *'}
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    max={new Date().toISOString().slice(0, 10)}
+                    required={!customerToEdit}
                 />
 
                 <div>

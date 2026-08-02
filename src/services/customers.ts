@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { Customer } from '@/lib/types';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
+import { isValidDateOfBirth } from '@/lib/birthday';
 
 export const customersService = {
     async searchCustomers(searchQuery: string) {
@@ -150,11 +150,24 @@ export const customersService = {
         email?: string;
         gender?: 'Male' | 'Female' | 'Other';
         preferences?: string;
+        dateOfBirth: string;
     }) {
+        if (!isValidDateOfBirth(customer.dateOfBirth)) {
+            throw new Error('Enter a valid date of birth that is not in the future');
+        }
+
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('customers')
-            .insert({ ...customer, organization_id: organizationId })
+            .insert({
+                name: customer.name,
+                phone: customer.phone,
+                email: customer.email || null,
+                gender: customer.gender || null,
+                preferences: customer.preferences || null,
+                date_of_birth: customer.dateOfBirth,
+                organization_id: organizationId,
+            })
             .select()
             .single();
 
@@ -165,11 +178,29 @@ export const customersService = {
     /**
      * Update customer information
      */
-    async updateCustomer(id: string, updates: Partial<Customer>) {
+    async updateCustomer(id: string, updates: {
+        name?: string;
+        phone?: string;
+        email?: string;
+        gender?: 'Male' | 'Female' | 'Other';
+        preferences?: string;
+        dateOfBirth?: string;
+    }) {
+        if (updates.dateOfBirth && !isValidDateOfBirth(updates.dateOfBirth)) {
+            throw new Error('Enter a valid date of birth that is not in the future');
+        }
+
         const organizationId = await getCurrentOrganizationId();
+        const rowUpdates: Record<string, string | null | undefined> = {};
+        if ('name' in updates) rowUpdates.name = updates.name;
+        if ('phone' in updates) rowUpdates.phone = updates.phone;
+        if ('email' in updates) rowUpdates.email = updates.email || null;
+        if ('gender' in updates) rowUpdates.gender = updates.gender;
+        if ('preferences' in updates) rowUpdates.preferences = updates.preferences || null;
+        if ('dateOfBirth' in updates) rowUpdates.date_of_birth = updates.dateOfBirth || null;
         const { data, error } = await supabase
             .from('customers')
-            .update(updates)
+            .update(rowUpdates)
             .eq('id', id)
             .eq('organization_id', organizationId)
             .select()

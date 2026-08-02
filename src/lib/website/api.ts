@@ -2,6 +2,7 @@
 // Direct Supabase queries for public booking functionality
 
 import { supabase, DbService, DbStaff, DbStylistBreak, DbStylistUnavailability, DbSalonSettings } from './supabase';
+import { isValidDateOfBirth } from '../birthday';
 
 // Organization scope — all queries are filtered to this org
 const ORG_ID = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? '';
@@ -82,6 +83,7 @@ export interface BookingRequest {
         phone: string;
         email?: string;
         gender?: 'Male' | 'Female' | 'Other';
+        date_of_birth: string;
     };
     appointment: {
         service_id: string;
@@ -642,6 +644,10 @@ export async function createRandomBooking(
     service: { name: string; duration: number; price: number };
     stylist: { name: string };
 }> {
+    if (!isValidDateOfBirth(booking.customer.date_of_birth)) {
+        throw new Error('Enter a valid date of birth that is not in the future');
+    }
+
     const client = authClient || supabase;
 
     // 1. Get service details
@@ -723,6 +729,7 @@ export async function createRandomBooking(
         await client.from('customers').update({
             name: booking.customer.name,
             email: booking.customer.email || undefined,
+            date_of_birth: booking.customer.date_of_birth,
         }).eq('id', customerId);
     } else {
         const { data: newCustomer, error: customerError } = await client
@@ -732,6 +739,7 @@ export async function createRandomBooking(
                 phone: booking.customer.phone,
                 email: booking.customer.email || null,
                 gender: booking.customer.gender || null,
+                date_of_birth: booking.customer.date_of_birth,
                 is_active: true,
                 organization_id: ORG_ID || organizationId,
             })

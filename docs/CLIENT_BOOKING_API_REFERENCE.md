@@ -227,7 +227,8 @@ Creates a new appointment booking.
     "name": "John Doe",
     "phone": "+94771234567",
     "email": "john@example.com",
-    "gender": "Male"
+    "gender": "Male",
+    "date_of_birth": "1990-05-12"
   },
   "appointment": {
     "service_id": "service-uuid",
@@ -251,7 +252,8 @@ const response = await fetch(`${API_BASE_URL}/book`, {
       name: customerName,
       phone: customerPhone,
       email: customerEmail,
-      gender: customerGender
+      gender: customerGender,
+      date_of_birth: customerDateOfBirth
     },
     appointment: {
       service_id: selectedServiceId,
@@ -522,6 +524,12 @@ export default function BookingPage() {
             value={customerInfo.email}
             onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
           />
+          <input
+            type="date"
+            value={customerInfo.dateOfBirth}
+            onChange={(e) => setCustomerInfo({...customerInfo, dateOfBirth: e.target.value})}
+            required
+          />
           <select 
             value={customerInfo.gender}
             onChange={(e) => setCustomerInfo({...customerInfo, gender: e.target.value})}
@@ -586,6 +594,7 @@ CREATE TABLE customers (
   phone TEXT UNIQUE NOT NULL,
   email TEXT,
   gender TEXT CHECK (gender IN ('Male', 'Female', 'Other')),
+  date_of_birth DATE,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );

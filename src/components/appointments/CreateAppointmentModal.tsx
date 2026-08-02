@@ -41,6 +41,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
         customerPhone: '',
         customerEmail: '',
         customerGender: 'Female' as 'Male' | 'Female' | 'Other',
+        customerDateOfBirth: '',
         customerPreferences: '',
         date: '',
         notes: '',
@@ -84,6 +85,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         customerName: customer.name || '',
                         customerEmail: customer.email || '',
                         customerGender: customer.gender || 'Female',
+                        customerDateOfBirth: customer.date_of_birth || '',
                         customerPreferences: customer.preferences || '',
                     }));
                     setIsCustomerLocked(true);
@@ -134,6 +136,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
             customerPhone: '',
             customerEmail: '',
             customerGender: 'Female',
+            customerDateOfBirth: '',
             customerPreferences: '',
             date: '',
             notes: '',
@@ -191,6 +194,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                     phone: formData.customerPhone,
                     email: formData.customerEmail || undefined,
                     gender: formData.customerGender,
+                    dateOfBirth: formData.customerDateOfBirth,
                     preferences: formData.customerPreferences || undefined,
                 });
             }
@@ -316,6 +320,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                                             customerName: '',
                                             customerEmail: '',
                                             customerGender: 'Female',
+                                            customerDateOfBirth: '',
                                             customerPreferences: '',
                                         }));
                                     }
@@ -393,6 +398,16 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                             value={formData.customerEmail}
                             onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                             placeholder="customer@email.com"
+                            disabled={isCustomerLocked}
+                            className={isCustomerLocked ? '!border-emerald-500 dark:!border-emerald-600' : ''}
+                        />
+                        <Input
+                            label={existingCustomer ? 'Date of Birth' : 'Date of Birth *'}
+                            type="date"
+                            value={formData.customerDateOfBirth}
+                            onChange={(e) => setFormData({ ...formData, customerDateOfBirth: e.target.value })}
+                            max={new Date().toISOString().split('T')[0]}
+                            required={!existingCustomer}
                             disabled={isCustomerLocked}
                             className={isCustomerLocked ? '!border-emerald-500 dark:!border-emerald-600' : ''}
                         />
@@ -544,6 +559,9 @@ export default function CreateAppointmentModal({ isOpen, onClose, onSuccess }: C
                         <p className="text-sm text-gray-600 dark:text-gray-300">{formData.customerPhone}</p>
                         {formData.customerEmail ? (
                             <p className="text-sm text-gray-600 dark:text-gray-300">{formData.customerEmail}</p>
+                        ) : null}
+                        {formData.customerDateOfBirth ? (
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Date of birth: {formatDate(formData.customerDateOfBirth)}</p>
                         ) : null}
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                             <strong>Date:</strong> {formatDate(formData.date)}

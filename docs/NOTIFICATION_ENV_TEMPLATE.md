@@ -4,11 +4,6 @@
 
 Add to your `.env.local` file:
 
-```bash
-# Resend (Email) - ACTUALLY SENDS EMAILS
-RESEND_API_KEY=re_jg5fpcmQ_3tCfhcW4gpw6vc2gD7osbNwb
-```
-
 ## That's It!
 
 ✅ **Email notifications**: Will actually send via Resend

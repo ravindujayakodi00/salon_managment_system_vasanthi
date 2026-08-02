@@ -277,6 +277,7 @@ export default function POSPage() {
         phone: string;
         email?: string;
         gender?: string;
+        dateOfBirth: string;
     }) => {
         try {
             const { data, error } = await supabase
@@ -286,6 +287,7 @@ export default function POSPage() {
                     phone: customerData.phone,
                     email: customerData.email || null,
                     gender: customerData.gender || null,
+                    date_of_birth: customerData.dateOfBirth,
                     total_visits: 0,
                     total_spent: 0,
                     organization_id: user?.organizationId,

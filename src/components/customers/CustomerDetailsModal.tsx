@@ -99,6 +99,12 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                                         <span className="font-medium text-gray-900 dark:text-white">{customer.gender || 'Not specified'}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600 dark:text-gray-400">Date of Birth</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">
+                                            {customer.dateOfBirth ? formatDate(customer.dateOfBirth) : 'Not specified'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
                                         <span className="text-gray-600 dark:text-gray-400">Member Since</span>
                                         <span className="font-medium text-gray-900 dark:text-white">{formatDate(customer.createdAt)}</span>
                                     </div>

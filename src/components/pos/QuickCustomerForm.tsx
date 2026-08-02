@@ -14,6 +14,7 @@ interface QuickCustomerFormProps {
         phone: string;
         email?: string;
         gender?: string;
+        dateOfBirth: string;
     }) => void;
     initialPhone?: string;
 }
@@ -36,6 +37,7 @@ export default function QuickCustomerForm({
         name: '',
         phone: initialPhone ? `+94${extractLocalDigits(initialPhone)}` : '',
         email: '',
+        dateOfBirth: '',
     });
 
     // Update phone when initialPhone changes
@@ -50,7 +52,7 @@ export default function QuickCustomerForm({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !isPhoneValid) {
+        if (!formData.name.trim() || !isPhoneValid || !formData.dateOfBirth) {
             return;
         }
 
@@ -58,11 +60,12 @@ export default function QuickCustomerForm({
             name: formData.name.trim(),
             phone: formData.phone.trim(),
             email: formData.email.trim() || undefined,
-            gender: 'Female'
+            gender: 'Female',
+            dateOfBirth: formData.dateOfBirth,
         });
 
         // Reset form
-        setFormData({ name: '', phone: '', email: '' });
+        setFormData({ name: '', phone: '', email: '', dateOfBirth: '' });
     };
 
     if (!isOpen) return null;
@@ -121,6 +124,15 @@ export default function QuickCustomerForm({
                         />
                     </div>
 
+                    <Input
+                        label="Date of Birth *"
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        max={new Date().toISOString().slice(0, 10)}
+                        required
+                    />
+
                     {/* Buttons */}
                     <div className="flex gap-3 pt-4">
                         <Button
@@ -135,7 +147,7 @@ export default function QuickCustomerForm({
                             type="submit"
                             variant="primary"
                             className="flex-1"
-                            disabled={!formData.name.trim() || !isPhoneValid}
+                            disabled={!formData.name.trim() || !isPhoneValid || !formData.dateOfBirth}
                         >
                             Create Customer
                         </Button>

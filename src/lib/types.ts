@@ -73,6 +73,7 @@ export interface Customer {
     phone: string;
     email?: string;
     gender?: 'Male' | 'Female' | 'Other';
+    dateOfBirth?: string;
     totalVisits: number;
     totalSpent: number;
     lastVisit?: string;

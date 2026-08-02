@@ -31,6 +31,7 @@ test.describe('Walk-in Customer Billing', () => {
         // Fill customer form
         await page.fill('input[placeholder*="customer name"]', 'Test Walk-in Customer');
         await expect(page.locator('input[type="tel"]')).toHaveValue(phoneNumber.replace(/\D/g, ''));
+        await page.locator('input[type="date"]').fill('1990-05-12');
 
         // Verify phone validation
         await expect(page.locator('svg[class*="text-success"]')).toBeVisible(); // Green check
