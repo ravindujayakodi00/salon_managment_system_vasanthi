@@ -56,6 +56,19 @@ export function formatDate(dateString: string): string {
     });
 }
 
+export function formatDaysSinceLastVisit(lastVisit?: string | null, today = new Date()): string {
+    if (!lastVisit) return 'Never';
+
+    const visitDate = new Date(lastVisit);
+    if (Number.isNaN(visitDate.getTime())) return 'Never';
+
+    const visitDay = Date.UTC(visitDate.getFullYear(), visitDate.getMonth(), visitDate.getDate());
+    const currentDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const days = Math.max(0, Math.floor((currentDay - visitDay) / 86400000));
+
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 export function formatTime(timeString: string): string {
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);

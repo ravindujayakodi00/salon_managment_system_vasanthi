@@ -1,6 +1,39 @@
 import { supabase } from '@/lib/supabase';
-import { Customer } from '@/lib/types';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
+import { isValidDateOfBirth } from '@/lib/birthday';
+
+interface CustomerInvoiceStats {
+    customer_id: string;
+    total_visits: number | string;
+    last_visit: string | null;
+    last_services: string | null;
+}
+
+async function withInvoiceVisitStats(customers: any[], organizationId: string) {
+    if (customers.length === 0) return customers;
+
+    const customerIds = [...new Set(customers.map(customer => customer.id))];
+    const { data, error } = await supabase.rpc('get_customer_invoice_stats', {
+        p_organization_id: organizationId,
+        p_customer_ids: customerIds,
+    });
+
+    if (error) throw error;
+
+    const statsByCustomer = new Map<string, CustomerInvoiceStats>(
+        ((data || []) as CustomerInvoiceStats[]).map(stats => [stats.customer_id, stats])
+    );
+
+    return customers.map(customer => {
+        const stats = statsByCustomer.get(customer.id);
+        return {
+            ...customer,
+            total_visits: stats ? Number(stats.total_visits) : 0,
+            last_visit: stats?.last_visit || null,
+            last_services: stats?.last_services || 'None',
+        };
+    });
+}
 
 export const customersService = {
     async searchCustomers(searchQuery: string) {
@@ -47,13 +80,7 @@ export const customersService = {
             // Build query
             let query = supabase
                 .from('customers')
-                .select(`
-                    *,
-                    invoices (
-                        total,
-                        created_at
-                    )
-                `)
+                .select('*')
                 .eq('organization_id', organizationId);
 
             // Add search conditions
@@ -74,13 +101,7 @@ export const customersService = {
                 throw error;
             }
 
-            // Process data to get only the last invoice
-            return data?.map(customer => ({
-                ...customer,
-                last_invoice: customer.invoices?.sort((a: any, b: any) =>
-                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                )[0]
-            })) || [];
+            return withInvoiceVisitStats(data || [], organizationId);
         } catch (error) {
             console.error('Error in searchCustomers:', error);
             return [];
@@ -103,7 +124,8 @@ export const customersService = {
             .range(from, to);
 
         if (error) throw error;
-        return { data, count };
+        const customers = await withInvoiceVisitStats(data || [], organizationId);
+        return { data: customers, count };
     },
 
     /**
@@ -150,11 +172,24 @@ export const customersService = {
         email?: string;
         gender?: 'Male' | 'Female' | 'Other';
         preferences?: string;
+        dateOfBirth: string;
     }) {
+        if (!isValidDateOfBirth(customer.dateOfBirth)) {
+            throw new Error('Enter a valid date of birth that is not in the future');
+        }
+
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
             .from('customers')
-            .insert({ ...customer, organization_id: organizationId })
+            .insert({
+                name: customer.name,
+                phone: customer.phone,
+                email: customer.email || null,
+                gender: customer.gender || null,
+                preferences: customer.preferences || null,
+                date_of_birth: customer.dateOfBirth,
+                organization_id: organizationId,
+            })
             .select()
             .single();
 
@@ -165,11 +200,29 @@ export const customersService = {
     /**
      * Update customer information
      */
-    async updateCustomer(id: string, updates: Partial<Customer>) {
+    async updateCustomer(id: string, updates: {
+        name?: string;
+        phone?: string;
+        email?: string;
+        gender?: 'Male' | 'Female' | 'Other';
+        preferences?: string;
+        dateOfBirth?: string;
+    }) {
+        if (updates.dateOfBirth && !isValidDateOfBirth(updates.dateOfBirth)) {
+            throw new Error('Enter a valid date of birth that is not in the future');
+        }
+
         const organizationId = await getCurrentOrganizationId();
+        const rowUpdates: Record<string, string | null | undefined> = {};
+        if ('name' in updates) rowUpdates.name = updates.name;
+        if ('phone' in updates) rowUpdates.phone = updates.phone;
+        if ('email' in updates) rowUpdates.email = updates.email || null;
+        if ('gender' in updates) rowUpdates.gender = updates.gender;
+        if ('preferences' in updates) rowUpdates.preferences = updates.preferences || null;
+        if ('dateOfBirth' in updates) rowUpdates.date_of_birth = updates.dateOfBirth || null;
         const { data, error } = await supabase
             .from('customers')
-            .update(updates)
+            .update(rowUpdates)
             .eq('id', id)
             .eq('organization_id', organizationId)
             .select()

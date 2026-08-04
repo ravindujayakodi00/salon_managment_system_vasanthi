@@ -9,7 +9,7 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import AddCustomerModal from '@/components/customers/AddCustomerModal';
 import CustomerDetailsModal from '@/components/customers/CustomerDetailsModal';
 import { Customer } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDaysSinceLastVisit } from '@/lib/utils';
 import { customersService } from '@/services/customers';
 import { useToast } from '@/context/ToastContext';
 
@@ -43,9 +43,11 @@ export default function CustomersPage() {
         phone: c.phone,
         email: c.email,
         gender: c.gender,
+        dateOfBirth: c.date_of_birth,
         totalVisits: c.total_visits || 0,
         totalSpent: c.total_spent || 0,
         lastVisit: c.last_visit,
+        lastServices: c.last_services || 'None',
         createdAt: c.created_at,
         preferences: c.preferences
     });
@@ -216,7 +218,7 @@ export default function CustomersPage() {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
                                         <div>
                                             <p className="text-xs text-gray-500 dark:text-gray-500">Total Visits</p>
                                             <p className="text-sm font-semibold text-gray-900 dark:text-white">{customer.totalVisits}</p>
@@ -231,6 +233,18 @@ export default function CustomersPage() {
                                             <p className="text-xs text-gray-500 dark:text-gray-500">Last Visit</p>
                                             <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                                 {customer.lastVisit ? formatDate(customer.lastVisit) : 'Never'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-500">Days Since Last Visit</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                {formatDaysSinceLastVisit(customer.lastVisit)}
+                                            </p>
+                                        </div>
+                                        <div className="sm:col-span-2 xl:col-span-4">
+                                            <p className="text-xs text-gray-500 dark:text-gray-500">Last Services</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                {customer.lastServices || 'None'}
                                             </p>
                                         </div>
                                     </div>

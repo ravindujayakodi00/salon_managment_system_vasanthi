@@ -70,6 +70,7 @@ test.describe('Admin CRUD', () => {
         await expect(page.getByRole('heading', { name: 'Add New Customer' })).toBeVisible();
         await page.getByLabel('Full Name').fill(name);
         await page.locator('input[type="tel"]').fill(digits);
+        await page.locator('input[type="date"]').fill('1990-05-12');
         await page.locator('button[type="submit"]').filter({ hasText: 'Create Customer' }).click();
         await expect(page.getByRole('heading', { name: 'Add New Customer' })).toBeHidden({ timeout: 20000 });
         await expect(page.locator('.card').filter({ hasText: name }).first()).toBeVisible();

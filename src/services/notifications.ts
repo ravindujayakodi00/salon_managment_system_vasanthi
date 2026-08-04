@@ -6,7 +6,7 @@ import { SALON_NAME } from '@/config/salon';
 interface NotificationTemplate {
     id: string;
     name: string;
-    type: 'appointment_confirmation' | 'appointment_reminder' | 'appointment_cancellation' | 'promotional';
+    type: 'appointment_confirmation' | 'appointment_reminder' | 'appointment_cancellation' | 'promotional' | 'birthday';
     channel: 'sms' | 'email' | 'whatsapp' | 'both';
     subject?: string;
     message: string;

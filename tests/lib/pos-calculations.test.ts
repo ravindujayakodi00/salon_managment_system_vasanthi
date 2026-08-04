@@ -104,9 +104,9 @@ describe('POS calculations', () => {
         it('isSplitPaymentBalanced accepts exact half / half', () => {
             expect(
                 isSplitPaymentBalanced(200, [
-                    { method: 'Cash', amount: 100 },
-                    { method: 'Card', amount: 100 },
-                ] as { amount: number }[])
+                    { amount: 100 },
+                    { amount: 100 },
+                ])
             ).toBe(true);
         });
 

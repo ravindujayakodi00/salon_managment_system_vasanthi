@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test';
 import { expectedNavHrefsForRole } from '@/lib/admin-nav';
 import { adminHref } from '@/lib/admin-paths';
-import type { UserRole } from '@/lib/types';
+import type { SystemRole } from '@/lib/types';
 import { loginToAdminDashboard, ADMIN_LOGIN_TIMEOUT_MS } from './helpers/admin-auth';
 
 const PUBLIC_SECTION_IDS = ['home', 'services', 'gallery', 'testimonials', 'contact'];
@@ -55,8 +55,9 @@ test.describe('Admin inventory (authenticated)', () => {
     });
 
     test('sidebar footer shows role and nav matches TEST_USER_ROLE when set', async ({ page }) => {
-        const declared = process.env.TEST_USER_ROLE as UserRole | undefined;
+        const declared = process.env.TEST_USER_ROLE as SystemRole | undefined;
         test.skip(!declared, 'Set TEST_USER_ROLE to match the logged-in user (e.g. Owner, Manager)');
+        if (!declared) return;
 
         await page.goto('/admin/dashboard');
         const footer = page.locator('aside').getByText(/v1\.0\.0/);
@@ -77,8 +78,9 @@ test.describe('Admin inventory (authenticated)', () => {
     });
 
     test('each sidebar route for TEST_USER_ROLE loads (plus campaigns/new)', async ({ page }) => {
-        const role = process.env.TEST_USER_ROLE as UserRole | undefined;
+        const role = process.env.TEST_USER_ROLE as SystemRole | undefined;
         test.skip(!role, 'Set TEST_USER_ROLE to match the logged-in user');
+        if (!role) return;
 
         const paths = [...expectedNavHrefsForRole(role), adminHref('/campaigns/new')];
         const unique = [...new Set(paths)];
@@ -91,8 +93,9 @@ test.describe('Admin inventory (authenticated)', () => {
     });
 
     test('Settings tabs visibility matches TEST_USER_ROLE', async ({ page }) => {
-        const role = process.env.TEST_USER_ROLE as UserRole | undefined;
+        const role = process.env.TEST_USER_ROLE as SystemRole | undefined;
         test.skip(!role, 'Set TEST_USER_ROLE to assert settings tabs');
+        if (!role) return;
 
         await page.goto('/admin/settings');
         await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
