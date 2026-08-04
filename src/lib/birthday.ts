@@ -1,7 +1,15 @@
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const DEFAULT_BIRTHDAY_MESSAGE =
-    'Happy Birthday {customer_name}! This is a test birthday message from {salon_name}.';
+    `Dear {customer_name},
+Wishing you a beautiful birthday and a year ahead filled with grace and joy.
+
+To celebrate you, enjoy 15% OFF on any service at Vasanthi Gulasekharam Salon.
+Celebrate yourself with a little extra radiance.
+
+Valid from your birthday for 30 days.
+Book your appointment: https://wa.me/94776300577
+T&Cs apply.`;
 
 export function isValidDateOfBirth(value: string, today = new Date().toISOString().slice(0, 10)): boolean {
     if (!ISO_DATE_PATTERN.test(value) || value > today) return false;

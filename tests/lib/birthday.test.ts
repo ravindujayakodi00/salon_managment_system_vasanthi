@@ -16,7 +16,15 @@ describe('birthday helpers', () => {
 
     it('renders the editable birthday template variables', () => {
         expect(renderBirthdayMessage(DEFAULT_BIRTHDAY_MESSAGE, 'Nimali', 'Vasanthi Salon'))
-            .toBe('Happy Birthday Nimali! This is a test birthday message from Vasanthi Salon.');
+            .toBe(`Dear Nimali,
+Wishing you a beautiful birthday and a year ahead filled with grace and joy.
+
+To celebrate you, enjoy 15% OFF on any service at Vasanthi Gulasekharam Salon.
+Celebrate yourself with a little extra radiance.
+
+Valid from your birthday for 30 days.
+Book your appointment: https://wa.me/94776300577
+T&Cs apply.`);
     });
 
     it('calculates the organization-local date', () => {

@@ -128,7 +128,15 @@ SELECT
     'birthday',
     'sms',
     'Happy Birthday',
-    'Happy Birthday {customer_name}! This is a test birthday message from {salon_name}.',
+    $birthday_message$Dear {customer_name},
+Wishing you a beautiful birthday and a year ahead filled with grace and joy.
+
+To celebrate you, enjoy 15% OFF on any service at Vasanthi Gulasekharam Salon.
+Celebrate yourself with a little extra radiance.
+
+Valid from your birthday for 30 days.
+Book your appointment: https://wa.me/94776300577
+T&Cs apply.$birthday_message$,
     true,
     o.id
 FROM public.organizations o
