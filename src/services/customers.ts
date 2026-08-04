@@ -2,6 +2,13 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 import { isValidDateOfBirth } from '@/lib/birthday';
 
+interface CustomerInvoiceStats {
+    customer_id: string;
+    total_visits: number | string;
+    last_visit: string | null;
+    last_services: string | null;
+}
+
 async function withInvoiceVisitStats(customers: any[], organizationId: string) {
     if (customers.length === 0) return customers;
 
@@ -13,8 +20,8 @@ async function withInvoiceVisitStats(customers: any[], organizationId: string) {
 
     if (error) throw error;
 
-    const statsByCustomer = new Map(
-        (data || []).map(stats => [stats.customer_id, stats])
+    const statsByCustomer = new Map<string, CustomerInvoiceStats>(
+        ((data || []) as CustomerInvoiceStats[]).map(stats => [stats.customer_id, stats])
     );
 
     return customers.map(customer => {
