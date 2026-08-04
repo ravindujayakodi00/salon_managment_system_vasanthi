@@ -2,6 +2,32 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 import { isValidDateOfBirth } from '@/lib/birthday';
 
+async function withInvoiceVisitStats(customers: any[], organizationId: string) {
+    if (customers.length === 0) return customers;
+
+    const customerIds = [...new Set(customers.map(customer => customer.id))];
+    const { data, error } = await supabase.rpc('get_customer_invoice_stats', {
+        p_organization_id: organizationId,
+        p_customer_ids: customerIds,
+    });
+
+    if (error) throw error;
+
+    const statsByCustomer = new Map(
+        (data || []).map(stats => [stats.customer_id, stats])
+    );
+
+    return customers.map(customer => {
+        const stats = statsByCustomer.get(customer.id);
+        return {
+            ...customer,
+            total_visits: stats ? Number(stats.total_visits) : 0,
+            last_visit: stats?.last_visit || null,
+            last_services: stats?.last_services || 'None',
+        };
+    });
+}
+
 export const customersService = {
     async searchCustomers(searchQuery: string) {
         if (!searchQuery || searchQuery.trim() === '') {
@@ -47,13 +73,7 @@ export const customersService = {
             // Build query
             let query = supabase
                 .from('customers')
-                .select(`
-                    *,
-                    invoices (
-                        total,
-                        created_at
-                    )
-                `)
+                .select('*')
                 .eq('organization_id', organizationId);
 
             // Add search conditions
@@ -74,13 +94,7 @@ export const customersService = {
                 throw error;
             }
 
-            // Process data to get only the last invoice
-            return data?.map(customer => ({
-                ...customer,
-                last_invoice: customer.invoices?.sort((a: any, b: any) =>
-                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                )[0]
-            })) || [];
+            return withInvoiceVisitStats(data || [], organizationId);
         } catch (error) {
             console.error('Error in searchCustomers:', error);
             return [];
@@ -103,7 +117,8 @@ export const customersService = {
             .range(from, to);
 
         if (error) throw error;
-        return { data, count };
+        const customers = await withInvoiceVisitStats(data || [], organizationId);
+        return { data: customers, count };
     },
 
     /**

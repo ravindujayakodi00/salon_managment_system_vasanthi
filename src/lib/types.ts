@@ -77,6 +77,7 @@ export interface Customer {
     totalVisits: number;
     totalSpent: number;
     lastVisit?: string;
+    lastServices?: string;
     preferences?: string;
     createdAt: string;
 }

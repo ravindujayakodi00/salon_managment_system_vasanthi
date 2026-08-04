@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { X, Calendar, DollarSign, Clock, Phone, Mail, User } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import { Customer } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDaysSinceLastVisit } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface CustomerDetailsModalProps {
@@ -112,6 +112,18 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                                         <span className="text-gray-600 dark:text-gray-400">Last Visit</span>
                                         <span className="font-medium text-gray-900 dark:text-white">
                                             {customer.lastVisit ? formatDate(customer.lastVisit) : 'Never'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600 dark:text-gray-400">Days Since Last Visit</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">
+                                            {formatDaysSinceLastVisit(customer.lastVisit)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between gap-4 text-sm">
+                                        <span className="text-gray-600 dark:text-gray-400">Last Services</span>
+                                        <span className="text-right font-medium text-gray-900 dark:text-white">
+                                            {customer.lastServices || 'None'}
                                         </span>
                                     </div>
                                 </div>
