@@ -29,6 +29,8 @@ export default function ExpensesPage() {
     const [activeTab, setActiveTab] = useState<Tab>('expenses');
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState<PettyCashTransaction[]>([]);
+    const [totalWithdrawals, setTotalWithdrawals] = useState(0);
+    const [withdrawalCount, setWithdrawalCount] = useState(0);
     const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -81,12 +83,14 @@ export default function ExpensesPage() {
         try {
             setLoading(true);
             const entryType = activeTab === 'expenses' ? 'expense' : 'petty_cash';
-            const [currentBalance, { data: txns }, categories] = await Promise.all([
-                pettyCashService.getCurrentBalance(effectiveBranchId),
+            const [{ data: txns }, categories, summary] = await Promise.all([
                 pettyCashService.getTransactions(0, 200, entryType, effectiveBranchId, dateRange.start, dateRange.end),
                 activeTab === 'expenses' ? pettyCashService.getExpenseCategories() : Promise.resolve([]),
+                pettyCashService.getSummary(dateRange.start, dateRange.end, effectiveBranchId, entryType),
             ]);
-            setBalance(currentBalance);
+            setBalance(summary.currentBalance);
+            setTotalWithdrawals(summary.totalWithdrawals);
+            setWithdrawalCount(summary.withdrawalCount);
             setTransactions(txns);
             if (categories.length) setExpenseCategories(categories);
         } catch (error) {
@@ -266,10 +270,6 @@ export default function ExpensesPage() {
         setDateRange(prev => ({ ...prev, [field]: value }));
     };
 
-    const totalExpenses = transactions
-        .filter(t => t.type === 'withdrawal')
-        .reduce((sum, t) => sum + t.amount, 0);
-
     const formatCurrency = (amount: number) => `Rs ${amount.toLocaleString()}`;
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -353,9 +353,9 @@ export default function ExpensesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalExpenses)}</h3>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalWithdrawals)}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-                                {transactions.filter(t => t.type === 'withdrawal').length} records in period
+                                {withdrawalCount} records in period
                             </p>
                         </div>
                         <ArrowDownCircle className="h-10 w-10 text-red-500 opacity-70" />

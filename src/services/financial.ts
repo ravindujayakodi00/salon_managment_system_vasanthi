@@ -18,6 +18,11 @@ export interface StylistFinancialRow {
     }>;
 }
 
+interface StylistFinancialTotalsRow {
+    commission_sum: number | string;
+    advances_sum: number | string;
+}
+
 function parseISODateLocal(dateStr: string): Date {
     const [y, m, d] = dateStr.split('-').map((v) => Number(v));
     return new Date(y, m - 1, d);
@@ -201,16 +206,26 @@ export const financialService = {
             };
         });
 
-        const totals = rows.reduce(
-            (acc, r) => {
-                acc.initial_salary += r.initial_salary;
-                acc.commission_sum += r.commission_sum;
-                acc.advances_sum += r.advances_sum;
-                acc.available_for_advance += r.available_for_advance;
-                return acc;
-            },
-            { initial_salary: 0, commission_sum: 0, advances_sum: 0, available_for_advance: 0 }
-        );
+        const { data: aggregateData, error: aggregateError } = await supabase
+            .rpc('get_stylist_financial_totals', {
+                p_organization_id: organizationId,
+                p_start_date: startDate,
+                p_end_date: endDate,
+                p_staff_ids: staffIds,
+            })
+            .single();
+        if (aggregateError) throw aggregateError;
+
+        const aggregateRow = aggregateData as StylistFinancialTotalsRow | null;
+        const initialSalary = rows.reduce((sum, row) => sum + row.initial_salary, 0);
+        const commissionSum = Number(aggregateRow?.commission_sum || 0);
+        const advancesSum = Number(aggregateRow?.advances_sum || 0);
+        const totals = {
+            initial_salary: initialSalary,
+            commission_sum: commissionSum,
+            advances_sum: advancesSum,
+            available_for_advance: initialSalary + commissionSum - advancesSum,
+        };
 
         return { rows, totals };
     },
@@ -249,4 +264,3 @@ export const financialService = {
         return data;
     },
 };
-

@@ -5,9 +5,9 @@ import { DollarSign, TrendingUp, Calendar, TrendingDown, Banknote } from 'lucide
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
 import { earningsService } from '@/services/earnings';
+import { pettyCashService } from '@/services/petty-cash';
 import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { getCurrentOrganizationId } from '@/lib/org-scope';
 
 function localDateStr(d: Date) {
     const y = d.getFullYear();
@@ -57,6 +57,13 @@ export default function EarningsPage() {
     const [loading, setLoading] = useState(true);
     const [earnings, setEarnings] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>(null);
+    const [ownerTotals, setOwnerTotals] = useState({
+        total_revenue: 0,
+        total_commission: 0,
+        total_salary: 0,
+        total_earnings: 0,
+        appointments_count: 0,
+    });
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [activePreset, setActivePreset] = useState<string | null>('This Month');
     const [dateRange, setDateRange] = useState({
@@ -98,12 +105,11 @@ export default function EarningsPage() {
                     return;
                 }
 
-                const staffData = await earningsService.getStaffEarnings(staffRow.id, dateRange.start, dateRange.end);
+                const [staffData, totals] = await Promise.all([
+                    earningsService.getStaffEarnings(staffRow.id, dateRange.start, dateRange.end),
+                    earningsService.getEarningsTotals(dateRange.start, dateRange.end, null, staffRow.id),
+                ]);
                 setEarnings(staffData || []);
-
-                const total_revenue = staffData?.reduce((sum: number, e: any) => sum + (e.service_revenue || 0), 0) || 0;
-                const total_commission = staffData?.reduce((sum: number, e: any) => sum + (e.commission_amount || 0), 0) || 0;
-                const appointments_count = staffData?.reduce((sum: number, e: any) => sum + (e.appointments_count || 0), 0) || 0;
 
                 // Calculate salary from staff.salary (monthly) for the selected date range
                 const monthlySalary = Number(staffRow.salary || 0);
@@ -115,31 +121,30 @@ export default function EarningsPage() {
                     (endD.getMonth() - startD.getMonth()) + 1
                 );
                 const total_salary = monthlySalary * monthsSpanned;
-                const total_earnings = total_commission + total_salary;
-                setSummary({ total_revenue, total_earnings, total_commission, total_salary, appointments_count });
+                const total_earnings = totals.totalCommission + total_salary;
+                setSummary({
+                    total_revenue: totals.totalRevenue,
+                    total_earnings,
+                    total_commission: totals.totalCommission,
+                    total_salary,
+                    appointments_count: totals.appointmentsCount,
+                });
             } else if (isOwner) {
-                const summaryData = await earningsService.getEarningsSummaryByStaff(dateRange.start, dateRange.end, effectiveBranchId);
+                const [summaryData, totals, expenseSummary] = await Promise.all([
+                    earningsService.getEarningsSummaryByStaff(dateRange.start, dateRange.end, effectiveBranchId),
+                    earningsService.getEarningsTotals(dateRange.start, dateRange.end, effectiveBranchId),
+                    pettyCashService.getSummary(dateRange.start, dateRange.end, effectiveBranchId, 'expense'),
+                ]);
                 setEarnings(summaryData || []);
-            }
-
-            // Fetch total expenses for the period (owner view only)
-            if (isOwner) {
-                try {
-                    const organizationId = await getCurrentOrganizationId();
-                    let expenseQuery = supabase
-                        .from('petty_cash_transactions')
-                        .select('amount')
-                        .eq('organization_id', organizationId)
-                        .eq('entry_type', 'expense')
-                        .gte('created_at', `${dateRange.start}T00:00:00`)
-                        .lte('created_at', `${dateRange.end}T23:59:59`);
-                    if (effectiveBranchId) expenseQuery = expenseQuery.eq('branch_id', effectiveBranchId);
-                    const { data: expenseRows } = await expenseQuery;
-                    const expenseTotal = (expenseRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
-                    setTotalExpenses(expenseTotal);
-                } catch {
-                    setTotalExpenses(0);
-                }
+                const totalSalary = (summaryData || []).reduce((sum, row) => sum + Number(row.total_salary || 0), 0);
+                setOwnerTotals({
+                    total_revenue: totals.totalRevenue,
+                    total_commission: totals.totalCommission,
+                    total_salary: totalSalary,
+                    total_earnings: totals.totalCommission + totalSalary,
+                    appointments_count: totals.appointmentsCount,
+                });
+                setTotalExpenses(expenseSummary.totalWithdrawals);
             }
         } catch (error) {
             console.error('Error fetching earnings:', error);
@@ -158,16 +163,7 @@ export default function EarningsPage() {
         setDateRange(prev => ({ ...prev, [field]: value }));
     };
 
-    // Totals derived from the loaded earnings data — always equals the sum of the table columns
-    const ownerTotals = isOwner ? {
-        total_revenue: earnings.reduce((sum, e) => sum + (e.total_revenue || 0), 0),
-        total_commission: earnings.reduce((sum, e) => sum + (e.total_commission || 0), 0),
-        total_salary: earnings.reduce((sum, e) => sum + (e.total_salary || 0), 0),
-        total_earnings: earnings.reduce((sum, e) => sum + (e.total_earnings || 0), 0),
-        appointments_count: earnings.reduce((sum, e) => sum + (e.appointments_count || 0), 0),
-    } : null;
-
-    const ownerProfit = (ownerTotals?.total_revenue || 0) - totalExpenses;
+    const ownerProfit = ownerTotals.total_revenue - totalExpenses;
 
     const renderOwnerSummaryCards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

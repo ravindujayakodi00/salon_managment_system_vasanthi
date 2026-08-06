@@ -25,6 +25,18 @@ export interface DailyEarning {
     appointments_count: number;
 }
 
+export interface EarningsTotals {
+    totalRevenue: number;
+    totalCommission: number;
+    appointmentsCount: number;
+}
+
+interface EarningsTotalsRow {
+    total_revenue: number | string;
+    total_commission: number | string;
+    appointments_count: number | string;
+}
+
 function groupByDate(rows: StaffEarningRow[]): DailyEarning[] {
     const map = new Map<string, DailyEarning>();
     for (const r of rows) {
@@ -240,6 +252,32 @@ export const earningsService = {
             console.error('Error fetching staff earnings:', error);
             throw error;
         }
+    },
+
+    async getEarningsTotals(
+        startDate: string,
+        endDate: string,
+        branchId?: string | null,
+        staffId?: string | null
+    ): Promise<EarningsTotals> {
+        const organizationId = await getCurrentOrganizationId();
+        const { data, error } = await supabase
+            .rpc('get_staff_earnings_totals', {
+                p_organization_id: organizationId,
+                p_start_date: startDate,
+                p_end_date: endDate,
+                p_branch_id: branchId || null,
+                p_staff_id: staffId || null,
+            })
+            .single();
+
+        if (error) throw error;
+        const row = data as EarningsTotalsRow | null;
+        return {
+            totalRevenue: Number(row?.total_revenue || 0),
+            totalCommission: Number(row?.total_commission || 0),
+            appointmentsCount: Number(row?.appointments_count || 0),
+        };
     },
 
     /**

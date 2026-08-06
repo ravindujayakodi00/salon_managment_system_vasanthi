@@ -7,6 +7,7 @@ import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import Modal from '@/components/shared/Modal';
 import { useAuth } from '@/lib/auth';
+import { useWorkspace } from '@/lib/workspace';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { financialService, type StylistFinancialRow } from '@/services/financial';
@@ -31,6 +32,7 @@ function getLastDayOfMonthISO() {
 
 export default function FinancialPage() {
     const { user } = useAuth();
+    const { effectiveBranchId } = useWorkspace();
     const { showToast } = useToast();
 
     const [dateRange, setDateRange] = useState({
@@ -64,7 +66,7 @@ export default function FinancialPage() {
             const res = await financialService.getStylistsFinancials({
                 startDate: dateRange.start,
                 endDate: dateRange.end,
-                branchId: user.branchId || null,
+                branchId: effectiveBranchId || null,
                 requesterId: user.id,
                 requesterRole: user.systemRole,
             });
@@ -82,7 +84,7 @@ export default function FinancialPage() {
 
     useEffect(() => {
         fetchFinancials();
-    }, [dateRange.start, dateRange.end, user?.id, user?.systemRole, user?.branchId]);
+    }, [dateRange.start, dateRange.end, effectiveBranchId, user?.id, user?.systemRole]);
 
     const selectedRow = useMemo(() => rows.find((r) => r.staff_id === advanceStaffId) || null, [rows, advanceStaffId]);
 
@@ -344,4 +346,3 @@ export default function FinancialPage() {
         </div>
     );
 }
-

@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { Receipt, Banknote, CreditCard, Building, ChevronDown, Printer, Pencil, Trash2, Plus, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useWorkspace } from '@/lib/workspace';
-import { invoicesService } from '@/services/invoices';
+import { invoicesService, type InvoiceSummary } from '@/services/invoices';
 import { formatCurrency } from '@/lib/utils';
-import { calculatePaymentTotals } from '@/lib/payment-utils';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import Modal from '@/components/shared/Modal';
 import Button from '@/components/shared/Button';
@@ -45,6 +44,13 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [invoices, setInvoices] = useState<any[]>([]);
+    const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary>({
+        totalRevenue: 0,
+        totalCash: 0,
+        totalCard: 0,
+        totalBankTransfer: 0,
+        transactionCount: 0,
+    });
     const [totalCount, setTotalCount] = useState(0);
     const [page, setPage] = useState(0);
     const [activePreset, setActivePreset] = useState<string | null>('This Month');
@@ -181,17 +187,24 @@ export default function InvoicesPage() {
         try {
             if (pageNum === 0) setLoading(true); else setLoadingMore(true);
 
-            const { data, count } = await invoicesService.getInvoices({
+            const summaryFilters = {
                 startDate: dateRange.start,
                 endDate: dateRange.end,
                 branchId: effectiveBranchId,
                 paymentMethod: paymentFilter !== 'All' ? paymentFilter : undefined,
-                limit: PAGE_SIZE,
-                page: pageNum,
-            });
+            };
+            const [{ data, count }, summaryData] = await Promise.all([
+                invoicesService.getInvoices({
+                    ...summaryFilters,
+                    limit: PAGE_SIZE,
+                    page: pageNum,
+                }),
+                reset ? invoicesService.getInvoiceSummary(summaryFilters) : Promise.resolve(null),
+            ]);
 
             setInvoices(prev => reset ? (data || []) : [...prev, ...(data || [])]);
             setTotalCount(count || 0);
+            if (summaryData) setInvoiceSummary(summaryData);
         } catch (error) {
             console.error('Error fetching invoices:', error);
         } finally {
@@ -216,9 +229,7 @@ export default function InvoicesPage() {
         setDateRange(prev => ({ ...prev, [field]: value }));
     };
 
-    // Compute totals from loaded invoices
-    const paymentTotals = calculatePaymentTotals(invoices);
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    const loadedRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
     const itemsSummary = (items: any[]): string => {
         if (!Array.isArray(items) || items.length === 0) return '—';
@@ -297,8 +308,8 @@ export default function InvoicesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Total Revenue</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(totalRevenue)}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{invoices.length} transactions</p>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(invoiceSummary.totalRevenue)}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{invoiceSummary.transactionCount} transactions</p>
                         </div>
                         <Receipt className="h-10 w-10 text-emerald-500 opacity-70" />
                     </div>
@@ -307,7 +318,7 @@ export default function InvoicesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Cash</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(paymentTotals.totalCash)}</h3>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(invoiceSummary.totalCash)}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Cash payments</p>
                         </div>
                         <Banknote className="h-10 w-10 text-green-500 opacity-70" />
@@ -317,7 +328,7 @@ export default function InvoicesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Card</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(paymentTotals.totalCard)}</h3>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(invoiceSummary.totalCard)}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Card payments</p>
                         </div>
                         <CreditCard className="h-10 w-10 text-blue-500 opacity-70" />
@@ -327,7 +338,7 @@ export default function InvoicesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-600 dark:text-gray-400 text-sm">Bank Transfer</p>
-                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(paymentTotals.totalBankTransfer)}</h3>
+                            <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{formatCurrency(invoiceSummary.totalBankTransfer)}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Bank transfer payments</p>
                         </div>
                         <Building className="h-10 w-10 text-purple-500 opacity-70" />
@@ -428,7 +439,7 @@ export default function InvoicesPage() {
                             {invoices.length > 0 && (
                                 <tfoot>
                                     <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 font-semibold">
-                                        <td colSpan={6} className="py-3 px-3 text-gray-900 dark:text-white">Total ({invoices.length} invoices)</td>
+                                        <td colSpan={5} className="py-3 px-3 text-gray-900 dark:text-white">Total ({invoices.length} invoices)</td>
                                         <td className="hidden md:table-cell py-3 px-3 text-right text-gray-900 dark:text-white">
                                             {formatCurrency(invoices.reduce((s, i) => s + (i.subtotal ?? i.total ?? 0), 0))}
                                         </td>
@@ -436,8 +447,9 @@ export default function InvoicesPage() {
                                             {formatCurrency(invoices.reduce((s, i) => s + (i.discount ?? 0), 0))}
                                         </td>
                                         <td className="py-3 px-3 text-right text-gray-900 dark:text-white">
-                                            {formatCurrency(totalRevenue)}
+                                            {formatCurrency(loadedRevenue)}
                                         </td>
+                                        <td className="py-3 px-3"></td>
                                     </tr>
                                 </tfoot>
                             )}

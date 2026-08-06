@@ -24,6 +24,18 @@ export interface ExpenseCategory {
     created_at: string;
 }
 
+export interface PettyCashSummary {
+    totalWithdrawals: number;
+    withdrawalCount: number;
+    currentBalance: number;
+}
+
+interface PettyCashSummaryRow {
+    total_withdrawals: number | string;
+    withdrawal_count: number | string;
+    current_balance: number | string;
+}
+
 export const pettyCashService = {
     /**
      * Get current petty cash balance (only petty_cash entry_type affects balance)
@@ -295,35 +307,29 @@ export const pettyCashService = {
     /**
      * Get summary for a date range
      */
-    async getSummary(startDate: string, endDate: string) {
+    async getSummary(
+        startDate: string,
+        endDate: string,
+        branchId?: string | null,
+        entryType?: 'petty_cash' | 'expense'
+    ): Promise<PettyCashSummary> {
         const organizationId = await getCurrentOrganizationId();
         const { data, error } = await supabase
-            .from('petty_cash_transactions')
-            .select('type, amount, entry_type')
-            .eq('organization_id', organizationId)
-            .gte('created_at', `${startDate}T00:00:00`)
-            .lte('created_at', `${endDate}T23:59:59`);
+            .rpc('get_petty_cash_summary', {
+                p_organization_id: organizationId,
+                p_start_date: startDate,
+                p_end_date: endDate,
+                p_branch_id: branchId || null,
+                p_entry_type: entryType || null,
+            })
+            .single();
 
         if (error) throw error;
-
-        const summary = {
-            totalDeposits: 0,
-            totalPettyCash: 0,
-            totalExpenses: 0,
-            netChange: 0
+        const row = data as PettyCashSummaryRow | null;
+        return {
+            totalWithdrawals: Number(row?.total_withdrawals || 0),
+            withdrawalCount: Number(row?.withdrawal_count || 0),
+            currentBalance: Number(row?.current_balance || 0),
         };
-
-        data.forEach(t => {
-            if (t.type === 'deposit') {
-                summary.totalDeposits += t.amount;
-            } else if (t.entry_type === 'expense') {
-                summary.totalExpenses += t.amount;
-            } else {
-                summary.totalPettyCash += t.amount;
-            }
-        });
-
-        summary.netChange = summary.totalDeposits - summary.totalPettyCash;
-        return summary;
     },
 };

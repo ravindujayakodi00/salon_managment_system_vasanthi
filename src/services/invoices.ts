@@ -3,6 +3,22 @@ import { earningsService } from './earnings';
 import { getLocalDateString } from '@/lib/utils';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 
+export interface InvoiceSummary {
+    totalRevenue: number;
+    totalCash: number;
+    totalCard: number;
+    totalBankTransfer: number;
+    transactionCount: number;
+}
+
+interface InvoiceSummaryRow {
+    total_revenue: number | string;
+    total_cash: number | string;
+    total_card: number | string;
+    total_bank_transfer: number | string;
+    transaction_count: number | string;
+}
+
 export const invoicesService = {
     async createInvoice(invoice: {
         customer_id: string;
@@ -215,6 +231,34 @@ export const invoicesService = {
 
         if (error) throw error;
         return { data, count };
+    },
+
+    async getInvoiceSummary(filters?: {
+        startDate?: string;
+        endDate?: string;
+        branchId?: string;
+        paymentMethod?: string;
+    }): Promise<InvoiceSummary> {
+        const organizationId = await getCurrentOrganizationId();
+        const { data, error } = await supabase
+            .rpc('get_invoice_summary', {
+                p_organization_id: organizationId,
+                p_start_date: filters?.startDate || null,
+                p_end_date: filters?.endDate || null,
+                p_branch_id: filters?.branchId || null,
+                p_payment_method: filters?.paymentMethod || null,
+            })
+            .single();
+
+        if (error) throw error;
+        const row = data as InvoiceSummaryRow | null;
+        return {
+            totalRevenue: Number(row?.total_revenue || 0),
+            totalCash: Number(row?.total_cash || 0),
+            totalCard: Number(row?.total_card || 0),
+            totalBankTransfer: Number(row?.total_bank_transfer || 0),
+            transactionCount: Number(row?.transaction_count || 0),
+        };
     },
 
     /**
