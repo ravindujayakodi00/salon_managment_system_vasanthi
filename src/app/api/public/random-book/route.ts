@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import { resolvePublicOrganizationId, assertBranchInOrganization } from '@/lib/public-tenant';
 import { isValidDateOfBirth } from '@/lib/birthday';
+import { getCustomerPhoneCandidates, normalizeCustomerPhone } from '@/lib/customer-phone';
 
 // Use Service Role Key to bypass RLS for booking operations
 const supabase = createClient(
@@ -258,12 +259,23 @@ export async function POST(request: NextRequest) {
 
         // Find or create customer
         let customerId: string;
-        const { data: existingCustomer } = await supabase
+        const normalizedPhone = normalizeCustomerPhone(customer.phone);
+        const { data: existingCustomer, error: customerLookupError } = await supabase
             .from('customers')
             .select('id')
-            .eq('phone', customer.phone)
             .eq('organization_id', organizationId)
+            .in('phone', getCustomerPhoneCandidates(normalizedPhone))
+            .order('created_at', { ascending: true })
+            .limit(1)
             .maybeSingle();
+
+        if (customerLookupError) {
+            console.error('Error checking existing customer:', customerLookupError);
+            return NextResponse.json(
+                { success: false, error: 'Failed to check customer details' },
+                { status: 500 }
+            );
+        }
 
         if (existingCustomer) {
             customerId = existingCustomer.id;
@@ -277,7 +289,8 @@ export async function POST(request: NextRequest) {
                     gender: customer.gender || undefined,
                     ...(dateOfBirth ? { date_of_birth: dateOfBirth } : {})
                 })
-                .eq('id', customerId);
+                .eq('id', customerId)
+                .eq('organization_id', organizationId);
         } else {
             if (!dateOfBirth) {
                 return NextResponse.json(
@@ -291,7 +304,7 @@ export async function POST(request: NextRequest) {
                 .from('customers')
                 .insert({
                     name: customer.name,
-                    phone: customer.phone,
+                    phone: normalizedPhone,
                     email: customer.email || null,
                     gender: customer.gender || 'Other',
                     date_of_birth: dateOfBirth,

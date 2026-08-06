@@ -3,6 +3,7 @@
 
 import { supabase, DbService, DbStaff, DbStylistBreak, DbStylistUnavailability, DbSalonSettings } from './supabase';
 import { isValidDateOfBirth } from '../birthday';
+import { getCustomerPhoneCandidates, normalizeCustomerPhone } from '../customer-phone';
 
 // Organization scope — all queries are filtered to this org
 const ORG_ID = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? '';
@@ -716,13 +717,20 @@ export async function createRandomBooking(
 
     // 6. Get or create customer (organization_id required)
     let customerId: string;
+    const normalizedPhone = normalizeCustomerPhone(booking.customer.phone);
 
-    const { data: existingCustomer } = await client
+    const { data: existingCustomer, error: customerLookupError } = await client
         .from('customers')
         .select('id')
-        .eq('phone', booking.customer.phone)
         .eq('organization_id', ORG_ID)
+        .in('phone', getCustomerPhoneCandidates(normalizedPhone))
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
+
+    if (customerLookupError) {
+        throw new Error(`Failed to check customer details: ${customerLookupError.message}`);
+    }
 
     if (existingCustomer) {
         customerId = existingCustomer.id;
@@ -730,13 +738,13 @@ export async function createRandomBooking(
             name: booking.customer.name,
             email: booking.customer.email || undefined,
             date_of_birth: booking.customer.date_of_birth,
-        }).eq('id', customerId);
+        }).eq('id', customerId).eq('organization_id', ORG_ID);
     } else {
         const { data: newCustomer, error: customerError } = await client
             .from('customers')
             .insert({
                 name: booking.customer.name,
-                phone: booking.customer.phone,
+                phone: normalizedPhone,
                 email: booking.customer.email || null,
                 gender: booking.customer.gender || null,
                 date_of_birth: booking.customer.date_of_birth,

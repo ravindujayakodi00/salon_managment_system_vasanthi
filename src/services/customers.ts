@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
 import { isValidDateOfBirth } from '@/lib/birthday';
+import { getCustomerPhoneCandidates, normalizeCustomerPhone } from '@/lib/customer-phone';
 
 interface CustomerInvoiceStats {
     customer_id: string;
@@ -155,8 +156,10 @@ export const customersService = {
         const { data, error } = await supabase
             .from('customers')
             .select('*')
-            .eq('phone', phone)
+            .in('phone', getCustomerPhoneCandidates(phone))
             .eq('organization_id', organizationId)
+            .order('created_at', { ascending: true })
+            .limit(1)
             .maybeSingle();
 
         if (error) throw error;
@@ -179,11 +182,25 @@ export const customersService = {
         }
 
         const organizationId = await getCurrentOrganizationId();
+        const normalizedPhone = normalizeCustomerPhone(customer.phone);
+        const { data: existingCustomer, error: duplicateCheckError } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .in('phone', getCustomerPhoneCandidates(normalizedPhone))
+            .limit(1)
+            .maybeSingle();
+
+        if (duplicateCheckError) throw duplicateCheckError;
+        if (existingCustomer) {
+            throw new Error('A customer with this phone number already exists');
+        }
+
         const { data, error } = await supabase
             .from('customers')
             .insert({
                 name: customer.name,
-                phone: customer.phone,
+                phone: normalizedPhone,
                 email: customer.email || null,
                 gender: customer.gender || null,
                 preferences: customer.preferences || null,
@@ -215,7 +232,33 @@ export const customersService = {
         const organizationId = await getCurrentOrganizationId();
         const rowUpdates: Record<string, string | null | undefined> = {};
         if ('name' in updates) rowUpdates.name = updates.name;
-        if ('phone' in updates) rowUpdates.phone = updates.phone;
+        if (updates.phone) {
+            const normalizedPhone = normalizeCustomerPhone(updates.phone);
+            const { data: currentCustomer, error: currentCustomerError } = await supabase
+                .from('customers')
+                .select('phone')
+                .eq('id', id)
+                .eq('organization_id', organizationId)
+                .single();
+            if (currentCustomerError) throw currentCustomerError;
+
+            if (normalizeCustomerPhone(currentCustomer.phone) !== normalizedPhone) {
+                const { data: existingCustomer, error: duplicateCheckError } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('organization_id', organizationId)
+                    .in('phone', getCustomerPhoneCandidates(normalizedPhone))
+                    .neq('id', id)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (duplicateCheckError) throw duplicateCheckError;
+                if (existingCustomer) {
+                    throw new Error('A customer with this phone number already exists');
+                }
+            }
+            rowUpdates.phone = normalizedPhone;
+        }
         if ('email' in updates) rowUpdates.email = updates.email || null;
         if ('gender' in updates) rowUpdates.gender = updates.gender;
         if ('preferences' in updates) rowUpdates.preferences = updates.preferences || null;

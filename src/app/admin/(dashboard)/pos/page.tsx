@@ -280,22 +280,13 @@ export default function POSPage() {
         dateOfBirth: string;
     }) => {
         try {
-            const { data, error } = await supabase
-                .from('customers')
-                .insert({
-                    name: customerData.name,
-                    phone: customerData.phone,
-                    email: customerData.email || null,
-                    gender: customerData.gender || null,
-                    date_of_birth: customerData.dateOfBirth,
-                    total_visits: 0,
-                    total_spent: 0,
-                    organization_id: user?.organizationId,
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
+            const data = await customersService.createCustomer({
+                name: customerData.name,
+                phone: customerData.phone,
+                email: customerData.email,
+                gender: customerData.gender as 'Male' | 'Female' | 'Other' | undefined,
+                dateOfBirth: customerData.dateOfBirth,
+            });
 
             // Automatically select the newly created customer
             setSelectedCustomer(data);
@@ -304,9 +295,9 @@ export default function POSPage() {
             setShowCustomerForm(false);
 
             showToast(`Customer created: ${data.name}`, 'success');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating customer:', error);
-            showToast('Failed to create customer', 'error');
+            showToast(error.message || 'Failed to create customer', 'error');
         }
     };
     // Check if appointment is already in cart
