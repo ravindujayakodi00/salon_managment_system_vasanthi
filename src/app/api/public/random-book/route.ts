@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import { resolvePublicOrganizationId, assertBranchInOrganization } from '@/lib/public-tenant';
+import { isValidDateOfBirth } from '@/lib/birthday';
 
 // Use Service Role Key to bypass RLS for booking operations
 const supabase = createClient(
@@ -24,6 +25,7 @@ const supabase = createClient(
  *     phone: string (required)
  *     email?: string
  *     gender?: "Male" | "Female" | "Other"
+ *     date_of_birth?: string (required for a new customer, YYYY-MM-DD)
  *   },
  *   appointment: {
  *     service_id: string (required)
@@ -45,6 +47,7 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const { customer, appointment } = body;
+        const dateOfBirth = customer?.date_of_birth || customer?.dateOfBirth;
 
         const orgSlug =
             appointment?.organization_slug ||
@@ -64,6 +67,13 @@ export async function POST(request: NextRequest) {
         if (!customer?.name || !customer?.phone) {
             return NextResponse.json(
                 { success: false, error: 'Customer name and phone are required' },
+                { status: 400 }
+            );
+        }
+
+        if (dateOfBirth && !isValidDateOfBirth(dateOfBirth)) {
+            return NextResponse.json(
+                { success: false, error: 'Enter a valid date of birth that is not in the future' },
                 { status: 400 }
             );
         }
@@ -264,10 +274,18 @@ export async function POST(request: NextRequest) {
                 .update({
                     name: customer.name,
                     email: customer.email || undefined,
-                    gender: customer.gender || undefined
+                    gender: customer.gender || undefined,
+                    ...(dateOfBirth ? { date_of_birth: dateOfBirth } : {})
                 })
                 .eq('id', customerId);
         } else {
+            if (!dateOfBirth) {
+                return NextResponse.json(
+                    { success: false, error: 'Date of birth is required for a new customer' },
+                    { status: 400 }
+                );
+            }
+
             // Create new customer
             const { data: newCustomer, error: customerError } = await supabase
                 .from('customers')
@@ -276,6 +294,7 @@ export async function POST(request: NextRequest) {
                     phone: customer.phone,
                     email: customer.email || null,
                     gender: customer.gender || 'Other',
+                    date_of_birth: dateOfBirth,
                     is_active: true,
                     organization_id: organizationId
                 })

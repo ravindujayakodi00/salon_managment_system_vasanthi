@@ -423,6 +423,7 @@ export default function NotificationsPage() {
                                 <option value="appointment_reminder">Appointment Reminder</option>
                                 <option value="appointment_cancellation">Appointment Cancellation</option>
                                 <option value="promotional">Promotional / Custom</option>
+                                <option value="birthday">Birthday Greeting</option>
                             </select>
                         </div>
 

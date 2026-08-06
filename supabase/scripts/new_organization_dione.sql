@@ -131,7 +131,9 @@ BEGIN
       ('Appointment Cancellation', 'appointment_cancellation', 'sms',
        'Your appointment on {date} has been cancelled.', v_dione),
       ('Promotional', 'promotional', 'sms',
-       'Hi {customer_name}! Special offer for you.', v_dione);
+       'Hi {customer_name}! Special offer for you.', v_dione),
+      ('Birthday Greeting', 'birthday', 'sms',
+       'Happy Birthday {customer_name}! This is a test birthday message from {salon_name}.', v_dione);
   END IF;
 
   -- loyalty_settings (optional)

@@ -61,6 +61,7 @@ export interface DbCustomer {
     phone: string;
     email: string | null;
     gender: 'Male' | 'Female' | 'Other' | null;
+    date_of_birth: string | null;
     total_visits: number;
     total_spent: number;
     last_visit: string | null;

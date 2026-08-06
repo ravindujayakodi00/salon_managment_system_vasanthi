@@ -35,6 +35,7 @@ interface CustomerData {
     name: string;
     email: string;
     phone: string;
+    dateOfBirth: string;
     notes: string;
 }
 
@@ -79,7 +80,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
 
     // Multi-Booking States
     const [cart, setCart] = useState<BookingData[]>([]);
-    const [customer, setCustomer] = useState<CustomerData>({ name: '', email: '', phone: '', notes: '' });
+    const [customer, setCustomer] = useState<CustomerData>({ name: '', email: '', phone: '', dateOfBirth: '', notes: '' });
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     // OTP States
@@ -102,6 +103,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         name?: string;
         phone?: string;
         email?: string;
+        dateOfBirth?: string;
     }>({});
     const [showErrors, setShowErrors] = useState(false);
 
@@ -201,17 +203,24 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
         return undefined;
     };
 
+    const validateDateOfBirth = (dateOfBirth: string): string | undefined => {
+        if (!dateOfBirth) return 'Date of birth is required';
+        if (dateOfBirth > getMinDate()) return 'Date of birth cannot be in the future';
+        return undefined;
+    };
+
     const validateCustomerForm = (): boolean => {
-        const errors: { name?: string; phone?: string; email?: string } = {};
+        const errors: { name?: string; phone?: string; email?: string; dateOfBirth?: string } = {};
 
         errors.name = validateName(customer.name);
         errors.phone = validatePhone(customer.phone);
         errors.email = validateEmail(customer.email);
+        errors.dateOfBirth = validateDateOfBirth(customer.dateOfBirth);
 
         setFieldErrors(errors);
         setShowErrors(true);
 
-        return !errors.name && !errors.phone && !errors.email;
+        return !errors.name && !errors.phone && !errors.email && !errors.dateOfBirth;
     };
 
     const canProceed = () => {
@@ -231,7 +240,8 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                 const nameErr = validateName(customer.name);
                 const phoneErr = validatePhone(customer.phone);
                 const emailErr = validateEmail(customer.email);
-                return !nameErr && !phoneErr && !emailErr;
+                const dateOfBirthErr = validateDateOfBirth(customer.dateOfBirth);
+                return !nameErr && !phoneErr && !emailErr && !dateOfBirthErr;
             }
             case 4: return otpVerified || isAuthenticated;
             default: return true;
@@ -451,6 +461,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                         name: customer.name,
                         phone: customer.phone,
                         email: customer.email || undefined,
+                        date_of_birth: customer.dateOfBirth,
                     },
                     appointment: {
                         service_id: booking.service,
@@ -976,6 +987,22 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                             </div>
 
                             <div>
+                                <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Date of Birth *</label>
+                                <p className="mb-2 text-xs leading-relaxed text-[var(--t-text-3)]">
+                                    Share your birthday with us to enjoy exclusive offers and special discounts on your special day.
+                                </p>
+                                <input
+                                    type="date"
+                                    value={customer.dateOfBirth}
+                                    onChange={(e) => { setCustomer(prev => ({ ...prev, dateOfBirth: e.target.value })); if (showErrors) setFieldErrors(prev => ({ ...prev, dateOfBirth: validateDateOfBirth(e.target.value) })); }}
+                                    onBlur={() => { setFieldErrors(prev => ({ ...prev, dateOfBirth: validateDateOfBirth(customer.dateOfBirth) })); setShowErrors(true); }}
+                                    max={getMinDate()}
+                                    className={`w-full p-3.5 bg-[var(--t-bg-2)] border text-[var(--t-text)] focus:outline-none transition-all text-sm ${showErrors && fieldErrors.dateOfBirth ? 'border-red-400 focus:border-red-500' : 'border-[var(--t-border)] focus:border-[var(--t-accent-2)]'}`}
+                                />
+                                {showErrors && fieldErrors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{fieldErrors.dateOfBirth}</p>}
+                            </div>
+
+                            <div>
                                 <label className="block text-[var(--t-text-2)] mb-1.5 text-xs uppercase tracking-widest">Notes (Optional)</label>
                                 <textarea
                                     value={customer.notes}
@@ -1007,7 +1034,7 @@ export default function AppointmentSection({ isStandalone = false }: Appointment
                                         <path strokeLinecap="square" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                                     </svg>
                                 </button>
-                                {showErrors && (fieldErrors.name || fieldErrors.phone || fieldErrors.email) && (
+                                {showErrors && (fieldErrors.name || fieldErrors.phone || fieldErrors.email || fieldErrors.dateOfBirth) && (
                                     <p className="text-red-500 text-xs">Please fix the errors above</p>
                                 )}
                             </div>

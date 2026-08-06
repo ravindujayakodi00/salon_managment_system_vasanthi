@@ -168,7 +168,8 @@ Creates a new appointment.
     "name": "John Doe",
     "phone": "+94771234567",
     "email": "john@example.com",
-    "gender": "Male"
+    "gender": "Male",
+    "date_of_birth": "1990-05-12"
   },
   "appointment": {
     "service_id": "uuid",
@@ -223,7 +224,7 @@ const bookRes = await fetch('/api/public/book', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    customer: { name: 'John', phone: '+94771234567' },
+    customer: { name: 'John', phone: '+94771234567', date_of_birth: '1990-05-12' },
     appointment: {
       service_id: serviceId,
       stylist_id: stylistId,
