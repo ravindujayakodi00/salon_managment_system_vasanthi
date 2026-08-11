@@ -2,6 +2,7 @@ import {
     calculateCartSubtotal,
     taxOnSubtotalBeforeDiscount,
     capFixedDiscountToSubtotal,
+    calculateManualDiscountAmount,
     loyaltyPointsDiscountAmount,
     calculatePosGrandTotal,
     isSplitPaymentBalanced,
@@ -56,6 +57,24 @@ describe('POS calculations', () => {
             expect(capFixedDiscountToSubtotal(999, 45.5)).toBe(45.5);
             expect(capFixedDiscountToSubtotal(10, 100)).toBe(10);
             expect(capFixedDiscountToSubtotal(-5, 100)).toBe(0);
+        });
+    });
+
+    describe('manual discount type', () => {
+        it('calculates a percentage of the subtotal', () => {
+            expect(calculateManualDiscountAmount(2000, 15, 'percentage')).toBe(300);
+        });
+
+        it('caps percentage discounts at 100%', () => {
+            expect(calculateManualDiscountAmount(2000, 150, 'percentage')).toBe(2000);
+        });
+
+        it('uses a fixed currency amount directly', () => {
+            expect(calculateManualDiscountAmount(2000, 350, 'fixed')).toBe(350);
+        });
+
+        it('caps a fixed discount at the subtotal', () => {
+            expect(calculateManualDiscountAmount(2000, 2500, 'fixed')).toBe(2000);
         });
     });
 

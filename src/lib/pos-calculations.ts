@@ -39,6 +39,21 @@ export function capFixedDiscountToSubtotal(fixedDiscount: number, subtotal: numb
     return Math.min(fixedDiscount, subtotal);
 }
 
+export type ManualDiscountType = 'percentage' | 'fixed';
+
+export function calculateManualDiscountAmount(
+    subtotal: number,
+    value: number,
+    type: ManualDiscountType
+): number {
+    if (!Number.isFinite(value) || value <= 0 || subtotal <= 0) return 0;
+    if (type === 'percentage') {
+        const percentage = Math.min(value, 100);
+        return (subtotal * percentage) / 100;
+    }
+    return capFixedDiscountToSubtotal(value, subtotal);
+}
+
 /**
  * Points redemption value applied to the bill (cannot exceed subtotal in current product).
  */

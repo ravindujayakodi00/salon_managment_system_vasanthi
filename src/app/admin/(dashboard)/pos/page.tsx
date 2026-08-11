@@ -13,8 +13,10 @@ import QuickCustomerForm from '@/components/pos/QuickCustomerForm';
 import { formatCurrency } from '@/lib/utils';
 import {
     calculateCartSubtotal,
+    calculateManualDiscountAmount,
     taxOnSubtotalBeforeDiscount,
     calculatePosGrandTotal,
+    type ManualDiscountType,
 } from '@/lib/pos-calculations';
 import { PaymentBreakdown } from '@/lib/types';
 import { schedulingService } from '@/services/scheduling';
@@ -39,7 +41,8 @@ export default function POSPage() {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [cart, setCart] = useState<any[]>([]);
     const [discount, setDiscount] = useState(0);
-    const [discountInput, setDiscountInput] = useState(''); // Uncontrolled input for manual discount
+    const [discountInput, setDiscountInput] = useState('');
+    const [manualDiscountType, setManualDiscountType] = useState<ManualDiscountType>('percentage');
     const [promoCode, setPromoCode] = useState('');
     const [services, setServices] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
@@ -512,6 +515,8 @@ export default function POSPage() {
     const doClearCart = () => {
         setCart([]);
         setDiscount(0);
+        setDiscountInput('');
+        setManualDiscountType('percentage');
         setPromoCode('');
         setSelectedCoupon(null);
         showToast('Bill cleared', 'info');
@@ -525,6 +530,7 @@ export default function POSPage() {
 
         setSelectedCoupon(coupon);
         setPromoCode(coupon.code);
+        setDiscountInput('');
 
         const discountAmount = coupon.type === 'percentage'
             ? (subtotal * coupon.value) / 100
@@ -811,6 +817,8 @@ export default function POSPage() {
             setCart([]);
             setPaymentBreakdown(null);
             setDiscount(0);
+            setDiscountInput('');
+            setManualDiscountType('percentage');
             setPromoCode('');
             setSelectedCoupon(null);
             setSelectedCustomer(null);
@@ -836,6 +844,16 @@ export default function POSPage() {
         }))
     );
 
+    useEffect(() => {
+        if (selectedCoupon) return;
+
+        setDiscount(calculateManualDiscountAmount(
+            subtotal,
+            parseFloat(discountInput) || 0,
+            manualDiscountType
+        ));
+    }, [subtotal, discountInput, manualDiscountType, selectedCoupon]);
+
     const enableTax = salonSettings?.enable_tax ?? false;
     const taxRate = salonSettings?.tax_rate ?? 0;
     const tax = taxOnSubtotalBeforeDiscount(subtotal, enableTax, taxRate);
@@ -847,6 +865,11 @@ export default function POSPage() {
         loyaltyDiscount,
         tax,
     });
+    const discountSummaryLabel = selectedCoupon
+        ? `Discount (${selectedCoupon.code})`
+        : manualDiscountType === 'percentage'
+            ? 'Discount (Manual %)'
+            : 'Discount (Manual Amount)';
 
     const loyaltyMode: 'none' | 'card' | 'points' | 'visits' = !loyaltyInfo
         ? 'none'
@@ -1451,31 +1474,41 @@ export default function POSPage() {
                                 <label className="text-xs font-medium text-gray-500 mb-2 block">Discount</label>
 
                                 {/* Manual Discount Input */}
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Manual Discount (%)</label>
+                                <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setManualDiscountType('percentage')}
+                                            disabled={!!selectedCoupon}
+                                            className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${manualDiscountType === 'percentage'
+                                                ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                                                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                }`}
+                                        >
+                                            Percentage (%)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setManualDiscountType('fixed')}
+                                            disabled={!!selectedCoupon}
+                                            className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${manualDiscountType === 'fixed'
+                                                ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                                                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                }`}
+                                        >
+                                            Direct Value (Rs)
+                                        </button>
+                                    </div>
+                                    <label className="text-xs text-gray-500 block">
+                                        {manualDiscountType === 'percentage' ? 'Manual Discount (%)' : 'Manual Discount Amount (Rs)'}
+                                    </label>
                                     <Input
                                         type="number"
                                         value={selectedCoupon ? '' : discountInput}
-                                        onChange={(e) => {
-                                            setDiscountInput(e.target.value);
-                                        }}
-                                        onBlur={(e) => {
-                                            const percentage = parseFloat(e.target.value) || 0;
-                                            const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
-                                            const discountAmount = (subtotal * clampedPercentage) / 100;
-                                            setDiscount(discountAmount);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                const percentage = parseFloat((e.target as HTMLInputElement).value) || 0;
-                                                const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
-                                                const discountAmount = (subtotal * clampedPercentage) / 100;
-                                                setDiscount(discountAmount);
-                                            }
-                                        }}
+                                        onChange={(e) => setDiscountInput(e.target.value)}
                                         placeholder="0"
                                         min="0"
-                                        max="100"
+                                        max={manualDiscountType === 'percentage' ? 100 : subtotal}
                                         step="any"
                                         disabled={!!selectedCoupon}
                                         className="text-sm"
@@ -1547,7 +1580,7 @@ export default function POSPage() {
                                 </div>
                                 {discount > 0 && (
                                     <div className="flex justify-between text-sm text-success-600">
-                                        <span>Discount {selectedCoupon ? `(${selectedCoupon.code})` : '(Manual)'}</span>
+                                        <span>{discountSummaryLabel}</span>
                                         <span>-{formatCurrency(discount)}</span>
                                     </div>
                                 )}
