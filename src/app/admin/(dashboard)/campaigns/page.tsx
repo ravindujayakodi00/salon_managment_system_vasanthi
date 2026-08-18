@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Calendar, Users, DollarSign, Eye, Ban, Trash2 } from 'lucide-react';
+import { Plus, Send, Calendar, Users, Eye, Ban, Trash2 } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
@@ -180,7 +180,7 @@ export default function CampaignsPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400">Total Sent</p>
                             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalSent}</h3>
                         </div>
-                        <DollarSign className="h-8 w-8 text-warning-500" />
+                        <Send className="h-8 w-8 text-warning-500" />
                     </div>
                 </div>
             </div>
@@ -236,10 +236,6 @@ export default function CampaignsPage() {
                                         <div className="flex items-center gap-1.5">
                                             <Send className="h-4 w-4" />
                                             <span>{campaign.sent_count || 0} sent</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <DollarSign className="h-4 w-4" />
-                                            <span>LKR {campaign.estimated_cost || 0}</span>
                                         </div>
                                         {campaign.scheduled_for && (
                                             <div className="flex items-center gap-1.5">

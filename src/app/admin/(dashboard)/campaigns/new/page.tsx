@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
     Send, Calendar, Target, Eye, ArrowLeft, ArrowRight,
-    Check, Users, DollarSign, Clock
+    Check, Users, Clock
 } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
@@ -398,15 +398,9 @@ export default function NewCampaignPage() {
 
                         {audiencePreview && (
                             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                                <div className="flex items-center gap-6">
-                                    <div>
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">Total Recipients</p>
-                                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{audiencePreview.count}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">Estimated Cost</p>
-                                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">LKR {audiencePreview.estimatedCost}</p>
-                                    </div>
+                                <div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">Total Recipients</p>
+                                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{audiencePreview.count}</p>
                                 </div>
                             </div>
                         )}
@@ -496,22 +490,12 @@ export default function NewCampaignPage() {
                             </div>
 
                             {audiencePreview && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Users className="h-5 w-5 text-gray-600" />
-                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Recipients</h4>
-                                        </div>
-                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{audiencePreview.count}</p>
+                                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Users className="h-5 w-5 text-gray-600" />
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Recipients</h4>
                                     </div>
-
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <DollarSign className="h-5 w-5 text-gray-600" />
-                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Cost</h4>
-                                        </div>
-                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">LKR {audiencePreview.estimatedCost}</p>
-                                    </div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{audiencePreview.count}</p>
                                 </div>
                             )}
 
