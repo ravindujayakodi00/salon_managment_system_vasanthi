@@ -79,6 +79,12 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         allowedRoles: ['Owner', 'Manager', 'Receptionist'],
     },
     {
+        label: 'Customer Segments',
+        href: adminHref('/segments'),
+        icon: Target,
+        allowedRoles: ['Owner', 'Manager'],
+    },
+    {
         label: 'Earnings',
         href: adminHref('/earnings'),
         icon: DollarSign,

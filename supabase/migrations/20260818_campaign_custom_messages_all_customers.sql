@@ -1,0 +1,5 @@
+ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS custom_message TEXT,
+  ADD COLUMN IF NOT EXISTS custom_subject TEXT,
+  ADD COLUMN IF NOT EXISTS target_all_customers BOOLEAN NOT NULL DEFAULT FALSE;
+

@@ -1,14 +1,17 @@
 import { supabase } from '@/lib/supabase';
 import { notificationsService } from './notifications';
-import { segmentationService } from './segmentation';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
+import { SALON_NAME } from '@/config/salon';
 
 interface Campaign {
     id: string;
     name: string;
     description?: string;
-    template_id: string;
+    template_id?: string;
+    custom_message?: string;
+    custom_subject?: string;
     target_segments: string[];
+    target_all_customers: boolean;
     scheduled_for?: string;
     status: 'draft' | 'scheduled' | 'sending' | 'completed' | 'cancelled' | 'failed';
     channel: 'sms' | 'email' | 'both';
@@ -27,9 +30,9 @@ export const campaignService = {
     /**
      * Get all campaigns
      */
-    async getCampaigns() {
+    async getCampaigns(scopedOrganizationId?: string) {
         try {
-            const organizationId = await getCurrentOrganizationId();
+            const organizationId = scopedOrganizationId || await getCurrentOrganizationId();
             // First, try fetching campaigns without the join
             const { data, error } = await supabase
                 .from('campaigns')
@@ -160,23 +163,80 @@ export const campaignService = {
     /**
      * Preview audience for selected segments
      */
-    async previewAudience(segments: string[], channel: 'sms' | 'email' | 'both') {
+    async previewAudience(
+        segments: string[],
+        channel: 'sms' | 'email' | 'both',
+        targetAllCustomers = false,
+        scopedOrganizationId?: string
+    ) {
         try {
-            if (!segments || segments.length === 0) {
+            if (!targetAllCustomers && (!segments || segments.length === 0)) {
                 return { count: 0, estimatedCost: 0, customers: [] };
             }
 
-            const organizationId = await getCurrentOrganizationId();
-            // Get customers that match any of the selected segments
-            const { data: customers, error } = await supabase
-                .from('customers')
-                .select('id, name, email, phone, segment_tags')
-                .eq('organization_id', organizationId)
-                .overlaps('segment_tags', segments)
-                .eq('is_active', true)
-                .limit(10000);
+            const organizationId = scopedOrganizationId || await getCurrentOrganizationId();
+            const customers: any[] = [];
+            const pageSize = 1000;
+            if (targetAllCustomers) {
+                let from = 0;
+                while (true) {
+                    const { data, error } = await supabase
+                        .from('customers')
+                        .select('id, name, email, phone')
+                        .eq('organization_id', organizationId)
+                        .eq('is_active', true)
+                        .order('id')
+                        .range(from, from + pageSize - 1);
 
-            if (error) throw error;
+                    if (error) throw error;
+                    customers.push(...(data || []));
+                    if (!data || data.length < pageSize) break;
+                    from += pageSize;
+                }
+            } else {
+                const { data: selectedSegments, error: segmentError } = await supabase
+                    .from('customer_segments')
+                    .select('id')
+                    .eq('organization_id', organizationId)
+                    .eq('is_active', true)
+                    .in('name', segments);
+
+                if (segmentError) throw segmentError;
+                const segmentIds = (selectedSegments || []).map(segment => segment.id);
+                if (segmentIds.length === 0) {
+                    return { count: 0, estimatedCost: 0, customers: [] };
+                }
+
+                const customerIds = new Set<string>();
+                let mappingFrom = 0;
+                while (true) {
+                    const { data: mappings, error: mappingError } = await supabase
+                        .from('customer_customer_segments_mapping')
+                        .select('customer_id')
+                        .eq('organization_id', organizationId)
+                        .in('segment_id', segmentIds)
+                        .order('id')
+                        .range(mappingFrom, mappingFrom + pageSize - 1);
+
+                    if (mappingError) throw mappingError;
+                    (mappings || []).forEach(mapping => customerIds.add(mapping.customer_id));
+                    if (!mappings || mappings.length < pageSize) break;
+                    mappingFrom += pageSize;
+                }
+
+                const ids = Array.from(customerIds);
+                for (let index = 0; index < ids.length; index += 500) {
+                    const { data, error } = await supabase
+                        .from('customers')
+                        .select('id, name, email, phone')
+                        .eq('organization_id', organizationId)
+                        .eq('is_active', true)
+                        .in('id', ids.slice(index, index + 500));
+
+                    if (error) throw error;
+                    customers.push(...(data || []));
+                }
+            }
 
             // Filter by channel availability
             let filteredCustomers = customers || [];
@@ -211,17 +271,36 @@ export const campaignService = {
     async createCampaign(campaign: {
         name: string;
         description?: string;
-        template_id: string;
+        template_id?: string;
+        custom_message?: string;
+        custom_subject?: string;
         target_segments: string[];
+        target_all_customers: boolean;
         scheduled_for?: string;
         channel: 'sms' | 'email' | 'both';
+    }, context?: {
+        organizationId?: string;
+        createdBy?: string;
+        audienceSummary?: { count: number; estimatedCost: number };
     }) {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const organizationId = await getCurrentOrganizationId();
+            if (!campaign.template_id && !campaign.custom_message?.trim()) {
+                throw new Error('Select a notification template or enter a custom message');
+            }
 
-            // Get audience preview for stats
-            const preview = await this.previewAudience(campaign.target_segments, campaign.channel);
+            const organizationId = context?.organizationId || await getCurrentOrganizationId();
+            let createdBy = context?.createdBy;
+            if (!createdBy) {
+                const { data: { user } } = await supabase.auth.getUser();
+                createdBy = user?.id;
+            }
+
+            const preview = context?.audienceSummary || await this.previewAudience(
+                campaign.target_segments,
+                campaign.channel,
+                campaign.target_all_customers,
+                organizationId
+            );
 
             const { data, error } = await supabase
                 .from('campaigns')
@@ -230,7 +309,7 @@ export const campaignService = {
                     status: campaign.scheduled_for ? 'scheduled' : 'draft',
                     target_count: preview.count,
                     estimated_cost: preview.estimatedCost,
-                    created_by: user?.id,
+                    created_by: createdBy,
                     organization_id: organizationId,
                 })
                 .select()
@@ -252,9 +331,9 @@ export const campaignService = {
     /**
      * Update campaign
      */
-    async updateCampaign(id: string, updates: Partial<Campaign>) {
+    async updateCampaign(id: string, updates: Partial<Campaign>, scopedOrganizationId?: string) {
         try {
-            const organizationId = await getCurrentOrganizationId();
+            const organizationId = scopedOrganizationId || await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('campaigns')
                 .update(updates)
@@ -301,30 +380,56 @@ export const campaignService = {
     /**
      * Send campaign immediately
      */
-    async sendCampaignNow(campaignId: string) {
+    async sendCampaignNow(
+        campaignId: string,
+        scopedOrganizationId?: string,
+        resolvedCustomers?: Array<{ id: string; name: string; email?: string | null; phone?: string | null }>
+    ) {
+        let campaignClaimed = false;
+        const orgId = scopedOrganizationId || await getCurrentOrganizationId();
+
         try {
-            // Get campaign details
-            const campaign = await this.getCampaignById(campaignId);
-            if (!campaign) throw new Error('Campaign not found');
-
-            // Get template details
-            const orgId = await getCurrentOrganizationId();
-            const { data: template, error: templateError } = await supabase
-                .from('notification_templates')
-                .select('*')
-                .eq('id', campaign.template_id)
+            const { data: campaign, error: claimError } = await supabase
+                .from('campaigns')
+                .update({ status: 'sending', sent_at: new Date().toISOString() })
+                .eq('id', campaignId)
                 .eq('organization_id', orgId)
-                .single();
+                .in('status', ['draft', 'scheduled', 'failed'])
+                .select('*')
+                .maybeSingle();
 
-            if (templateError || !template) {
-                throw new Error('Template not found for this campaign');
+            if (claimError) throw claimError;
+            if (!campaign) {
+                throw new Error('Campaign is already sending or has already been completed');
+            }
+            campaignClaimed = true;
+
+            let template: { message: string; subject?: string | null } | null = null;
+
+            if (campaign.template_id) {
+                const { data, error } = await supabase
+                    .from('notification_templates')
+                    .select('message, subject')
+                    .eq('id', campaign.template_id)
+                    .eq('organization_id', orgId)
+                    .single();
+
+                if (error || !data) {
+                    throw new Error('Template not found for this campaign');
+                }
+                template = data;
             }
 
-            // Update status to sending
-            await this.updateCampaign(campaignId, { status: 'sending', sent_at: new Date().toISOString() });
+            const messageTemplate = campaign.custom_message?.trim() || template?.message;
+            const subjectTemplate = campaign.custom_subject?.trim() || template?.subject || campaign.name;
+            if (!messageTemplate) throw new Error('Campaign message is empty');
 
-            // Get target customers
-            const { customers } = await this.previewAudience(campaign.target_segments, campaign.channel);
+            const customers = resolvedCustomers || (await this.previewAudience(
+                campaign.target_segments,
+                campaign.channel,
+                campaign.target_all_customers,
+                orgId
+            )).customers;
 
 
 
@@ -334,6 +439,15 @@ export const campaignService = {
             // Send to each customer
             for (const customer of customers) {
                 try {
+                    const variables = {
+                        customer_name: customer.name,
+                        date: new Date().toLocaleDateString(),
+                        time: new Date().toLocaleTimeString(),
+                        salon_name: SALON_NAME
+                    };
+                    const message = notificationsService.replaceVariables(messageTemplate, variables);
+                    const subject = notificationsService.replaceVariables(subjectTemplate, variables);
+
                     // Create campaign send record
                     const { data: sendRecord, error: insertError } = await supabase
                         .from('campaign_sends')
@@ -341,7 +455,7 @@ export const campaignService = {
                             campaign_id: campaignId,
                             customer_id: customer.id,
                             channel: campaign.channel,
-                            message_content: template.message,
+                            message_content: message,
                             status: 'pending',
                             organization_id: campaign.organization_id,
                         })
@@ -354,18 +468,23 @@ export const campaignService = {
                         continue;
                     }
 
-                    // Send notification using template type
+                    const deliveryResults: Array<{ success: boolean; error?: string }> = [];
 
+                    if ((campaign.channel === 'sms' || campaign.channel === 'both') && customer.phone) {
+                        deliveryResults.push(await notificationsService.sendSMS(customer.phone, message));
+                    }
+                    if ((campaign.channel === 'email' || campaign.channel === 'both') && customer.email) {
+                        deliveryResults.push(await notificationsService.sendEmail(customer.email, subject, message));
+                    }
 
-                    const result = await notificationsService.sendNotification(
-                        customer.id,
-                        template.type, // Use template type here
-                        {
-                            customer_name: customer.name,
-                            date: new Date().toLocaleDateString(),
-                            time: new Date().toLocaleTimeString()
-                        }
-                    );
+                    if (deliveryResults.length === 0) {
+                        throw new Error('Customer has no contact details for the selected channel');
+                    }
+
+                    const failedDelivery = deliveryResults.find(result => !result.success);
+                    if (failedDelivery) {
+                        throw new Error(failedDelivery.error || 'Message delivery failed');
+                    }
 
                     // Update send record as sent
                     await supabase
@@ -403,7 +522,7 @@ export const campaignService = {
                 completed_at: new Date().toISOString(),
                 sent_count,
                 failed_count
-            });
+            }, orgId);
 
 
 
@@ -416,8 +535,9 @@ export const campaignService = {
                 code: error.code
             });
 
-            // Update campaign status to failed
-            await this.updateCampaign(campaignId, { status: 'failed' });
+            if (campaignClaimed) {
+                await this.updateCampaign(campaignId, { status: 'failed' }, orgId);
+            }
 
             throw error;
         }

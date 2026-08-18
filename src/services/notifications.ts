@@ -6,7 +6,7 @@ import { SALON_NAME } from '@/config/salon';
 interface NotificationTemplate {
     id: string;
     name: string;
-    type: 'appointment_confirmation' | 'appointment_reminder' | 'appointment_cancellation' | 'promotional' | 'birthday';
+    type: string;
     channel: 'sms' | 'email' | 'whatsapp' | 'both';
     subject?: string;
     message: string;
@@ -96,7 +96,7 @@ export const notificationsService = {
             const organizationId = await getCurrentOrganizationId();
             const { data, error } = await supabase
                 .from('notification_templates')
-                .insert({ ...template, organization_id: organizationId })
+                .insert({ ...template, type: template.type.trim(), organization_id: organizationId })
                 .select()
                 .single();
 
@@ -114,9 +114,12 @@ export const notificationsService = {
     async updateTemplate(id: string, updates: Partial<NotificationTemplate>) {
         try {
             const organizationId = await getCurrentOrganizationId();
+            const normalizedUpdates = updates.type
+                ? { ...updates, type: updates.type.trim() }
+                : updates;
             const { data, error } = await supabase
                 .from('notification_templates')
-                .update(updates)
+                .update(normalizedUpdates)
                 .eq('id', id)
                 .eq('organization_id', organizationId)
                 .select()

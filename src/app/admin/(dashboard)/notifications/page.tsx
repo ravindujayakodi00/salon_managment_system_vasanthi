@@ -87,9 +87,14 @@ export default function NotificationsPage() {
             setEditingTemplate(null);
             setIsCreating(false);
             await fetchTemplates();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving template:', error);
-            showMessage('error', 'Failed to save template');
+            showMessage(
+                'error',
+                error?.code === '23505'
+                    ? 'This template type already exists. Enter a unique type value.'
+                    : 'Failed to save template'
+            );
         } finally {
             setLoading(false);
         }
@@ -264,7 +269,7 @@ export default function NotificationsPage() {
                             onClick={() => {
                                 setEditingTemplate({
                                     name: '',
-                                    type: 'appointment_confirmation',
+                                    type: '',
                                     channel: 'email',
                                     subject: '',
                                     message: '',
@@ -410,22 +415,12 @@ export default function NotificationsPage() {
                             placeholder="e.g., Weekend Special Offer"
                         />
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Type
-                            </label>
-                            <select
-                                value={editingTemplate.type}
-                                onChange={(e) => setEditingTemplate({ ...editingTemplate, type: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-gray-900 dark:text-white"
-                            >
-                                <option value="appointment_confirmation">Appointment Confirmation</option>
-                                <option value="appointment_reminder">Appointment Reminder</option>
-                                <option value="appointment_cancellation">Appointment Cancellation</option>
-                                <option value="promotional">Promotional / Custom</option>
-                                <option value="birthday">Birthday Greeting</option>
-                            </select>
-                        </div>
+                        <Input
+                            label="Type (Unique Value)"
+                            value={editingTemplate.type}
+                            onChange={(e) => setEditingTemplate({ ...editingTemplate, type: e.target.value })}
+                            placeholder="e.g., bring_your_besties_offer"
+                        />
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -475,11 +470,7 @@ export default function NotificationsPage() {
                             onChange={(e) => setEditingTemplate({ ...editingTemplate, message: e.target.value })}
                             rows={6}
                             className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none text-gray-900 dark:text-white"
-                            placeholder="Hi {customer_name}, your appointment for {service} is confirmed on {date} at {time} with {stylist} at {salon_name}. See you soon!"
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            <strong>Available variables:</strong> {'{customer_name}'}, {'{date}'}, {'{time}'}, {'{service}'}, {'{stylist}'}, {'{salon_name}'}, {'{branch}'}, {'{address}'}
-                        </p>
                     </div>
 
                     {/* Preview */}
@@ -498,7 +489,7 @@ export default function NotificationsPage() {
                             variant="primary"
                             leftIcon={<Save className="h-5 w-5" />}
                             onClick={handleSave}
-                            disabled={loading || !editingTemplate.name || !editingTemplate.message}
+                            disabled={loading || !editingTemplate.name || !editingTemplate.type?.trim() || !editingTemplate.message}
                         >
                             {loading ? 'Saving...' : 'Save Template'}
                         </Button>

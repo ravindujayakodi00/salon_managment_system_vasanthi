@@ -67,7 +67,6 @@ export interface DbCustomer {
     last_visit: string | null;
     preferences: string | null;
     created_at: string;
-    segment_tags: string[];
     last_visit_date: string | null;
     preferred_services: string[];
     is_active: boolean;

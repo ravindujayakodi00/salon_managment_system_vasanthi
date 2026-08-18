@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
     Send, Calendar, Target, Eye, ArrowLeft, ArrowRight,
@@ -26,28 +26,37 @@ export default function NewCampaignPage() {
     const [segments, setSegments] = useState<any[]>([]);
     const [templates, setTemplates] = useState<any[]>([]);
     const [audiencePreview, setAudiencePreview] = useState<any>(null);
+    const loadedOrganizationRef = useRef<string | null>(null);
+    const submittingRef = useRef(false);
 
     const [campaign, setCampaign] = useState({
         name: '',
         description: '',
         template_id: '',
+        message_source: 'template' as 'template' | 'custom',
+        custom_message: '',
+        custom_subject: '',
         target_segments: [] as string[],
+        target_all_customers: false,
         scheduled_for: '',
         channel: 'sms' as 'sms' | 'email' | 'both',
         send_now: true
     });
 
     useEffect(() => {
-        if (user?.organizationId) {
+        if (user?.organizationId && loadedOrganizationRef.current !== user.organizationId) {
+            loadedOrganizationRef.current = user.organizationId;
             void loadData();
         }
     }, [user?.organizationId]);
 
     useEffect(() => {
-        if (campaign.target_segments.length > 0 && campaign.channel) {
+        if ((campaign.target_all_customers || campaign.target_segments.length > 0) && campaign.channel) {
             loadAudiencePreview();
+        } else {
+            setAudiencePreview(null);
         }
-    }, [campaign.target_segments, campaign.channel]);
+    }, [campaign.target_segments, campaign.target_all_customers, campaign.channel]);
 
     const loadData = async () => {
         if (!user?.organizationId) return;
@@ -57,7 +66,7 @@ export default function NewCampaignPage() {
                 notificationsService.getTemplates(user.organizationId)
             ]);
             setSegments(segs);
-            setTemplates(temps.filter(t => t.type === 'promotional'));
+            setTemplates(temps.filter(t => t.is_active));
         } catch (error) {
             console.error('Error loading data:', error);
         }
@@ -67,7 +76,9 @@ export default function NewCampaignPage() {
         try {
             const preview = await campaignService.previewAudience(
                 campaign.target_segments,
-                campaign.channel
+                campaign.channel,
+                campaign.target_all_customers,
+                user?.organizationId
             );
             setAudiencePreview(preview);
         } catch (error) {
@@ -97,22 +108,43 @@ export default function NewCampaignPage() {
     };
 
     const handleSubmit = async () => {
+        if (submittingRef.current || !user?.organizationId) return;
+        submittingRef.current = true;
+
         try {
             setLoading(true);
+
+            const resolvedAudience = await campaignService.previewAudience(
+                campaign.target_segments,
+                campaign.channel,
+                campaign.target_all_customers,
+                user.organizationId
+            );
 
             // Create campaign
             const newCampaign = await campaignService.createCampaign({
                 name: campaign.name,
                 description: campaign.description,
-                template_id: campaign.template_id,
+                template_id: campaign.message_source === 'template' ? campaign.template_id : undefined,
+                custom_message: campaign.message_source === 'custom' ? campaign.custom_message : undefined,
+                custom_subject: campaign.message_source === 'custom' ? campaign.custom_subject : undefined,
                 target_segments: campaign.target_segments,
+                target_all_customers: campaign.target_all_customers,
                 scheduled_for: campaign.send_now ? undefined : campaign.scheduled_for,
                 channel: campaign.channel
+            }, {
+                organizationId: user.organizationId,
+                createdBy: user.id,
+                audienceSummary: resolvedAudience,
             });
 
             // Send immediately if requested
             if (campaign.send_now) {
-                await campaignService.sendCampaignNow(newCampaign.id);
+                await campaignService.sendCampaignNow(
+                    newCampaign.id,
+                    user.organizationId,
+                    resolvedAudience.customers
+                );
             }
 
             router.push('/admin/campaigns');
@@ -120,6 +152,7 @@ export default function NewCampaignPage() {
             console.error('Error creating campaign:', error);
             showToast('Failed to create campaign', 'error');
         } finally {
+            submittingRef.current = false;
             setLoading(false);
         }
     };
@@ -130,8 +163,14 @@ export default function NewCampaignPage() {
 
     const canProceed = () => {
         switch (currentStep) {
-            case 0: return campaign.name && campaign.template_id;
-            case 1: return campaign.target_segments.length > 0;
+            case 0:
+                return Boolean(
+                    campaign.name.trim()
+                    && (campaign.message_source === 'template'
+                        ? campaign.template_id
+                        : campaign.custom_message.trim())
+                );
+            case 1: return campaign.target_all_customers || campaign.target_segments.length > 0;
             case 2: return campaign.send_now || campaign.scheduled_for;
             default: return true;
         }
@@ -142,7 +181,7 @@ export default function NewCampaignPage() {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create Campaign</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">Send targeted promotional messages to customer segments</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">Send targeted messages using a saved template or a custom message</p>
             </div>
 
             {/* Progress Steps */}
@@ -196,21 +235,80 @@ export default function NewCampaignPage() {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Notification Template
+                        <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Message Source
                             </label>
-                            <select
-                                value={campaign.template_id}
-                                onChange={(e) => setCampaign({ ...campaign, template_id: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
-                            >
-                                <option value="">Select a template...</option>
-                                {templates.map(t => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
-                                ))}
-                            </select>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setCampaign({ ...campaign, message_source: 'template' })}
+                                    className={`p-3 rounded-xl border-2 transition-all ${campaign.message_source === 'template'
+                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                                        : 'border-gray-200 dark:border-gray-700'
+                                        }`}
+                                >
+                                    <span className="font-medium text-gray-900 dark:text-white">Saved Template</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCampaign({ ...campaign, message_source: 'custom' })}
+                                    className={`p-3 rounded-xl border-2 transition-all ${campaign.message_source === 'custom'
+                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                                        : 'border-gray-200 dark:border-gray-700'
+                                        }`}
+                                >
+                                    <span className="font-medium text-gray-900 dark:text-white">Write Message</span>
+                                </button>
+                            </div>
                         </div>
+
+                        {campaign.message_source === 'template' ? (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Notification Template
+                                </label>
+                                <select
+                                    value={campaign.template_id}
+                                    onChange={(e) => {
+                                        const templateId = e.target.value;
+                                        const selectedTemplate = templates.find(t => t.id === templateId);
+                                        setCampaign({
+                                            ...campaign,
+                                            template_id: templateId,
+                                            channel: selectedTemplate?.channel || campaign.channel
+                                        });
+                                    }}
+                                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
+                                >
+                                    <option value="">Select a template...</option>
+                                    {templates.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name} ({t.type})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {campaign.channel !== 'sms' && (
+                                    <Input
+                                        label="Email Subject (Optional)"
+                                        value={campaign.custom_subject}
+                                        onChange={(e) => setCampaign({ ...campaign, custom_subject: e.target.value })}
+                                    />
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Message
+                                    </label>
+                                    <textarea
+                                        value={campaign.custom_message}
+                                        onChange={(e) => setCampaign({ ...campaign, custom_message: e.target.value })}
+                                        rows={7}
+                                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white resize-none"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -239,14 +337,48 @@ export default function NewCampaignPage() {
                     <div className="space-y-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Target Audience</h2>
 
+                        <button
+                            type="button"
+                            onClick={() => setCampaign({
+                                ...campaign,
+                                target_all_customers: !campaign.target_all_customers,
+                                target_segments: []
+                            })}
+                            className={`w-full p-5 rounded-xl border-2 text-left transition-all ${campaign.target_all_customers
+                                ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                                : 'border-gray-200 dark:border-gray-700'
+                                }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-medium text-gray-900 dark:text-white">All Customers</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        Every active customer in this organization with matching contact details
+                                    </p>
+                                </div>
+                                {campaign.target_all_customers && <Check className="h-5 w-5 text-primary-600" />}
+                            </div>
+                        </button>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">or select segments</span>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             {segments.map(segment => (
                                 <button
                                     key={segment.id}
+                                    type="button"
                                     onClick={() => toggleSegment(segment.name)}
+                                    disabled={campaign.target_all_customers}
                                     className={`p-4 rounded-xl border-2 text-left transition-all ${campaign.target_segments.includes(segment.name)
                                         ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                                        : 'border-gray-200 dark:border-gray-700'
+                                        : 'border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -347,13 +479,19 @@ export default function NewCampaignPage() {
                             </div>
 
                             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Segments</h4>
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Audience</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {campaign.target_segments.map(seg => (
-                                        <span key={seg} className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm">
-                                            {seg}
+                                    {campaign.target_all_customers ? (
+                                        <span className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm">
+                                            All Customers
                                         </span>
-                                    ))}
+                                    ) : (
+                                        campaign.target_segments.map(seg => (
+                                            <span key={seg} className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm">
+                                                {seg}
+                                            </span>
+                                        ))
+                                    )}
                                 </div>
                             </div>
 

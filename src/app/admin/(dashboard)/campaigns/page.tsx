@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Send, Calendar, Users, DollarSign, Eye, Ban, Trash2 } from 'lucide-react';
 import Button from '@/components/shared/Button';
@@ -22,21 +22,24 @@ const statusColors = {
 
 export default function CampaignsPage() {
     const router = useRouter();
-    const { hasRole } = useAuth();
+    const { hasRole, user } = useAuth();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const loadedOrganizationRef = useRef<string | null>(null);
 
     useEffect(() => {
-        fetchCampaigns();
-    }, []);
+        if (!user?.organizationId || loadedOrganizationRef.current === user.organizationId) return;
+        loadedOrganizationRef.current = user.organizationId;
+        void fetchCampaigns();
+    }, [user?.organizationId]);
 
     const fetchCampaigns = async () => {
         try {
             setLoading(true);
-            const data = await campaignService.getCampaigns();
+            const data = await campaignService.getCampaigns(user?.organizationId);
             setCampaigns(data || []);
         } catch (error) {
             console.error('Error fetching campaigns:', error);
@@ -246,7 +249,14 @@ export default function CampaignsPage() {
                                         )}
                                     </div>
 
-                                    {campaign.target_segments && campaign.target_segments.length > 0 && (
+                                    {campaign.target_all_customers && (
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded text-xs">
+                                                All Customers
+                                            </span>
+                                        </div>
+                                    )}
+                                    {!campaign.target_all_customers && campaign.target_segments && campaign.target_segments.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {campaign.target_segments.map((seg: string) => (
                                                 <span key={seg} className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded text-xs">

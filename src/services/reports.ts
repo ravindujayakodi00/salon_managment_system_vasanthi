@@ -304,14 +304,26 @@ export const reportsService = {
             gender, count, percentage: (count / totalCustomers) * 100
         }));
 
-        const segmentCounts: { [key: string]: number } = {};
-        customers?.forEach(c => {
-            const segments = c.segment_tags as string[] || [];
-            segments.forEach(seg => segmentCounts[seg] = (segmentCounts[seg] || 0) + 1);
-        });
+        const { data: segments, error: segmentsError } = await supabase
+            .from('customer_segments')
+            .select('id, name')
+            .eq('organization_id', organizationId)
+            .eq('is_active', true);
 
-        const bySegment = Object.entries(segmentCounts)
-            .map(([segment, count]) => ({ segment, count }))
+        if (segmentsError) throw segmentsError;
+
+        const bySegment = await Promise.all((segments || []).map(async segment => {
+            const { count, error: countError } = await supabase
+                .from('customer_customer_segments_mapping')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', organizationId)
+                .eq('segment_id', segment.id);
+
+            if (countError) throw countError;
+            return { segment: segment.name, count: count || 0 };
+        }));
+
+        bySegment
             .sort((a, b) => b.count - a.count);
 
         return {

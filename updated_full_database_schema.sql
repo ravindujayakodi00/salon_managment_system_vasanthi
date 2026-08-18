@@ -42,7 +42,6 @@ CREATE TABLE public.customers (
   last_visit timestamp with time zone,
   preferences text,
   created_at timestamp with time zone DEFAULT now(),
-  segment_tags ARRAY DEFAULT '{}'::text[],
   last_visit_date date,
   preferred_services ARRAY DEFAULT '{}'::text[],
   is_active boolean DEFAULT true,
@@ -216,7 +215,7 @@ CREATE TABLE public.commission_settings (
 );
 CREATE TABLE public.customer_segments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  name text NOT NULL UNIQUE,
+  name text NOT NULL,
   description text,
   color text DEFAULT '#6366f1'::text,
   icon text DEFAULT 'users'::text,
@@ -227,14 +226,32 @@ CREATE TABLE public.customer_segments (
   updated_at timestamp with time zone DEFAULT now(),
   organization_id uuid NOT NULL,
   CONSTRAINT customer_segments_pkey PRIMARY KEY (id),
+  CONSTRAINT uq_customer_segments_org_name UNIQUE (organization_id, name),
   CONSTRAINT customer_segments_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.customer_customer_segments_mapping (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  customer_id uuid NOT NULL,
+  segment_id uuid NOT NULL,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT customer_customer_segments_mapping_pkey PRIMARY KEY (id),
+  CONSTRAINT customer_customer_segments_mapping_unique UNIQUE (organization_id, customer_id, segment_id),
+  CONSTRAINT customer_customer_segments_mapping_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT customer_customer_segments_mapping_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
+  CONSTRAINT customer_customer_segments_mapping_segment_id_fkey FOREIGN KEY (segment_id) REFERENCES public.customer_segments(id),
+  CONSTRAINT customer_customer_segments_mapping_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.campaigns (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name text NOT NULL,
   description text,
   template_id uuid,
+  custom_message text,
+  custom_subject text,
   target_segments ARRAY DEFAULT '{}'::text[],
+  target_all_customers boolean NOT NULL DEFAULT false,
   scheduled_for timestamp with time zone,
   status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'sending'::text, 'completed'::text, 'cancelled'::text, 'failed'::text])),
   channel text DEFAULT 'sms'::text CHECK (channel = ANY (ARRAY['sms'::text, 'email'::text, 'both'::text])),
