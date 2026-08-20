@@ -140,11 +140,7 @@ export default function NewCampaignPage() {
 
             // Send immediately if requested
             if (campaign.send_now) {
-                await campaignService.sendCampaignNow(
-                    newCampaign.id,
-                    user.organizationId,
-                    resolvedAudience.customers
-                );
+                await campaignService.sendCampaignNow(newCampaign.id);
             }
 
             router.push('/admin/campaigns');

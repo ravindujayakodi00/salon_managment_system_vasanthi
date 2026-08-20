@@ -1,7 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { notificationsService } from './notifications';
 import { getCurrentOrganizationId } from '@/lib/org-scope';
-import { SALON_NAME } from '@/config/salon';
 
 interface Campaign {
     id: string;
@@ -381,166 +379,29 @@ export const campaignService = {
      * Send campaign immediately
      */
     async sendCampaignNow(
-        campaignId: string,
-        scopedOrganizationId?: string,
-        resolvedCustomers?: Array<{ id: string; name: string; email?: string | null; phone?: string | null }>
+        campaignId: string
     ) {
-        let campaignClaimed = false;
-        const orgId = scopedOrganizationId || await getCurrentOrganizationId();
-
-        try {
-            const { data: campaign, error: claimError } = await supabase
-                .from('campaigns')
-                .update({ status: 'sending', sent_at: new Date().toISOString() })
-                .eq('id', campaignId)
-                .eq('organization_id', orgId)
-                .in('status', ['draft', 'scheduled', 'failed'])
-                .select('*')
-                .maybeSingle();
-
-            if (claimError) throw claimError;
-            if (!campaign) {
-                throw new Error('Campaign is already sending or has already been completed');
-            }
-            campaignClaimed = true;
-
-            let template: { message: string; subject?: string | null } | null = null;
-
-            if (campaign.template_id) {
-                const { data, error } = await supabase
-                    .from('notification_templates')
-                    .select('message, subject')
-                    .eq('id', campaign.template_id)
-                    .eq('organization_id', orgId)
-                    .single();
-
-                if (error || !data) {
-                    throw new Error('Template not found for this campaign');
-                }
-                template = data;
-            }
-
-            const messageTemplate = campaign.custom_message?.trim() || template?.message;
-            const subjectTemplate = campaign.custom_subject?.trim() || template?.subject || campaign.name;
-            if (!messageTemplate) throw new Error('Campaign message is empty');
-
-            const customers = resolvedCustomers || (await this.previewAudience(
-                campaign.target_segments,
-                campaign.channel,
-                campaign.target_all_customers,
-                orgId
-            )).customers;
-
-
-
-            let sent_count = 0;
-            let failed_count = 0;
-
-            // Send to each customer
-            for (const customer of customers) {
-                try {
-                    const variables = {
-                        customer_name: customer.name,
-                        date: new Date().toLocaleDateString(),
-                        time: new Date().toLocaleTimeString(),
-                        salon_name: SALON_NAME
-                    };
-                    const message = notificationsService.replaceVariables(messageTemplate, variables);
-                    const subject = notificationsService.replaceVariables(subjectTemplate, variables);
-
-                    // Create campaign send record
-                    const { data: sendRecord, error: insertError } = await supabase
-                        .from('campaign_sends')
-                        .insert({
-                            campaign_id: campaignId,
-                            customer_id: customer.id,
-                            channel: campaign.channel,
-                            message_content: message,
-                            status: 'pending',
-                            organization_id: campaign.organization_id,
-                        })
-                        .select()
-                        .single();
-
-                    if (insertError) {
-                        console.error('Failed to create send record:', insertError);
-                        failed_count++;
-                        continue;
-                    }
-
-                    const deliveryResults: Array<{ success: boolean; error?: string }> = [];
-
-                    if ((campaign.channel === 'sms' || campaign.channel === 'both') && customer.phone) {
-                        deliveryResults.push(await notificationsService.sendSMS(customer.phone, message));
-                    }
-                    if ((campaign.channel === 'email' || campaign.channel === 'both') && customer.email) {
-                        deliveryResults.push(await notificationsService.sendEmail(customer.email, subject, message));
-                    }
-
-                    if (deliveryResults.length === 0) {
-                        throw new Error('Customer has no contact details for the selected channel');
-                    }
-
-                    const failedDelivery = deliveryResults.find(result => !result.success);
-                    if (failedDelivery) {
-                        throw new Error(failedDelivery.error || 'Message delivery failed');
-                    }
-
-                    // Update send record as sent
-                    await supabase
-                        .from('campaign_sends')
-                        .update({
-                            status: 'sent',
-                            sent_at: new Date().toISOString()
-                        })
-                        .eq('id', sendRecord.id)
-                        .eq('organization_id', orgId);
-
-                    sent_count++;
-
-
-                } catch (error) {
-                    console.error(`❌ Failed to send to customer ${customer.name}:`, error);
-                    failed_count++;
-
-                    // Record failure if sendRecord was created
-                    await supabase
-                        .from('campaign_sends')
-                        .update({
-                            status: 'failed',
-                            error_message: error instanceof Error ? error.message : 'Unknown error'
-                        })
-                        .eq('campaign_id', campaignId)
-                        .eq('customer_id', customer.id)
-                        .eq('organization_id', orgId);
-                }
-            }
-
-            // Update campaign status and counts
-            await this.updateCampaign(campaignId, {
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                sent_count,
-                failed_count
-            }, orgId);
-
-
-
-            return { success: true, sent_count, failed_count };
-        } catch (error: any) {
-            console.error('❌ Error sending campaign:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
-
-            if (campaignClaimed) {
-                await this.updateCampaign(campaignId, { status: 'failed' }, orgId);
-            }
-
-            throw error;
+        const response = await fetch(`/api/campaigns/${campaignId}/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to start campaign delivery');
         }
+        return result;
+    },
+
+    async retryFailedCampaign(campaignId: string) {
+        const response = await fetch(`/api/campaigns/${campaignId}/retry-failed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to retry campaign deliveries');
+        }
+        return result;
     },
 
     /**

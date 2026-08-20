@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Calendar, Users, Eye, Ban, Trash2 } from 'lucide-react';
+import { Plus, Send, Calendar, Users, Eye, Ban, Trash2, RotateCcw } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import { useAuth } from '@/lib/auth';
@@ -28,13 +28,31 @@ export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [pendingRetryCampaign, setPendingRetryCampaign] = useState<any>(null);
+    const [retrying, setRetrying] = useState(false);
     const loadedOrganizationRef = useRef<string | null>(null);
+    const hasSendingCampaigns = campaigns.some(campaign => campaign.status === 'sending');
 
     useEffect(() => {
         if (!user?.organizationId || loadedOrganizationRef.current === user.organizationId) return;
         loadedOrganizationRef.current = user.organizationId;
         void fetchCampaigns();
     }, [user?.organizationId]);
+
+    useEffect(() => {
+        if (!user?.organizationId || !hasSendingCampaigns) return;
+
+        const interval = window.setInterval(async () => {
+            try {
+                const data = await campaignService.getCampaigns(user.organizationId);
+                setCampaigns(data || []);
+            } catch (error) {
+                console.error('Error refreshing campaign progress:', error);
+            }
+        }, 5000);
+
+        return () => window.clearInterval(interval);
+    }, [hasSendingCampaigns, user?.organizationId]);
 
     const fetchCampaigns = async () => {
         try {
@@ -82,6 +100,25 @@ export default function CampaignsPage() {
         }
     };
 
+    const doRetryFailed = async () => {
+        if (!pendingRetryCampaign) return;
+        setRetrying(true);
+        try {
+            const result = await campaignService.retryFailedCampaign(pendingRetryCampaign.id);
+            setPendingRetryCampaign(null);
+            showToast(`Retrying ${result.retryCount} failed recipients`, 'success');
+            await fetchCampaigns();
+        } catch (error) {
+            console.error('Error retrying failed campaign messages:', error);
+            showToast(
+                error instanceof Error ? error.message : 'Failed to retry campaign messages',
+                'error'
+            );
+        } finally {
+            setRetrying(false);
+        }
+    };
+
     if (!hasRole(['Owner', 'Manager'])) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -122,6 +159,16 @@ export default function CampaignsPage() {
             confirmText="Delete"
             onConfirm={doDelete}
             onClose={() => setPendingDeleteId(null)}
+        />
+        <ConfirmationDialog
+            isOpen={!!pendingRetryCampaign}
+            title="Retry Failed Messages"
+            message={`Retry only the ${pendingRetryCampaign?.failed_count || 0} failed recipients? Customers already marked as sent will not receive another message.`}
+            confirmText="Retry Failed"
+            variant="info"
+            loading={retrying}
+            onConfirm={doRetryFailed}
+            onClose={() => setPendingRetryCampaign(null)}
         />
         <div className="space-y-6">
             {/* Header */}
@@ -237,6 +284,11 @@ export default function CampaignsPage() {
                                             <Send className="h-4 w-4" />
                                             <span>{campaign.sent_count || 0} sent</span>
                                         </div>
+                                        {(campaign.failed_count || 0) > 0 && (
+                                            <div className="flex items-center gap-1.5 text-danger-600 dark:text-danger-400">
+                                                <span>{campaign.failed_count} failed</span>
+                                            </div>
+                                        )}
                                         {campaign.scheduled_for && (
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="h-4 w-4" />
@@ -264,6 +316,17 @@ export default function CampaignsPage() {
                                 </div>
 
                                 <div className="flex gap-2 ml-4">
+                                    {['completed', 'failed'].includes(campaign.status)
+                                        && (campaign.failed_count || 0) > 0 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            leftIcon={<RotateCcw className="h-4 w-4" />}
+                                            onClick={() => setPendingRetryCampaign(campaign)}
+                                        >
+                                            Retry Failed
+                                        </Button>
+                                    )}
                                     {campaign.status === 'scheduled' && (
                                         <Button
                                             variant="ghost"
