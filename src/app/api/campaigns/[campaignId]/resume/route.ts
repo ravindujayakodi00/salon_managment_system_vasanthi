@@ -4,7 +4,6 @@ import { enqueueCampaignDelivery } from '@/lib/campaign-delivery-queue';
 import { getCampaignAdminClient } from '@/lib/campaign-queue';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 export async function POST(
     _request: NextRequest,
@@ -40,72 +39,43 @@ export async function POST(
         if (campaignError || !campaign) {
             return NextResponse.json({ success: false, error: 'Campaign was not found' }, { status: 404 });
         }
-        if (!['completed', 'failed'].includes(campaign.status)) {
+        if (campaign.status !== 'sending') {
             return NextResponse.json(
-                { success: false, error: 'Wait until the current campaign delivery has finished' },
+                { success: false, error: 'Only a campaign currently sending can be resumed' },
                 { status: 409 }
             );
         }
 
-        const { count: failedCount, error: countError } = await admin
+        const { count: pendingCount, error: countError } = await admin
             .from('campaign_sends')
             .select('id', { count: 'exact', head: true })
             .eq('campaign_id', campaign.id)
             .eq('organization_id', campaign.organization_id)
-            .eq('status', 'failed');
+            .in('status', ['pending', 'processing']);
         if (countError) throw countError;
-        if (!failedCount) {
+        if (!pendingCount) {
             return NextResponse.json(
-                { success: false, error: 'This campaign has no failed recipients to retry' },
+                { success: false, error: 'This campaign has no pending recipients' },
                 { status: 400 }
             );
         }
 
-        const { error: resetError } = await admin
-            .from('campaign_sends')
-            .update({
-                status: 'pending',
-                retry_count: 0,
-                error_message: null,
-                last_attempt_at: null,
-                provider_message_id: null,
-                sent_at: null,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('campaign_id', campaign.id)
-            .eq('organization_id', campaign.organization_id)
-            .eq('status', 'failed');
-        if (resetError) throw resetError;
-
-        const { error: campaignUpdateError } = await admin
-            .from('campaigns')
-            .update({
-                status: 'sending',
-                failed_count: 0,
-                completed_at: null,
-            })
-            .eq('id', campaign.id)
-            .eq('organization_id', campaign.organization_id);
-        if (campaignUpdateError) throw campaignUpdateError;
-
         const queued = await enqueueCampaignDelivery(campaign.id);
-
         return NextResponse.json(
             {
                 success: true,
                 campaignId: campaign.id,
-                retryCount: failedCount,
-                status: 'sending',
+                pendingCount,
                 queueMessageId: queued.messageId,
             },
             { status: 202 }
         );
     } catch (error) {
-        console.error('Failed to retry campaign deliveries:', error);
+        console.error('Failed to resume campaign delivery:', error);
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to retry campaign deliveries',
+                error: error instanceof Error ? error.message : 'Failed to resume campaign delivery',
             },
             { status: 500 }
         );

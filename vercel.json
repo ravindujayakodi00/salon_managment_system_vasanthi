@@ -1,5 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "src/app/api/queues/campaign-delivery/route.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "campaign-delivery",
+          "retryAfterSeconds": 10,
+          "initialDelaySeconds": 0
+        }
+      ]
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/birthday-messages",

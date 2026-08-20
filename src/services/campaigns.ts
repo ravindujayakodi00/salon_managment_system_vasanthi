@@ -404,6 +404,18 @@ export const campaignService = {
         return result;
     },
 
+    async resumeCampaignDelivery(campaignId: string) {
+        const response = await fetch(`/api/campaigns/${campaignId}/resume`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to resume campaign delivery');
+        }
+        return result;
+    },
+
     /**
      * Cancel scheduled campaign
      */

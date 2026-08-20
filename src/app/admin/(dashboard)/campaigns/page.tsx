@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Calendar, Users, Eye, Ban, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Send, Calendar, Users, Eye, Ban, Trash2, RotateCcw, Play } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import Modal from '@/components/shared/Modal';
@@ -30,6 +30,7 @@ export default function CampaignsPage() {
     const [pendingRetryCampaign, setPendingRetryCampaign] = useState<any>(null);
     const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
     const [retrying, setRetrying] = useState(false);
+    const [resumingCampaignId, setResumingCampaignId] = useState<string | null>(null);
     const loadedOrganizationRef = useRef<string | null>(null);
     const hasSendingCampaigns = campaigns.some(campaign => campaign.status === 'sending');
 
@@ -116,6 +117,23 @@ export default function CampaignsPage() {
             );
         } finally {
             setRetrying(false);
+        }
+    };
+
+    const resumeDelivery = async (campaignId: string) => {
+        setResumingCampaignId(campaignId);
+        try {
+            const result = await campaignService.resumeCampaignDelivery(campaignId);
+            showToast(`Resuming ${result.pendingCount} pending recipients`, 'success');
+            await fetchCampaigns();
+        } catch (error) {
+            console.error('Error resuming campaign delivery:', error);
+            showToast(
+                error instanceof Error ? error.message : 'Failed to resume campaign delivery',
+                'error'
+            );
+        } finally {
+            setResumingCampaignId(null);
         }
     };
 
@@ -428,6 +446,17 @@ export default function CampaignsPage() {
                                     >
                                         View Details
                                     </Button>
+                                    {campaign.status === 'sending' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            leftIcon={<Play className="h-4 w-4" />}
+                                            isLoading={resumingCampaignId === campaign.id}
+                                            onClick={() => resumeDelivery(campaign.id)}
+                                        >
+                                            Resume Delivery
+                                        </Button>
+                                    )}
                                     {['completed', 'failed'].includes(campaign.status)
                                         && (campaign.failed_count || 0) > 0 && (
                                         <Button

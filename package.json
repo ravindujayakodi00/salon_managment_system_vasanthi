@@ -22,6 +22,7 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "@vercel/queue": "^0.4.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
     "gsap": "^3.14.2",

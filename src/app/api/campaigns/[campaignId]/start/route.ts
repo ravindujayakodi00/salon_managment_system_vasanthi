@@ -1,22 +1,21 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase-server';
+import { enqueueCampaignDelivery } from '@/lib/campaign-delivery-queue';
 import {
     CampaignRow,
     enqueueCampaignRecipients,
     getCampaignAdminClient,
-    getCampaignWorkerSecret,
 } from '@/lib/campaign-queue';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(
-    request: NextRequest,
+    _request: NextRequest,
     context: { params: Promise<{ campaignId: string }> }
 ) {
     try {
         const { campaignId } = await context.params;
-        const workerSecret = getCampaignWorkerSecret();
         const supabaseAuthed = await getSupabaseServerClient();
         const { data: { user }, error: authError } = await supabaseAuthed.auth.getUser();
         if (authError || !user) {
@@ -79,24 +78,16 @@ export async function POST(
             .eq('organization_id', campaign.organization_id);
         if (updateError) throw updateError;
 
-        const workerUrl = `${request.nextUrl.origin}/api/campaigns/${campaign.id}/process`;
-        after(async () => {
-            try {
-                const response = await fetch(workerUrl, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${workerSecret}` },
-                    cache: 'no-store',
-                });
-                if (!response.ok) {
-                    console.error('Campaign worker failed to start:', await response.text());
-                }
-            } catch (error) {
-                console.error('Campaign worker invocation failed:', error);
-            }
-        });
+        const queued = await enqueueCampaignDelivery(campaign.id);
 
         return NextResponse.json(
-            { success: true, campaignId: campaign.id, targetCount, status: 'sending' },
+            {
+                success: true,
+                campaignId: campaign.id,
+                targetCount,
+                status: 'sending',
+                queueMessageId: queued.messageId,
+            },
             { status: 202 }
         );
     } catch (error) {
