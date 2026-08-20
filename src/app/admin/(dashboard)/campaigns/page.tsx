@@ -5,11 +5,11 @@ import { motion } from 'framer-motion';
 import { Plus, Send, Calendar, Users, Eye, Ban, Trash2, RotateCcw } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
+import Modal from '@/components/shared/Modal';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import { campaignService } from '@/services/campaigns';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 const statusColors = {
     draft: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
@@ -21,7 +21,6 @@ const statusColors = {
 };
 
 export default function CampaignsPage() {
-    const router = useRouter();
     const { hasRole, user } = useAuth();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -29,6 +28,7 @@ export default function CampaignsPage() {
     const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [pendingRetryCampaign, setPendingRetryCampaign] = useState<any>(null);
+    const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
     const [retrying, setRetrying] = useState(false);
     const loadedOrganizationRef = useRef<string | null>(null);
     const hasSendingCampaigns = campaigns.some(campaign => campaign.status === 'sending');
@@ -142,6 +142,27 @@ export default function CampaignsPage() {
         totalSent: campaigns.reduce((sum, c) => sum + (c.sent_count || 0), 0)
     };
 
+    const selectedMessage = selectedCampaign?.custom_message?.trim()
+        || selectedCampaign?.notification_templates?.message?.trim()
+        || 'No campaign message is available.';
+    const selectedSubject = selectedCampaign?.custom_subject?.trim()
+        || selectedCampaign?.notification_templates?.subject?.trim()
+        || '';
+    const selectedAudience = selectedCampaign?.target_all_customers
+        ? 'All Customers'
+        : selectedCampaign?.target_segments?.length
+            ? selectedCampaign.target_segments.join(', ')
+            : 'No audience selected';
+    const selectedChannel = selectedCampaign?.channel
+        ? selectedCampaign.channel.toUpperCase()
+        : '—';
+    const selectedCreatedAt = selectedCampaign?.created_at
+        ? new Date(selectedCampaign.created_at).toLocaleString()
+        : '—';
+    const selectedScheduledFor = selectedCampaign?.scheduled_for
+        ? new Date(selectedCampaign.scheduled_for).toLocaleString()
+        : 'Not scheduled';
+
     return (
         <>
         <ConfirmationDialog
@@ -170,6 +191,89 @@ export default function CampaignsPage() {
             onConfirm={doRetryFailed}
             onClose={() => setPendingRetryCampaign(null)}
         />
+        <Modal
+            isOpen={!!selectedCampaign}
+            onClose={() => setSelectedCampaign(null)}
+            title="Campaign Details"
+            size="lg"
+            footer={(
+                <Button variant="outline" onClick={() => setSelectedCampaign(null)}>
+                    Close
+                </Button>
+            )}
+        >
+            {selectedCampaign && (
+                <div className="space-y-5">
+                    <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                                {selectedCampaign.name}
+                            </h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[selectedCampaign.status as keyof typeof statusColors]}`}>
+                                {selectedCampaign.status}
+                            </span>
+                        </div>
+                        {selectedCampaign.description && (
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                {selectedCampaign.description}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Channel</p>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedChannel}</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Audience</p>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white break-words">{selectedAudience}</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Created</p>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedCreatedAt}</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Scheduled For</p>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedScheduledFor}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Delivery</h4>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-xl bg-gray-50 dark:bg-gray-900/50 p-3 text-center">
+                                <p className="text-xl font-semibold text-gray-900 dark:text-white">{selectedCampaign.target_count || 0}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Recipients</p>
+                            </div>
+                            <div className="rounded-xl bg-success-50 dark:bg-success-900/20 p-3 text-center">
+                                <p className="text-xl font-semibold text-success-700 dark:text-success-300">{selectedCampaign.sent_count || 0}</p>
+                                <p className="text-xs text-success-600 dark:text-success-400">Sent</p>
+                            </div>
+                            <div className="rounded-xl bg-danger-50 dark:bg-danger-900/20 p-3 text-center">
+                                <p className="text-xl font-semibold text-danger-700 dark:text-danger-300">{selectedCampaign.failed_count || 0}</p>
+                                <p className="text-xs text-danger-600 dark:text-danger-400">Failed</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Campaign Message</h4>
+                        {selectedSubject && (
+                            <div className="mb-3">
+                                <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Subject</p>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedSubject}</p>
+                            </div>
+                        )}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4">
+                            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800 dark:text-gray-200">
+                                {selectedMessage}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Modal>
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -315,7 +419,15 @@ export default function CampaignsPage() {
                                     )}
                                 </div>
 
-                                <div className="flex gap-2 ml-4">
+                                <div className="flex flex-wrap justify-end gap-2 ml-4">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        leftIcon={<Eye className="h-4 w-4" />}
+                                        onClick={() => setSelectedCampaign(campaign)}
+                                    >
+                                        View Details
+                                    </Button>
                                     {['completed', 'failed'].includes(campaign.status)
                                         && (campaign.failed_count || 0) > 0 && (
                                         <Button

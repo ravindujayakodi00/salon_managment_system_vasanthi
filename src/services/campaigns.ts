@@ -62,7 +62,7 @@ export const campaignService = {
                     try {
                         const { data: templates } = await supabase
                             .from('notification_templates')
-                            .select('id, name, message')
+                            .select('id, name, message, subject')
                             .eq('organization_id', organizationId)
                             .in('id', templateIds);
 
