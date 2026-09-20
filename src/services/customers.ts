@@ -10,6 +10,13 @@ interface CustomerInvoiceStats {
     last_services: string | null;
 }
 
+export type CustomerLastVisitSort = 'default' | 'asc' | 'desc';
+
+interface CustomerLastVisitSortRow {
+    customer_data: Record<string, unknown>;
+    total_count: number | string;
+}
+
 async function withInvoiceVisitStats(customers: any[], organizationId: string) {
     if (customers.length === 0) return customers;
 
@@ -36,8 +43,21 @@ async function withInvoiceVisitStats(customers: any[], organizationId: string) {
     });
 }
 
+function sortCustomersByLastVisit(customers: any[], sort: CustomerLastVisitSort) {
+    if (sort === 'default') return customers;
+
+    return [...customers].sort((first, second) => {
+        if (!first.last_visit && !second.last_visit) return 0;
+        if (!first.last_visit) return 1;
+        if (!second.last_visit) return -1;
+
+        const difference = new Date(first.last_visit).getTime() - new Date(second.last_visit).getTime();
+        return sort === 'asc' ? difference : -difference;
+    });
+}
+
 export const customersService = {
-    async searchCustomers(searchQuery: string) {
+    async searchCustomers(searchQuery: string, lastVisitSort: CustomerLastVisitSort = 'default') {
         if (!searchQuery || searchQuery.trim() === '') {
             return [];
         }
@@ -102,7 +122,8 @@ export const customersService = {
                 throw error;
             }
 
-            return withInvoiceVisitStats(data || [], organizationId);
+            const customers = await withInvoiceVisitStats(data || [], organizationId);
+            return sortCustomersByLastVisit(customers, lastVisitSort);
         } catch (error) {
             console.error('Error in searchCustomers:', error);
             return [];
@@ -112,10 +133,27 @@ export const customersService = {
     /**
      * Get all customers with pagination
      */
-    async getCustomers(page = 0, limit = 200) {
+    async getCustomers(page = 0, limit = 200, lastVisitSort: CustomerLastVisitSort = 'default') {
         const from = page * limit;
         const to = from + limit - 1;
         const organizationId = await getCurrentOrganizationId();
+
+        if (lastVisitSort !== 'default') {
+            const { data, error } = await supabase.rpc('get_customers_sorted_by_last_visit', {
+                p_organization_id: organizationId,
+                p_sort_direction: lastVisitSort,
+                p_limit: limit,
+                p_offset: from,
+            });
+
+            if (error) throw error;
+
+            const rows = (data || []) as CustomerLastVisitSortRow[];
+            const sortedCustomers = rows.map(row => row.customer_data);
+            const customers = await withInvoiceVisitStats(sortedCustomers, organizationId);
+            const count = rows.length > 0 ? Number(rows[0].total_count) : 0;
+            return { data: customers, count };
+        }
 
         const { data, error, count } = await supabase
             .from('customers')

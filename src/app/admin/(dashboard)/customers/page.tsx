@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Eye, Phone, Mail, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, Phone, Mail, Edit, Trash2, ChevronDown, MessageSquare } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import Input from '@/components/shared/Input';
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog';
 import AddCustomerModal from '@/components/customers/AddCustomerModal';
 import CustomerDetailsModal from '@/components/customers/CustomerDetailsModal';
+import SendCustomerMessageModal from '@/components/customers/SendCustomerMessageModal';
 import { Customer } from '@/lib/types';
 import { formatCurrency, formatDate, formatDaysSinceLastVisit } from '@/lib/utils';
-import { customersService } from '@/services/customers';
+import { customersService, type CustomerLastVisitSort } from '@/services/customers';
 import { useToast } from '@/context/ToastContext';
 
 const PAGE_SIZE = 200;
@@ -21,6 +22,7 @@ export default function CustomersPage() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [lastVisitSort, setLastVisitSort] = useState<CustomerLastVisitSort>('asc');
     const [currentPage, setCurrentPage] = useState(0);
     const [totalCount, setTotalCount] = useState<number | null>(null);
 
@@ -28,14 +30,16 @@ export default function CustomersPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showMessageModal, setShowMessageModal] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [messageCustomer, setMessageCustomer] = useState<Customer | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         setCurrentPage(0);
         setCustomers([]);
         fetchCustomers(0, true);
-    }, [searchQuery]);
+    }, [searchQuery, lastVisitSort]);
 
     const mapCustomer = (c: any): Customer => ({
         id: c.id,
@@ -57,10 +61,10 @@ export default function CustomersPage() {
             if (page === 0) setLoading(true); else setLoadingMore(true);
             let result: any[];
             if (searchQuery) {
-                result = await customersService.searchCustomers(searchQuery);
+                result = await customersService.searchCustomers(searchQuery, lastVisitSort);
                 setTotalCount(result.length);
             } else {
-                const response = await customersService.getCustomers(page, PAGE_SIZE);
+                const response = await customersService.getCustomers(page, PAGE_SIZE, lastVisitSort);
                 result = response.data || [];
                 setTotalCount(response.count ?? null);
             }
@@ -100,6 +104,16 @@ export default function CustomersPage() {
     const handleDeleteClick = (customer: Customer) => {
         setSelectedCustomer(customer);
         setShowDeleteDialog(true);
+    };
+
+    const handleSendMessage = (customer: Customer) => {
+        setMessageCustomer(customer);
+        setShowMessageModal(true);
+    };
+
+    const handleCloseMessageModal = () => {
+        setShowMessageModal(false);
+        setMessageCustomer(null);
     };
 
     const handleConfirmDelete = async () => {
@@ -144,14 +158,39 @@ export default function CustomersPage() {
             </div>
 
             {/* Search */}
-            <div className="card p-4 surface-panel">
-                <Input
-                    type="text"
-                    placeholder="Search by name, phone, or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    leftIcon={<Search className="h-5 w-5" />}
-                />
+            <div className="card p-4 surface-panel flex flex-col md:flex-row md:items-end gap-3">
+                <div className="flex-1">
+                    <label aria-hidden="true" className="hidden md:block text-sm font-medium mb-1.5">
+                        &nbsp;
+                    </label>
+                    <Input
+                        type="text"
+                        placeholder="Search by name, phone, or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        leftIcon={<Search className="h-5 w-5" />}
+                    />
+                </div>
+                <div className="md:w-64">
+                    <label
+                        htmlFor="last-visit-sort"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    >
+                        Sort by last visit
+                    </label>
+                    <div className="relative">
+                        <select
+                            id="last-visit-sort"
+                            value={lastVisitSort}
+                            onChange={(event) => setLastVisitSort(event.target.value as CustomerLastVisitSort)}
+                            className="w-full h-[46px] appearance-none pl-4 pr-10 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                            <option value="desc">Newest first</option>
+                            <option value="asc">Oldest first</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
             </div>
 
             {/* Customer Stats */}
@@ -254,6 +293,14 @@ export default function CustomersPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    leftIcon={<MessageSquare className="h-4 w-4" />}
+                                    onClick={() => handleSendMessage(customer)}
+                                >
+                                    Message
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     leftIcon={<Eye className="h-4 w-4" />}
                                     onClick={() => handleView(customer)}
                                 >
@@ -306,6 +353,12 @@ export default function CustomersPage() {
                 isOpen={showDetailsModal}
                 onClose={() => setShowDetailsModal(false)}
                 customer={selectedCustomer}
+            />
+
+            <SendCustomerMessageModal
+                isOpen={showMessageModal}
+                onClose={handleCloseMessageModal}
+                customer={messageCustomer}
             />
 
             {/* Delete Confirmation */}
